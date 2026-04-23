@@ -1,0 +1,20 @@
+# Dependencias
+node_modules/
+studio/node_modules/
+
+# Build output
+dist/
+studio/dist/
+
+# Env files
+.env
+.env.local
+studio/.env
+studio/.env.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Astro
+.astro/
