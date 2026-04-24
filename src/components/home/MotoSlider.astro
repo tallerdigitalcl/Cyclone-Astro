@@ -105,20 +105,10 @@ const hasMultipleSlides = motos.length > 1;
     const firstCard = track?.querySelector<HTMLElement>('.moto-slider__card');
     if (!firstCard) return 0;
 
-    const cardWidth = firstCard.getBoundingClientRect().width;
-    const gap = Number.parseFloat(getComputedStyle(track).columnGap || getComputedStyle(track).gap || '0');
+    const cardWidth = firstCard.offsetWidth;
+    const trackStyles = getComputedStyle(track);
+    const gap = Number.parseFloat(trackStyles.columnGap || trackStyles.gap || '0');
     return cardWidth + gap;
-  }
-
-  function updateControls() {
-    if (!viewport || !previousButton || !nextButton) return;
-
-    const maxScrollLeft = viewport.scrollWidth - viewport.clientWidth;
-    const currentScrollLeft = viewport.scrollLeft;
-    const tolerance = 8;
-
-    previousButton.toggleAttribute('disabled', currentScrollLeft <= tolerance);
-    nextButton.toggleAttribute('disabled', currentScrollLeft >= maxScrollLeft - tolerance);
   }
 
   function scrollSlider(direction) {
@@ -132,9 +122,6 @@ const hasMultipleSlides = motos.length > 1;
 
   previousButton?.addEventListener('click', () => scrollSlider(-1));
   nextButton?.addEventListener('click', () => scrollSlider(1));
-  viewport?.addEventListener('scroll', updateControls, { passive: true });
-  window.addEventListener('resize', updateControls);
-  updateControls();
 </script>
 
 <style>
@@ -289,7 +276,7 @@ const hasMultipleSlides = motos.length > 1;
   }
 
   .moto-slider__price {
-    @apply font-heading text-white text-h2;
+    @apply font-heading text-white text-h3;
     font-weight: 700;
   }
 

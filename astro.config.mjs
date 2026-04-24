@@ -6,6 +6,9 @@ import tailwind from '@astrojs/tailwind';
 export default defineConfig({
   site: 'https://cyclone-astro.pages.dev', // ← Cambia esto por tu dominio real
   integrations: [sitemap(), tailwind()],
+  build: {
+    inlineStylesheets: 'always',
+  },
   image: {
     // Permite imágenes externas desde Sanity CDN
     domains: ['cdn.sanity.io'],
