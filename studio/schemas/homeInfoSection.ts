@@ -1,4 +1,5 @@
 import { defineField, defineType } from 'sanity';
+import { createMobileImageField, createRequiredAltField } from './imageFields';
 
 export default defineType({
   name: 'homeInfoSection',
@@ -31,21 +32,15 @@ export default defineType({
     }),
     defineField({
       name: 'imagenFondo',
-      title: 'Imagen de fondo',
+      title: 'Imagen de fondo Desktop',
       type: 'image',
       options: {
         hotspot: true,
         accept: 'image/webp,image/avif',
       },
       fields: [
-        defineField({
-          name: 'alt',
-          title: 'Texto alternativo',
-          type: 'string',
-          description: 'Obligatorio para SEO y accesibilidad.',
-          validation: (Rule) =>
-            Rule.required().error('El texto alternativo es obligatorio para SEO y accesibilidad.'),
-        }),
+        createRequiredAltField(),
+        createMobileImageField(),
       ],
       validation: (Rule) => Rule.required(),
     }),

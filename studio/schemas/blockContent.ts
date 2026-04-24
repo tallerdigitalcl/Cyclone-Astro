@@ -1,4 +1,5 @@
 import { defineArrayMember, defineField, defineType } from 'sanity';
+import { createMobileImageField, createRequiredAltField } from './imageFields';
 
 export default defineType({
   title: 'Contenido',
@@ -16,14 +17,14 @@ export default defineType({
         { title: 'Cita', value: 'blockquote' },
       ],
       lists: [
-        { title: 'Viñetas', value: 'bullet' },
+        { title: 'Vinetas', value: 'bullet' },
         { title: 'Numerada', value: 'number' },
       ],
       marks: {
         decorators: [
           { title: 'Negrita', value: 'strong' },
           { title: 'Cursiva', value: 'em' },
-          { title: 'Código', value: 'code' },
+          { title: 'Codigo', value: 'code' },
           { title: 'Subrayado', value: 'underline' },
         ],
         annotations: [
@@ -36,11 +37,11 @@ export default defineType({
                 title: 'URL',
                 name: 'href',
                 type: 'url',
-                validation: Rule =>
+                validation: (Rule) =>
                   Rule.uri({ scheme: ['http', 'https', 'mailto', 'tel'] }),
               },
               {
-                title: 'Abrir en pestaña nueva',
+                title: 'Abrir en pestana nueva',
                 name: 'blank',
                 type: 'boolean',
                 initialValue: false,
@@ -52,14 +53,13 @@ export default defineType({
     }),
     defineArrayMember({
       type: 'image',
-      options: { hotspot: true },
+      options: {
+        hotspot: true,
+        accept: 'image/webp,image/avif',
+      },
       fields: [
-        defineField({
-          name: 'alt',
-          type: 'string',
-          title: 'Texto alternativo',
-          validation: Rule => Rule.required(),
-        }),
+        createRequiredAltField(),
+        createMobileImageField(),
         defineField({
           name: 'caption',
           type: 'string',

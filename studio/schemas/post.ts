@@ -1,4 +1,5 @@
 import { defineField, defineType } from 'sanity';
+import { createMobileImageField, createRequiredAltField } from './imageFields';
 
 export default defineType({
   name: 'post',
@@ -7,20 +8,20 @@ export default defineType({
   fields: [
     defineField({
       name: 'title',
-      title: 'Título',
+      title: 'Titulo',
       type: 'string',
-      validation: Rule => Rule.required().min(5).max(100),
+      validation: (Rule) => Rule.required().min(5).max(100),
     }),
     defineField({
       name: 'slug',
       title: 'Slug (URL)',
       type: 'slug',
-      description: 'URL de la entrada. Se genera automáticamente desde el título.',
+      description: 'URL de la entrada. Se genera automaticamente desde el titulo.',
       options: {
         source: 'title',
         maxLength: 96,
       },
-      validation: Rule => Rule.required(),
+      validation: (Rule) => Rule.required(),
     }),
     defineField({
       name: 'author',
@@ -30,30 +31,30 @@ export default defineType({
     }),
     defineField({
       name: 'mainImage',
-      title: 'Imagen principal',
+      title: 'Imagen principal Desktop',
       type: 'image',
-      options: { hotspot: true },
+      options: {
+        hotspot: true,
+        accept: 'image/webp,image/avif',
+      },
       fields: [
-        defineField({
-          name: 'alt',
-          type: 'string',
-          title: 'Texto alternativo',
+        createRequiredAltField({
           description: 'Importante para SEO y accesibilidad.',
-          validation: Rule => Rule.required(),
         }),
+        createMobileImageField(),
       ],
     }),
     defineField({
       name: 'excerpt',
       title: 'Extracto',
-      description: 'Resumen corto para listados y meta descripción SEO (máx. 200 caracteres).',
+      description: 'Resumen corto para listados y meta descripcion SEO (max. 200 caracteres).',
       type: 'text',
       rows: 3,
-      validation: Rule => Rule.max(200),
+      validation: (Rule) => Rule.max(200),
     }),
     defineField({
       name: 'publishedAt',
-      title: 'Fecha de publicación',
+      title: 'Fecha de publicacion',
       type: 'datetime',
     }),
     defineField({

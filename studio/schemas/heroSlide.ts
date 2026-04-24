@@ -1,4 +1,5 @@
 import { defineField, defineType } from 'sanity';
+import { createRequiredAltField } from './imageFields';
 
 export default defineType({
   name: 'heroSlide',
@@ -7,38 +8,38 @@ export default defineType({
   fields: [
     defineField({
       name: 'titulo1',
-      title: 'Título 1 (blanco)',
+      title: 'Titulo 1 (blanco)',
       type: 'string',
-      description: 'Primera línea del título principal, se muestra en blanco.',
+      description: 'Primera linea del titulo principal, se muestra en blanco.',
       validation: (Rule) => Rule.required(),
     }),
     defineField({
       name: 'titulo2',
-      title: 'Título 2 (rojo)',
+      title: 'Titulo 2 (rojo)',
       type: 'string',
-      description: 'Segunda línea del título, se muestra en rojo.',
+      description: 'Segunda linea del titulo, se muestra en rojo.',
     }),
     defineField({
       name: 'descripcion',
-      title: 'Descripción',
+      title: 'Descripcion',
       type: 'string',
-      description: 'Texto pequeño debajo del título. Ej: #Live to Roll',
+      description: 'Texto pequeno debajo del titulo. Ej: #Live to Roll',
     }),
     defineField({
       name: 'botonTexto',
-      title: 'Texto del botón',
+      title: 'Texto del boton',
       type: 'string',
-      description: 'Ej: Cotiza aquí',
+      description: 'Ej: Cotiza aqui',
     }),
     defineField({
       name: 'botonUrl',
-      title: 'URL del botón',
+      title: 'URL del boton',
       type: 'string',
-      description: 'Ruta o URL a la que apunta el botón. Ej: /motos/ra2',
+      description: 'Ruta o URL a la que apunta el boton. Ej: /motos/ra2',
     }),
     defineField({
       name: 'stats',
-      title: 'Estadísticas',
+      title: 'Estadisticas',
       type: 'array',
       description: 'Hasta 3 especificaciones que aparecen en el panel lateral (ej: Cilindrada, Potencia, Peso).',
       of: [
@@ -56,7 +57,7 @@ export default defineType({
               name: 'valor',
               title: 'Valor',
               type: 'string',
-              description: 'Número grande. Ej: 250',
+              description: 'Numero grande. Ej: 250',
               validation: (Rule) => Rule.required(),
             }),
             defineField({
@@ -75,19 +76,16 @@ export default defineType({
     }),
     defineField({
       name: 'imagen',
-      title: 'Imagen de fondo',
+      title: 'Imagen de fondo Desktop',
       type: 'image',
       options: {
         hotspot: true,
         accept: 'image/webp,image/avif',
       },
       fields: [
-        defineField({
-          name: 'alt',
-          title: 'Texto alternativo (SEO)',
-          type: 'string',
-          description: 'Describe la imagen para motores de búsqueda y accesibilidad.',
-          validation: (Rule) => Rule.required().error('El texto alternativo es obligatorio para SEO.'),
+        createRequiredAltField({
+          title: 'Texto alternativo Desktop (SEO)',
+          description: 'Describe la imagen desktop para motores de busqueda y accesibilidad.',
         }),
       ],
       validation: (Rule) => Rule.required(),
@@ -105,22 +103,17 @@ export default defineType({
           name: 'alt',
           title: 'Texto alternativo Mobile (SEO)',
           type: 'string',
-          description: 'Describe la imagen mobile para motores de búsqueda y accesibilidad.',
-          validation: (Rule) =>
-            Rule.custom((value, context) => {
-              if (context?.parent?.asset && !value) {
-                return 'Si subes imagen mobile, el ALT es obligatorio.';
-              }
-              return true;
-            }),
+          description: 'Describe la imagen mobile para motores de busqueda y accesibilidad.',
+          validation: (Rule) => Rule.required().error('El texto alternativo mobile es obligatorio para SEO.'),
         }),
       ],
+      validation: (Rule) => Rule.required().error('La imagen mobile es obligatoria.'),
     }),
     defineField({
       name: 'orden',
       title: 'Orden',
       type: 'number',
-      description: 'Número que define el orden del slide. Menor número = primero.',
+      description: 'Numero que define el orden del slide. Menor numero = primero.',
       initialValue: 1,
       validation: (Rule) => Rule.required().min(1),
     }),

@@ -1,4 +1,5 @@
 import { defineField, defineType } from 'sanity';
+import { createMobileImageField, createRequiredAltField } from './imageFields';
 
 export default defineType({
   name: 'moto',
@@ -65,13 +66,10 @@ export default defineType({
             accept: 'image/webp,image/avif',
           },
           fields: [
-            defineField({
-              name: 'alt',
-              title: 'Texto alternativo',
-              type: 'string',
-              validation: (Rule) =>
-                Rule.required().error('El texto alternativo es obligatorio para SEO y accesibilidad.'),
+            createRequiredAltField({
+              title: 'Texto alternativo Desktop',
             }),
+            createMobileImageField(),
           ],
         },
       ],
@@ -79,7 +77,7 @@ export default defineType({
     }),
     defineField({
       name: 'imagenSliderHome',
-      title: 'Imagen slider home',
+      title: 'Imagen slider home Desktop',
       type: 'image',
       group: 'hero',
       options: {
@@ -87,13 +85,10 @@ export default defineType({
         accept: 'image/webp,image/avif',
       },
       fields: [
-        defineField({
-          name: 'alt',
-          title: 'Texto alternativo',
-          type: 'string',
-          validation: (Rule) =>
-            Rule.required().error('El texto alternativo es obligatorio para SEO y accesibilidad.'),
+        createRequiredAltField({
+          title: 'Texto alternativo Desktop',
         }),
+        createMobileImageField(),
       ],
       validation: (Rule) => Rule.required(),
     }),
@@ -122,20 +117,17 @@ export default defineType({
             }),
             defineField({
               name: 'imagen',
-              title: 'Foto de la motocicleta para este color',
+              title: 'Foto de la motocicleta para este color (Desktop)',
               type: 'image',
               options: {
                 hotspot: true,
                 accept: 'image/webp,image/avif',
               },
               fields: [
-                defineField({
-                  name: 'alt',
-                  title: 'Texto alternativo',
-                  type: 'string',
-                  validation: (Rule) =>
-                    Rule.required().error('El texto alternativo es obligatorio para SEO y accesibilidad.'),
+                createRequiredAltField({
+                  title: 'Texto alternativo Desktop',
                 }),
+                createMobileImageField(),
               ],
               validation: (Rule) => Rule.required(),
             }),
@@ -177,20 +169,17 @@ export default defineType({
             }),
             defineField({
               name: 'imagen',
-              title: 'Foto de la caracteristica',
+              title: 'Foto de la caracteristica (Desktop)',
               type: 'image',
               options: {
                 hotspot: true,
                 accept: 'image/webp,image/avif',
               },
               fields: [
-                defineField({
-                  name: 'alt',
-                  title: 'Texto alternativo',
-                  type: 'string',
-                  validation: (Rule) =>
-                    Rule.required().error('El texto alternativo es obligatorio para SEO y accesibilidad.'),
+                createRequiredAltField({
+                  title: 'Texto alternativo Desktop',
                 }),
+                createMobileImageField(),
               ],
               validation: (Rule) => Rule.required(),
             }),
@@ -234,13 +223,10 @@ export default defineType({
             accept: 'image/webp,image/avif',
           },
           fields: [
-            defineField({
-              name: 'alt',
-              title: 'Texto alternativo',
-              type: 'string',
-              validation: (Rule) =>
-                Rule.required().error('El texto alternativo es obligatorio para SEO y accesibilidad.'),
+            createRequiredAltField({
+              title: 'Texto alternativo Desktop',
             }),
+            createMobileImageField(),
           ],
         },
       ],

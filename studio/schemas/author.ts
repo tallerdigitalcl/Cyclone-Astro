@@ -1,4 +1,5 @@
 import { defineField, defineType } from 'sanity';
+import { createMobileImageField, createRequiredAltField } from './imageFields';
 
 export default defineType({
   name: 'author',
@@ -9,7 +10,7 @@ export default defineType({
       name: 'name',
       title: 'Nombre',
       type: 'string',
-      validation: Rule => Rule.required(),
+      validation: (Rule) => Rule.required(),
     }),
     defineField({
       name: 'slug',
@@ -22,22 +23,22 @@ export default defineType({
     }),
     defineField({
       name: 'image',
-      title: 'Foto de perfil',
+      title: 'Foto de perfil Desktop',
       type: 'image',
-      options: { hotspot: true },
+      options: {
+        hotspot: true,
+        accept: 'image/webp,image/avif',
+      },
       fields: [
-        defineField({
-          name: 'alt',
-          type: 'string',
-          title: 'Texto alternativo',
+        createRequiredAltField({
           description: 'Importante para SEO y accesibilidad.',
-          validation: Rule => Rule.required(),
         }),
+        createMobileImageField(),
       ],
     }),
     defineField({
       name: 'bio',
-      title: 'Biografía',
+      title: 'Biografia',
       type: 'text',
       rows: 4,
     }),
