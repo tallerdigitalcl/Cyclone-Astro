@@ -1,0 +1,313 @@
+---
+import { urlFor } from '../../lib/sanity';
+import type { HeroSlide } from '../../lib/types';
+
+interface Props {
+  slides: HeroSlide[];
+}
+
+const { slides } = Astro.props;
+const isSlider = slides.length > 1;
+---
+
+{slides.length > 0 && (
+  <section class="hero" aria-label="Hero" aria-roledescription="carousel">
+    <div class="hero__track" id="hero-track">
+      {slides.map((slide, i) => {
+        const imgUrl    = urlFor(slide.imagen).width(1600).quality(85).auto('format').url();
+        const imgUrl2x  = urlFor(slide.imagen).width(2560).quality(80).auto('format').url();
+        const mobileImage = slide.imagenMobile ?? slide.imagen;
+        const imgMobile = urlFor(mobileImage).width(800).quality(85).auto('format').url();
+        return (
+          <div
+            class="hero__slide"
+            id={`hero-slide-${i}`}
+            role="group"
+            aria-roledescription="slide"
+            aria-label={`Slide ${i + 1} de ${slides.length}`}
+          >
+            <picture>
+              <source media="(max-width: 767px)" srcset={imgMobile} />
+              <img
+                class="hero__bg"
+                src={imgUrl}
+                srcset={`${imgUrl} 1600w, ${imgUrl2x} 2560w`}
+                sizes="100vw"
+                alt={slide.imagen.alt || ''}
+                width="1600"
+                height="600"
+                loading={i === 0 ? 'eager' : 'lazy'}
+                fetchpriority={i === 0 ? 'high' : 'auto'}
+                decoding={i === 0 ? 'sync' : 'async'}
+              />
+            </picture>
+
+            <div class="hero__overlay" aria-hidden="true"></div>
+
+            <div class="hero__container">
+              <div class="hero__content">
+                {slide.titulo1 && <h2 class="hero__title1">{slide.titulo1}</h2>}
+                {slide.titulo2 && <p class="hero__title2">{slide.titulo2}</p>}
+                {slide.descripcion && <p class="hero__desc">{slide.descripcion}</p>}
+                {slide.botonTexto && slide.botonUrl && (
+                  <a href={slide.botonUrl} class="hero__cta">{slide.botonTexto}</a>
+                )}
+              </div>
+              {slide.stats && slide.stats.length > 0 && (
+              <div class="hero__stats" aria-label="Especificaciones">
+                {slide.stats.map((stat, index) => (
+                  <div class="hero__stat" key={index}>
+                    <span class="hero__stat-label">{stat.etiqueta}</span>
+                    <div class="hero__stat-value">
+                      {stat.valor}
+                      {stat.unidad && <span class="hero__stat-unit">{stat.unidad}</span>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            </div>
+
+            
+          </div>
+        );
+      })}
+    </div>
+
+    {isSlider && (
+      <div class="hero__dots" role="tablist" aria-label="Navegación de slides">
+        {slides.map((_, i) => (
+          <button
+            class={`hero__dot${i === 0 ? ' hero__dot--active' : ''}`}
+            role="tab"
+            aria-selected={i === 0 ? 'true' : 'false'}
+            aria-label={`Ir al slide ${i + 1}`}
+            data-index={i}
+          ></button>
+        ))}
+      </div>
+    )}
+  </section>
+)}
+
+<script>
+  const track = document.getElementById('hero-track');
+  const dots = document.querySelectorAll<HTMLButtonElement>('.hero__dot');
+
+  if (track && dots.length > 0) {
+    // Click en dot → scroll al slide correspondiente
+    dots.forEach((dot) => {
+      dot.addEventListener('click', () => {
+        const index = Number(dot.dataset.index);
+        const slide = document.getElementById(`hero-slide-${index}`);
+        slide?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'start' });
+      });
+    });
+
+    // IntersectionObserver → sincroniza el dot activo al scrollear
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            const index = Number((entry.target as HTMLElement).id.split('-').pop());
+            dots.forEach((d, i) => {
+              d.classList.toggle('hero__dot--active', i === index);
+              d.setAttribute('aria-selected', i === index ? 'true' : 'false');
+            });
+          }
+        });
+      },
+      { root: track, threshold: 0.6 }
+    );
+
+    document.querySelectorAll('[id^="hero-slide-"]').forEach((slide) => observer.observe(slide));
+  }
+</script>
+
+<style>
+  /* ---- Sección ---- */
+  .hero {
+    @apply relative overflow-hidden;
+    min-height: 100dvh;
+  }
+
+  /* ---- Track (scroll snap) ---- */
+  .hero__track {
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scroll-behavior: smooth;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    min-height: 100dvh;
+  }
+  .hero__track::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* ---- Slide ---- */
+  .hero__slide {
+    position: relative;
+    scroll-snap-align: start;
+    flex: 0 0 100%;
+    width: 100%;
+    min-height: 100dvh;
+    padding-top: var(--header-height);
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+  }
+
+  /* ---- Imagen de fondo ---- */
+  .hero__bg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center right;
+    z-index: 0;
+  }
+
+  /* ---- Overlay gradiente oscuro a la izquierda ---- */
+  .hero__overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      90deg,
+      #1a1a1a 0%,
+      #1a1a1a 10%,
+      rgba(26, 26, 26, 0.72) 25%,
+      transparent 55%
+    );
+    z-index: 1;
+  }
+
+  /* ---- Wrapper para alinear con el container global ---- */
+  .hero__container {
+    @apply relative z-10 w-full flex justify-between items-center;
+    max-width: var(--container-max);
+    margin: 0 auto;
+    padding: 0 var(--container-padding);
+  }
+
+  /* ---- Contenido textual ---- */
+  .hero__content {
+    @apply flex flex-col;
+    max-width: 600px;
+    padding: 3.5rem 0;
+  }
+
+  .hero__title1 {
+    @apply font-black leading-none uppercase font-medium;
+    font-family: var(--font-heading);
+    font-size: var(--text-h1);
+    color: #ffffff;
+    line-height: 1.05;
+    letter-spacing: 0.02em;
+  }
+
+  .hero__title2 {
+    @apply font-black leading-none uppercase font-medium;
+    font-family: var(--font-heading);
+    font-size: var(--text-h1);
+    color: var(--color-primary);
+    line-height: 1.05;
+    letter-spacing: 0.02em;
+    margin-top: 0.05em;
+  }
+
+  .hero__desc {
+    @apply mt-3 tracking-wide text-h4 py-8 m-0;
+    
+    color: rgba(255, 255, 255, 0.72);
+  }
+
+  .hero__cta {
+    @apply inline-block mt-7 font-bold uppercase tracking-widest;
+    padding: 0.875rem 3.5rem;
+    background-color: var(--color-primary);
+    color: #ffffff;
+    font-size: 0.8125rem;
+    align-self: flex-start;
+    transition: background-color var(--transition-base);
+  }
+  .hero__cta:hover {
+    background-color: var(--color-primary-dark);
+    text-decoration: none;
+    color: #ffffff;
+  }
+
+  /* ---- Panel de estadísticas (derecha) ---- */
+  .hero__stats {
+    @apply relative z-10;
+    padding: 0 var(--container-padding);
+  }
+
+  .hero__stat {
+    @apply flex flex-col gap-1;
+    min-height: 5.5rem;
+    padding: 1.5rem 1.25rem;
+    background: rgba(255, 255, 255, 0.18);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+  }
+
+  .hero__stat-label {
+    font-size: 0.6rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    color: var(--color-primary);
+  }
+
+  .hero__stat-value {
+    display: flex;
+    align-items: baseline;
+    gap: 0.2em;
+    font-size: 2.5rem;
+    font-weight: 900;
+    color: var(--color-primary);
+    line-height: 1;
+  }
+
+  .hero__stat-unit {
+    @apply font-medium;
+    font-size: 0.9rem;
+    color: var(--color-primary);
+  }
+
+  /* ---- Dots de navegación ---- */
+  .hero__dots {
+    @apply absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-20;
+  }
+
+  .hero__dot {
+    width: 0.625rem;
+    height: 0.625rem;
+    border-radius: 9999px;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    background: rgba(255, 255, 255, 0.4);
+    transition: width 0.25s ease, background 0.25s ease;
+  }
+
+  .hero__dot--active {
+    width: 1.75rem;
+    background: #ffffff;
+  }
+
+  /* ---- Mobile ---- */
+  @media (max-width: 767px) {
+    .hero__stats {
+      display: none;
+    }
+
+    .hero__content {
+      max-width: 100%;
+      padding: 2rem 0;
+    }
+  }
+</style>
+

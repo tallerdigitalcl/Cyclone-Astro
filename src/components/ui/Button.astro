@@ -1,0 +1,32 @@
+---
+// Botón reutilizable
+// Props: href, variant, size, target
+interface Props {
+  href?: string;
+  variant?: 'primary' | 'secondary' | 'outline' | 'ghost';
+  size?: 'sm' | 'md' | 'lg';
+  target?: '_blank' | '_self';
+  type?: 'button' | 'submit';
+  class?: string;
+}
+
+const {
+  href,
+  variant = 'primary',
+  size = 'md',
+  target = '_self',
+  type = 'button',
+  class: className,
+} = Astro.props;
+
+const Tag = href ? 'a' : 'button';
+---
+
+<Tag
+  href={href}
+  target={href ? target : undefined}
+  type={!href ? type : undefined}
+  class:list={['btn', `btn--${variant}`, `btn--${size}`, className]}
+>
+  <slot />
+</Tag>

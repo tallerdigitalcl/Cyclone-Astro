@@ -1,0 +1,19 @@
+---
+// Grid de motocicletas en oferta/destacadas
+// Datos: motos con enOferta: true desde Sanity
+// Props: motos (Moto[])
+import type { Moto } from '../../lib/types';
+import MotoCard from '../motos/MotoCard.astro';
+
+interface Props {
+  motos: Moto[];
+}
+
+const { motos } = Astro.props;
+---
+
+<section id="motos-oferta">
+  <!-- Título de sección -->
+  <!-- Grid de MotoCard -->
+  <!-- Botón "Ver todas" → /motos -->
+</section>

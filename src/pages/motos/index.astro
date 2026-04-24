@@ -1,0 +1,26 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import MotoCard from '../../components/motos/MotoCard.astro';
+import { sanityClient } from '../../lib/sanity';
+import { motosQuery } from '../../lib/queries';
+import type { Moto } from '../../lib/types';
+
+const motos = await sanityClient.fetch<Moto[]>(motosQuery);
+---
+
+<BaseLayout
+  title="Catálogo de Motos | Cyclone Motos"
+  description="Explora nuestro catálogo completo de motocicletas. Encuentra la moto perfecta para ti."
+>
+  <div class="container mx-auto px-4 py-16">
+    <h1>Nuestras Motos</h1>
+
+    {motos.length > 0 ? (
+      <div class="motos-grid">
+        {motos.map(moto => <MotoCard moto={moto} />)}
+      </div>
+    ) : (
+      <p>No hay motos disponibles en este momento.</p>
+    )}
+  </div>
+</BaseLayout>

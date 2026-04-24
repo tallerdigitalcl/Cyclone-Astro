@@ -1,0 +1,109 @@
+import type { HomeSliderMoto, Moto, PromobilityMotoModel } from './types';
+
+const DEFAULT_BASE_URL = 'https://track.promobility.cl/api/vehiculos/modelo';
+const DEFAULT_SITE_ID = '6';
+const DEFAULT_ORIGIN = 'cyclonemotos.cl';
+const REQUEST_TIMEOUT_MS = 30_000;
+
+function normalizePrice(value?: string | null) {
+  if (!value) {
+    return null;
+  }
+
+  const trimmedValue = value.trim();
+
+  if (!trimmedValue) {
+    return null;
+  }
+
+  const numericValue = Number.parseInt(trimmedValue.replace(/[^\d]/g, ''), 10);
+
+  if (Number.isNaN(numericValue)) {
+    return trimmedValue.replace(/,/g, '.');
+  }
+
+  return new Intl.NumberFormat('es-CL').format(numericValue);
+}
+
+function getPromobilityConfig() {
+  const token = import.meta.env.PROMOBILITY_API_TOKEN;
+
+  if (!token) {
+    throw new Error('Falta PROMOBILITY_API_TOKEN para consultar Promobility.');
+  }
+
+  return {
+    baseUrl: import.meta.env.PROMOBILITY_API_BASE_URL || DEFAULT_BASE_URL,
+    origin: import.meta.env.PROMOBILITY_API_ORIGIN || DEFAULT_ORIGIN,
+    siteId: import.meta.env.PROMOBILITY_API_SITE_ID || DEFAULT_SITE_ID,
+    token,
+  };
+}
+
+export async function fetchPromobilityModelo(idVehiculo: string): Promise<PromobilityMotoModel> {
+  const config = getPromobilityConfig();
+  const url = new URL(config.baseUrl);
+  url.searchParams.set('id_web', config.siteId);
+  url.searchParams.set('id_vehiculo', idVehiculo);
+
+  const response = await fetch(url, {
+    headers: {
+      Authorization: `Bearer ${config.token}`,
+      Origin: config.origin,
+    },
+    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+  });
+
+  const rawBody = await response.text();
+
+  if (!response.ok) {
+    throw new Error(
+      `Promobility devolvio ${response.status} para id_vehiculo=${idVehiculo}: ${rawBody.slice(0, 180)}`
+    );
+  }
+
+  return JSON.parse(rawBody) as PromobilityMotoModel;
+}
+
+export async function buildHomeSliderMotos(motos: Moto[]): Promise<HomeSliderMoto[]> {
+  const sliderMotos = motos.filter(
+    (moto) => moto.apiMotoId && moto.slug && moto.imagenSliderHome?.asset?._ref
+  );
+
+  const uniqueIds = [...new Set(sliderMotos.map((moto) => moto.apiMotoId!))];
+  const apiEntries = await Promise.all(
+    uniqueIds.map(async (id) => {
+      try {
+        const model = await fetchPromobilityModelo(id);
+        return [id, model] as const;
+      } catch (error) {
+        console.warn(
+          `No se pudo consultar Promobility para la moto ${id}:`,
+          error instanceof Error ? error.message : error
+        );
+        return [id, null] as const;
+      }
+    })
+  );
+
+  const apiById = new Map(apiEntries);
+
+  return sliderMotos
+    .map((moto) => {
+      const apiModel = apiById.get(moto.apiMotoId!);
+
+      if (!apiModel) {
+        return null;
+      }
+
+      return {
+        ...moto,
+        apiModel,
+        displayName: apiModel.modelo || moto.nombre,
+        displayPrice: normalizePrice(apiModel.precio),
+        displayListPrice: normalizePrice(apiModel.precio_lista),
+        displayBonus: null,
+      } satisfies HomeSliderMoto;
+    })
+    .filter((moto): moto is HomeSliderMoto => Boolean(moto));
+}

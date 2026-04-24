@@ -1,16 +1,20 @@
 ---
 import '../styles/global.css';
+import Header from '../components/layout/Header.astro';
+import Footer from '../components/layout/Footer.astro';
 
 interface Props {
   title: string;
   description?: string;
   image?: string;
+  heroImageUrl?: string;
 }
 
 const {
   title,
-  description = 'Sitio web construido con Astro y Sanity CMS',
+  description = 'Cyclone Motos — Tu mejor aliado sobre dos ruedas',
   image,
+  heroImageUrl,
 } = Astro.props;
 
 const canonicalURL = new URL(Astro.url.pathname, Astro.site);
@@ -23,6 +27,12 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="generator" content={Astro.generator} />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&family=Roboto:wght@400;500;700;900&display=swap"
+    />
 
     <!-- SEO primario -->
     <title>{title}</title>
@@ -41,27 +51,23 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
     <meta name="twitter:title" content={title} />
     <meta name="twitter:description" content={description} />
     {image && <meta name="twitter:image" content={image} />}
+
+    <!-- Preload logo del header para evitar layout shift -->
+    <link rel="preload" href="/header/cyclone-logo.webp" as="image" type="image/webp" fetchpriority="high" />
+
+    <!-- Preload imagen hero (LCP) si se provee desde la página -->
+    {heroImageUrl && (
+      <link rel="preload" href={heroImageUrl} as="image" fetchpriority="high" />
+    )}
   </head>
   <body>
-    <header class="site-header">
-      <div class="container">
-        <a href="/" class="logo">Astro Cyclone</a>
-        <nav>
-          <a href="/">Inicio</a>
-          <a href="/blog">Blog</a>
-        </nav>
-      </div>
-    </header>
+    <Header />
 
     <main>
       <slot />
     </main>
 
-    <footer class="site-footer">
-      <div class="container">
-        <p>&copy; {new Date().getFullYear()} Astro Cyclone. Todos los derechos reservados.</p>
-      </div>
-    </footer>
+    <Footer />
   </body>
 </html>
 

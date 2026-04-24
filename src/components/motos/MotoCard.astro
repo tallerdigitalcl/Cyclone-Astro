@@ -1,0 +1,21 @@
+---
+// Tarjeta de motocicleta para grids y listados
+// Props: moto (Moto)
+import type { Moto } from '../../lib/types';
+import { urlFor } from '../../lib/sanity';
+
+interface Props {
+  moto: Moto;
+}
+
+const { moto } = Astro.props;
+---
+
+<article class="moto-card">
+  <!-- Imagen principal -->
+  <!-- Badge "En oferta" si aplica -->
+  <!-- Nombre / modelo -->
+  <!-- Año -->
+  <!-- Precio -->
+  <!-- Botón "Ver detalle" → /motos/[slug] -->
+</article>

@@ -1,0 +1,19 @@
+---
+// Últimas noticias del blog
+// Datos: últimos 3 posts desde Sanity
+// Props: posts (Post[])
+import type { Post } from '../../lib/types';
+import PostCard from '../ui/PostCard.astro';
+
+interface Props {
+  posts: Post[];
+}
+
+const { posts } = Astro.props;
+---
+
+<section id="latest-news">
+  <!-- Título de sección -->
+  <!-- Grid de PostCard (máx 3) -->
+  <!-- Botón "Ver todas las noticias" → /blog -->
+</section>

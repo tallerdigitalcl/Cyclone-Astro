@@ -25,6 +25,15 @@ export default defineType({
       title: 'Foto de perfil',
       type: 'image',
       options: { hotspot: true },
+      fields: [
+        defineField({
+          name: 'alt',
+          type: 'string',
+          title: 'Texto alternativo',
+          description: 'Importante para SEO y accesibilidad.',
+          validation: Rule => Rule.required(),
+        }),
+      ],
     }),
     defineField({
       name: 'bio',

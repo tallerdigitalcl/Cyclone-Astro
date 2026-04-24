@@ -1,0 +1,29 @@
+---
+// Tarjeta de artículo/noticia para grids de blog
+// Props: post (Post)
+import type { Post } from '../../lib/types';
+import { urlFor } from '../../lib/sanity';
+
+interface Props {
+  post: Post;
+}
+
+const { post } = Astro.props;
+
+const formattedDate = post.publishedAt
+  ? new Date(post.publishedAt).toLocaleDateString('es-CL', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    })
+  : null;
+---
+
+<article class="post-card">
+  <!-- Imagen -->
+  <!-- Fecha -->
+  <!-- Título -->
+  <!-- Excerpt -->
+  <!-- Autor -->
+  <!-- Botón "Leer más" → /blog/[slug] -->
+</article>

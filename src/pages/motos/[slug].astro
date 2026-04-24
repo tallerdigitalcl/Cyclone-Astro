@@ -1,0 +1,32 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { sanityClient, urlFor } from '../../lib/sanity';
+import { motoBySlugQuery, allMotoSlugsQuery } from '../../lib/queries';
+import type { Moto } from '../../lib/types';
+
+export async function getStaticPaths() {
+  const slugs = await sanityClient.fetch<{ slug: string }[]>(allMotoSlugsQuery);
+  return slugs.map(({ slug }) => ({ params: { slug } }));
+}
+
+const { slug } = Astro.params;
+const moto = await sanityClient.fetch<Moto>(motoBySlugQuery, { slug });
+
+if (!moto) {
+  return Astro.redirect('/motos');
+}
+---
+
+<BaseLayout
+  title={`${moto.nombre} | Cyclone Motos`}
+  description={moto.descripcion ?? `Conoce la ${moto.nombre}, disponible en Cyclone Motos.`}
+  image={moto.imagenPrincipal ? urlFor(moto.imagenPrincipal).width(1200).height(630).url() : undefined}
+>
+  <!-- Detalle de la moto — diseño pendiente -->
+  <div class="container mx-auto px-4 py-16">
+    <h1>{moto.nombre}</h1>
+    {moto.marca && <p>{moto.marca}</p>}
+    {moto.anio && <p>{moto.anio}</p>}
+    {moto.precio && <p>${moto.precio.toLocaleString('es-CL')}</p>}
+  </div>
+</BaseLayout>

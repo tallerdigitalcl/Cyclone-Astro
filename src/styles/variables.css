@@ -1,0 +1,78 @@
+/* ============================================================
+   VARIABLES GLOBALES DE MARCA
+   Cambiar estas variables adapta el sitio a cualquier marca.
+   ============================================================ */
+
+:root {
+  /* --- Brand colors --- */
+  --color-primary: #d6000f;
+  --color-primary-dark: #a8000c;
+  --color-primary-light: #ff3b47;
+
+  --color-secondary: #1a1c1c;
+  --color-secondary-dark: #101111;
+  --color-secondary-light: #2b2e2e;
+
+  --color-accent: #fc6108;
+  --color-button: var(--color-accent);
+
+  /* --- Neutral colors --- */
+  --color-bg: #ffffff;
+  --color-bg-alt: #f7f7f7;
+  --color-bg-dark: #111111;
+
+  --color-text: #1a1c1c;
+  --color-text-muted: #5f6368;
+  --color-text-light: #ffffff;
+  --color-border: #e9eaeb;
+
+  /* Compatibility aliases used by existing components */
+  --color-muted: var(--color-text-muted);
+
+  /* --- Typography --- */
+  --font-heading: 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+  --font-body: 'Manrope', 'Helvetica Neue', Arial, sans-serif;
+  --font-sans: var(--font-body);
+
+  --text-h1: clamp(3.125rem, 2.46rem + 2.84vw, 5rem);
+  --text-h2: clamp(1.875rem, 1.43rem + 1.88vw, 3.125rem);
+  --text-h3: clamp(1.5625rem, 1.32rem + 1.03vw, 2.25rem);
+  --text-h4: clamp(1.125rem, 0.86rem + 1.13vw, 1.875rem);
+  --text-body-lg: clamp(1rem, 0.91rem + 0.38vw, 1.25rem);
+  --text-body: clamp(0.875rem, 0.82rem + 0.23vw, 1rem);
+  --text-body-sm: clamp(0.75rem, 0.71rem + 0.19vw, 0.875rem);
+  --text-button: 0.875rem;
+
+  --leading-display: 0.95;
+  --leading-heading: 1;
+  --leading-subheading: 1.08;
+  --leading-body: 1.65;
+  --leading-compact: 1.5;
+
+  /* --- Spacing --- */
+  --container-max: 1280px;
+  --container-padding: 1.5rem;
+  --max-width: 1100px;
+  --content-width: 720px;
+  --section-spacing: 5rem;
+  --section-spacing-sm: 3rem;
+
+  /* --- Borders and radii --- */
+  --radius-sm: 0.375rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1.25rem;
+
+  /* --- Shadows --- */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.10);
+  --shadow-lg: 0 8px 30px rgba(0, 0, 0, 0.14);
+
+  /* --- Transitions --- */
+  --transition-base: 0.2s ease;
+  --transition-slow: 0.4s ease;
+
+  /* --- Header --- */
+  --header-height: 72px;
+  --header-bg: var(--color-secondary);
+  --header-text: #ffffff;
+}

@@ -1,0 +1,142 @@
+---
+import { urlFor } from '../../lib/sanity';
+import type { HomeInfoSection } from '../../lib/types';
+
+interface Props {
+  section?: HomeInfoSection | null;
+}
+
+const { section } = Astro.props;
+
+const backgroundImage = section?.imagenFondo
+  ? urlFor(section.imagenFondo).width(1800).quality(82).auto('format').url()
+  : null;
+
+const backgroundImage2x = section?.imagenFondo
+  ? urlFor(section.imagenFondo).width(2800).quality(76).auto('format').url()
+  : null;
+
+const backgroundAlt = section?.imagenFondo?.alt || section?.titulo || 'Sección informativa de Cyclone Motos';
+---
+
+{section && (
+  <section class="info-section" aria-labelledby="info-section-title">
+    <article class="info-section__panel">
+      <div class="info-section__media">
+        {backgroundImage && (
+          <img
+            class="info-section__image"
+            src={backgroundImage}
+            srcset={backgroundImage2x ? `${backgroundImage} 1800w, ${backgroundImage2x} 2800w` : undefined}
+            sizes="100vw"
+            alt={backgroundAlt}
+            width="1800"
+            height="1000"
+            loading="lazy"
+            decoding="async"
+          />
+        )}
+      </div>
+
+      <div class="info-section__container">
+        <div class="info-section__content">
+          <h2 id="info-section-title" class="info-section__title">{section.titulo}</h2>
+          <p class="info-section__description">{section.descripcion}</p>
+
+          {section.botonTexto && section.botonUrl && (
+            <a href={section.botonUrl} class="info-section__button">
+              {section.botonTexto}
+            </a>
+          )}
+        </div>
+      </div>
+    </article>
+  </section>
+)}
+
+<style>
+  .info-section {
+    @apply relative;
+  }
+
+  .info-section__container {
+    @apply relative z-10 mx-auto;
+    max-width: var(--container-max);
+    padding: 0 var(--container-padding);
+  }
+
+  .info-section__panel {
+    @apply relative overflow-hidden;
+    min-height: 77rem;
+    background: var(--color-secondary-dark);
+  }
+
+  .info-section__media {
+    @apply absolute inset-0;
+  }
+
+  .info-section__image {
+    @apply w-full h-full;
+    object-fit: cover;
+  }
+
+  .info-section__content {
+    @apply relative z-10 flex h-full flex-col justify-center;
+    gap: 1.25rem;
+    min-height: inherit;
+    padding: 3rem 0;
+    color: var(--color-text-light);
+  }
+
+  .info-section__title {
+    @apply font-heading text-white text-h1 uppercase;
+    font-weight: 700;
+  }
+
+  .info-section__description {
+    @apply font-body text-body-lg;
+    max-width: 35rem;
+    color: rgba(255, 255, 255, 0.82);
+  }
+
+  .info-section__button {
+    @apply inline-flex items-center justify-center no-underline uppercase;
+    width: fit-content;
+    min-height: 3.25rem;
+    padding: 0.95rem 2rem;
+    border: 1px solid var(--color-primary);
+    background: var(--color-primary);
+    color: var(--color-text-light);
+    font-family: var(--font-body);
+    font-size: var(--text-button);
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    transition:
+      background-color var(--transition-base),
+      border-color var(--transition-base),
+      color var(--transition-base);
+  }
+
+  .info-section__button:hover {
+    background: var(--color-primary-dark);
+    border-color: var(--color-primary-dark);
+    color: var(--color-text-light);
+    text-decoration: none;
+  }
+
+  @media (max-width: 767px) {
+    .info-section__panel {
+      min-height: 28rem;
+    }
+
+    .info-section__content {
+      justify-content: flex-end;
+      max-width: 100%;
+      padding: 1.5rem;
+    }
+
+    .info-section__title {
+      max-width: 100%;
+    }
+  }
+</style>
