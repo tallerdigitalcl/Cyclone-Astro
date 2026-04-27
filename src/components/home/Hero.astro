@@ -1,6 +1,7 @@
 ---
 import { urlFor } from '../../lib/sanity';
 import type { HeroSlide } from '../../lib/types';
+import Button from '../ui/Button.astro';
 
 interface Props {
   slides: HeroSlide[];
@@ -50,7 +51,9 @@ const isSlider = slides.length > 1;
                 {slide.titulo2 && <p class="hero__title2">{slide.titulo2}</p>}
                 {slide.descripcion && <p class="hero__desc">{slide.descripcion}</p>}
                 {slide.botonTexto && slide.botonUrl && (
-                  <a href={slide.botonUrl} class="hero__cta">{slide.botonTexto}</a>
+                  <Button href={slide.botonUrl} size="wide" class="mt-7 self-start">
+                    {slide.botonTexto}
+                  </Button>
                 )}
               </div>
               {slide.stats && slide.stats.length > 0 && (
@@ -196,6 +199,8 @@ const isSlider = slides.length > 1;
     @apply flex flex-col;
     max-width: 600px;
     padding: 3.5rem 0;
+    animation: hero-content-in 2100ms cubic-bezier(0.16, 1, 0.3, 1) 120ms both;
+    will-change: opacity, transform;
   }
 
   .hero__title1 {
@@ -223,25 +228,12 @@ const isSlider = slides.length > 1;
     color: rgba(255, 255, 255, 0.72);
   }
 
-  .hero__cta {
-    @apply inline-block mt-7 font-bold uppercase tracking-widest;
-    padding: 0.875rem 3.5rem;
-    background-color: var(--color-primary);
-    color: #ffffff;
-    font-size: 0.8125rem;
-    align-self: flex-start;
-    transition: background-color var(--transition-base);
-  }
-  .hero__cta:hover {
-    background-color: var(--color-primary-dark);
-    text-decoration: none;
-    color: #ffffff;
-  }
-
   /* ---- Panel de estadísticas (derecha) ---- */
   .hero__stats {
     @apply relative z-10;
     padding: 0 var(--container-padding);
+    animation: hero-stats-in 2100ms cubic-bezier(0.16, 1, 0.3, 1) 280ms both;
+    will-change: opacity, transform;
   }
 
   .hero__stat {
@@ -296,6 +288,38 @@ const isSlider = slides.length > 1;
   .hero__dot--active {
     width: 1.75rem;
     background: #ffffff;
+  }
+
+  @keyframes hero-content-in {
+    from {
+      opacity: 0;
+      transform: translate3d(-2.25rem, 0, 0);
+    }
+
+    to {
+      opacity: 1;
+      transform: translate3d(0, 0, 0);
+    }
+  }
+
+  @keyframes hero-stats-in {
+    from {
+      opacity: 0;
+      transform: translate3d(2.25rem, 0, 0);
+    }
+
+    to {
+      opacity: 1;
+      transform: translate3d(0, 0, 0);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .hero__content,
+    .hero__stats {
+      animation: none;
+      will-change: auto;
+    }
   }
 
   /* ---- Mobile ---- */
