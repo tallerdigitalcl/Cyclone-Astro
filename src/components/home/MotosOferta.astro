@@ -104,6 +104,7 @@ const hasMultipleOffers = ofertas.length > 1;
   <script>
     const offersViewport = document.querySelector('.motos-oferta__cards');
     const offerDots = Array.from(document.querySelectorAll('[data-offer-dot]'));
+    const offerCards = Array.from(document.querySelectorAll('.motos-oferta__card'));
 
     function setActiveOfferDot(activeIndex) {
       offerDots.forEach((dot, index) => {
@@ -113,39 +114,41 @@ const hasMultipleOffers = ofertas.length > 1;
       });
     }
 
-    function getOfferStepSize() {
-      const firstCard = offersViewport?.querySelector('.motos-oferta__card');
-      if (!firstCard || !offersViewport) return 0;
-
-      const styles = getComputedStyle(offersViewport);
-      const gap = Number.parseFloat(styles.columnGap || styles.gap || '0');
-      return firstCard.clientWidth + gap;
-    }
-
-    function updateActiveOfferDot() {
-      if (!offersViewport) return;
-      const stepSize = getOfferStepSize();
-      if (!stepSize) return;
-
-      const activeIndex = Math.round(offersViewport.scrollLeft / stepSize);
-      setActiveOfferDot(activeIndex);
-    }
-
     offerDots.forEach((dot, index) => {
       dot.addEventListener('click', () => {
-        const firstCard = offersViewport?.querySelector('.motos-oferta__card');
-        if (!offersViewport || !firstCard) return;
+        const targetCard = offerCards[index];
+        if (!targetCard) return;
 
-        const stepSize = getOfferStepSize();
-        offersViewport.scrollTo({
-          left: stepSize * index,
+        targetCard.scrollIntoView({
+          block: 'nearest',
+          inline: 'start',
           behavior: 'smooth',
         });
       });
     });
 
-    offersViewport?.addEventListener('scroll', updateActiveOfferDot, { passive: true });
-    updateActiveOfferDot();
+    if (offersViewport && offerCards.length > 0) {
+      const observer = new IntersectionObserver(
+        (entries) => {
+          const visibleEntry = entries
+            .filter((entry) => entry.isIntersecting)
+            .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+
+          if (!visibleEntry) return;
+
+          const activeIndex = offerCards.indexOf(visibleEntry.target);
+          if (activeIndex >= 0) {
+            setActiveOfferDot(activeIndex);
+          }
+        },
+        {
+          root: offersViewport,
+          threshold: [0.6, 0.75, 0.9],
+        }
+      );
+
+      offerCards.forEach((card) => observer.observe(card));
+    }
   </script>
 )}
 
@@ -210,19 +213,29 @@ const hasMultipleOffers = ofertas.length > 1;
 
   .motos-oferta__dots {
     @apply flex items-center justify-center;
-    gap: 0.55rem;
-    margin-top: 0.85rem;
+    gap: 0.25rem;
+    margin-top: 0.9rem;
   }
 
   .motos-oferta__dot {
-    @apply rounded-full border-0 p-0 transition-opacity duration-200;
-    width: 0.625rem;
-    height: 0.625rem;
-    background: rgba(255, 255, 255, 0.42);
+    @apply relative inline-flex items-center justify-center rounded-full border-0 p-0 transition-opacity duration-200;
+    width: 2.75rem;
+    height: 2.75rem;
+    background: transparent;
   }
 
-  .motos-oferta__dot.is-active {
+  .motos-oferta__dot::before {
+    content: '';
+    width: 0.625rem;
+    height: 0.625rem;
+    border-radius: 9999px;
+    background: rgba(255, 255, 255, 0.42);
+    transition: background-color var(--transition-base), transform var(--transition-base);
+  }
+
+  .motos-oferta__dot.is-active::before {
     background: #ffffff;
+    transform: scale(1.05);
   }
 
   .motos-oferta__card {
