@@ -8,7 +8,13 @@ import InstagramSection from '../components/home/InstagramSection.astro';
 import LatestNews from '../components/home/LatestNews.astro';
 import { buildHomeOffers, buildHomeSliderMotos } from '../lib/promobility';
 import { sanityClient, urlFor } from '../lib/sanity';
-import { motosHomeSliderQuery, ofertasHomeQuery, postsQuery, heroSlidesQuery, homeInfoSectionQuery } from '../lib/queries';
+import {
+  motosHomeSliderQuery,
+  ofertasHomeQuery,
+  postsQuery,
+  heroSlidesQuery,
+  homeInfoSectionQuery,
+} from '../lib/queries';
 import type { HomeInfoSection, HomeOffer, HomeSliderMoto, Moto, Oferta, Post, HeroSlide } from '../lib/types';
 
 const [heroSlides, motosSliderSanity, homeInfoSection, ofertasSanity, posts] = await Promise.all([
@@ -21,18 +27,16 @@ const [heroSlides, motosSliderSanity, homeInfoSection, ofertasSanity, posts] = a
 
 const motosSlider: HomeSliderMoto[] = await buildHomeSliderMotos(motosSliderSanity);
 const ofertas: HomeOffer[] = await buildHomeOffers(ofertasSanity);
+const ultimasNoticias = posts.slice(0, 5);
 
-const ultimasNoticias = posts.slice(0, 3);
-
-// URL del primer slide para preload LCP
 const heroLcpImage = heroSlides[0]?.imagen
   ? urlFor(heroSlides[0].imagen).width(1600).quality(85).auto('format').url()
   : undefined;
 ---
 
 <BaseLayout
-  title="Cyclone Motos — Tu mejor aliado sobre dos ruedas"
-  description="Descubre nuestra selección de motocicletas. Calidad, rendimiento y estilo en cada modelo."
+  title="Cyclone Motos - Tu mejor aliado sobre dos ruedas"
+  description="Descubre nuestra seleccion de motocicletas. Calidad, rendimiento y estilo en cada modelo."
   heroImageUrl={heroLcpImage}
 >
   <Hero slides={heroSlides} />

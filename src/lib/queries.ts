@@ -3,11 +3,19 @@ export const postsQuery = `
   *[_type == "post"] | order(publishedAt desc) {
     _id,
     title,
+    homeTitle,
     "slug": slug.current,
+    category,
     excerpt,
     publishedAt,
-    mainImage,
-    "author": author->{ name, image }
+    homeImage {
+      ...,
+      alt,
+      mobileImage {
+        ...,
+        alt
+      }
+    }
   }
 `;
 
@@ -16,10 +24,35 @@ export const postBySlugQuery = `
   *[_type == "post" && slug.current == $slug][0] {
     _id,
     title,
+    homeTitle,
     "slug": slug.current,
+    category,
     excerpt,
     publishedAt,
-    mainImage,
+    homeImage {
+      ...,
+      alt,
+      mobileImage {
+        ...,
+        alt
+      }
+    },
+    heroImages[]{
+      ...,
+      alt,
+      mobileImage {
+        ...,
+        alt
+      }
+    },
+    galleryPhotos[]{
+      ...,
+      alt,
+      mobileImage {
+        ...,
+        alt
+      }
+    },
     body,
     "author": author->{ name, image }
   }
@@ -131,6 +164,13 @@ export const homeInfoSectionQuery = `
     descripcion,
     botonTexto,
     botonUrl,
-    imagenFondo { ..., alt }
+    imagenFondo {
+      ...,
+      alt,
+      mobileImage {
+        ...,
+        alt
+      }
+    }
   }
 `;

@@ -22,10 +22,14 @@ export interface Author {
 export interface Post {
   _id: string;
   title: string;
+  homeTitle?: string;
   slug: string;
+  category?: 'tips' | 'eventos' | 'nuevo' | string;
   excerpt?: string;
   publishedAt?: string;
-  mainImage?: SanityImage;
+  homeImage?: SanityImage;
+  heroImages?: SanityImage[];
+  galleryPhotos?: SanityImage[];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   body?: any[];
   author?: Author;

@@ -20,14 +20,14 @@ const hasMultipleOffers = ofertas.length > 1;
 
       <div class="motos-oferta__cards" aria-label="Listado de ofertas destacadas">
         {ofertas.map((oferta, index) => {
-          const desktopUrl = urlFor(oferta.imagenFondo).width(960).height(1200).quality(78).auto('format').url();
-          const desktopUrl2x = urlFor(oferta.imagenFondo).width(1440).height(1800).quality(72).auto('format').url();
+          const desktopUrl = urlFor(oferta.imagenFondo).width(960).quality(86).auto('format').url();
+          const desktopUrl2x = urlFor(oferta.imagenFondo).width(1440).quality(82).auto('format').url();
           const mobileImage = oferta.imagenFondo.mobileImage;
           const mobileUrl = mobileImage?.asset?._ref
-            ? urlFor(mobileImage).width(720).height(960).quality(76).auto('format').url()
+            ? urlFor(mobileImage).width(720).quality(84).auto('format').url()
             : desktopUrl;
           const mobileUrl2x = mobileImage?.asset?._ref
-            ? urlFor(mobileImage).width(1080).height(1440).quality(70).auto('format').url()
+            ? urlFor(mobileImage).width(1080).quality(80).auto('format').url()
             : desktopUrl2x;
           const imageAlt = oferta.imagenFondo.alt || mobileImage?.alt || `${oferta.displayName} en oferta`;
           const offerHref = oferta.slug ? `/motos/${oferta.slug}` : '/motos';

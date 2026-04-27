@@ -15,27 +15,56 @@ const formattedDate = post.publishedAt
       day: 'numeric',
     })
   : null;
+
+const image = post.homeImage;
+const mobileImage = image?.mobileImage;
+const desktopImageUrl = image ? urlFor(image).width(900).quality(88).auto('format').url() : null;
+const desktopImageUrl2x = image ? urlFor(image).width(1400).quality(84).auto('format').url() : null;
+const mobileImageUrl = mobileImage?.asset?._ref
+  ? urlFor(mobileImage).width(720).quality(86).auto('format').url()
+  : desktopImageUrl;
+const mobileImageUrl2x = mobileImage?.asset?._ref
+  ? urlFor(mobileImage).width(1080).quality(82).auto('format').url()
+  : desktopImageUrl2x;
+
+const categoryLabels: Record<string, string> = {
+  tips: 'Tips',
+  eventos: 'Eventos',
+  nuevo: 'Nuevo',
+};
+
+const categoryLabel = post.category ? categoryLabels[post.category] || post.category : null;
 ---
 
 <article class="post-card">
-  {post.mainImage && (
-    <a href={`/blog/${post.slug}`} class="post-card__image-link" tabindex="-1" aria-hidden="true">
-      <img
-        src={urlFor(post.mainImage).width(800).height(450).auto('format').url()}
-        alt={post.mainImage.alt ?? post.title}
-        width="800"
-        height="450"
-        loading="lazy"
-        decoding="async"
-      />
+  {image && desktopImageUrl && (
+    <a href={`/noticia/${post.slug}`} class="post-card__image-link" tabindex="-1" aria-hidden="true">
+      <picture>
+        <source
+          media="(max-width: 767px)"
+          srcset={mobileImageUrl2x ? `${mobileImageUrl} 720w, ${mobileImageUrl2x} 1080w` : mobileImageUrl || undefined}
+          sizes="(max-width: 767px) 100vw, 33vw"
+        />
+        <img
+          src={desktopImageUrl}
+          srcset={desktopImageUrl2x ? `${desktopImageUrl} 900w, ${desktopImageUrl2x} 1400w` : undefined}
+          sizes="(max-width: 767px) 100vw, (max-width: 1279px) 50vw, 33vw"
+          alt={mobileImage?.alt || image.alt || post.title}
+          width="900"
+          height="540"
+          loading="lazy"
+          decoding="async"
+        />
+      </picture>
     </a>
   )}
   <div class="post-card__body">
+    {categoryLabel && <p class="post-card__category">{categoryLabel}</p>}
     {formattedDate && (
       <time datetime={post.publishedAt} class="post-card__date">{formattedDate}</time>
     )}
     <h2 class="post-card__title">
-      <a href={`/blog/${post.slug}`}>{post.title}</a>
+      <a href={`/noticia/${post.slug}`}>{post.title}</a>
     </h2>
     {post.excerpt && <p class="post-card__excerpt">{post.excerpt}</p>}
     {post.author && <p class="post-card__author">Por {post.author.name}</p>}
@@ -44,11 +73,9 @@ const formattedDate = post.publishedAt
 
 <style>
   .post-card {
-    border: 1px solid #e5e7eb;
-    border-radius: 0.75rem;
-    overflow: hidden;
-    transition: box-shadow 0.2s, transform 0.2s;
-    background: #fff;
+    @apply bg-white overflow-hidden;
+    border: 1px solid rgba(26, 28, 28, 0.08);
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
   }
 
   .post-card:hover {
@@ -63,32 +90,39 @@ const formattedDate = post.publishedAt
 
   .post-card img {
     width: 100%;
-    height: 220px;
+    aspect-ratio: 5 / 3;
+    height: auto;
     object-fit: cover;
-    transition: transform 0.3s;
-  }
-
-  .post-card:hover img {
-    transform: scale(1.03);
   }
 
   .post-card__body {
+    @apply flex flex-col;
+    gap: 0.7rem;
     padding: 1.25rem 1.4rem 1.4rem;
   }
 
+  .post-card__category {
+    @apply font-body uppercase;
+    color: var(--color-primary);
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+  }
+
   .post-card__date {
-    font-size: 0.78rem;
+    @apply font-body;
     color: var(--color-muted);
     display: block;
-    margin-bottom: 0.4rem;
+    font-size: 0.82rem;
     text-transform: uppercase;
     letter-spacing: 0.04em;
   }
 
   .post-card__title {
-    font-size: 1.15rem;
-    margin-bottom: 0.6rem;
-    line-height: 1.3;
+    @apply font-heading;
+    font-size: 1.3rem;
+    line-height: 1.1;
+    font-weight: 700;
   }
 
   .post-card__title a {
@@ -102,9 +136,8 @@ const formattedDate = post.publishedAt
   }
 
   .post-card__excerpt {
-    font-size: 0.9rem;
+    @apply font-body text-body;
     color: var(--color-muted);
-    margin-bottom: 0.75rem;
     display: -webkit-box;
     -webkit-line-clamp: 3;
     -webkit-box-orient: vertical;
@@ -113,6 +146,8 @@ const formattedDate = post.publishedAt
   }
 
   .post-card__author {
+    @apply font-body;
+    margin-top: auto;
     font-size: 0.82rem;
     color: var(--color-muted);
   }

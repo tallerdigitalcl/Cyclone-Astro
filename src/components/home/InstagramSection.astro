@@ -76,22 +76,14 @@ const featureImage = {
     padding: var(--section-spacing) 0 2.25rem;
     background:
       linear-gradient(
-        180deg,
-        rgba(255, 255, 255, 0.72) 0%,
-        rgba(255, 255, 255, 0.56) 26%,
-        rgba(255, 255, 255, 0.24) 58%,
-        rgba(255, 255, 255, 0.08) 82%,
-        rgba(255, 255, 255, 0) 100%
-      ),
-      linear-gradient(
         90deg,
-        #8493a6 0%,
-        #7990a9 14%,
-        #879cb2 28%,
-        #95a8bc 46%,
-        #aab8c8 64%,
-        #bcc4cf 80%,
-        #c9ccd1 100%
+        #8695a8 0%,
+        #8897aa 14%,
+        #959ead 28%,
+        #98a1b0 46%,
+        #9ea7b6 64%,
+        #9da7b5 80%,
+        #98a2b0 100%
       );
   }
 
@@ -111,24 +103,14 @@ const featureImage = {
   }
 
   .instagram-section__feed {
-    @apply flex;
+    @apply grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0.85rem;
-    overflow-x: auto;
-    scroll-snap-type: x mandatory;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-    padding-bottom: 0.5rem;
-  }
-
-  .instagram-section__feed::-webkit-scrollbar {
-    display: none;
   }
 
   .instagram-section__post {
     @apply relative overflow-hidden bg-white/10;
-    flex: 0 0 min(68vw, 16rem);
     aspect-ratio: 4 / 5;
-    scroll-snap-align: start;
     box-shadow: var(--shadow-md);
   }
 
@@ -138,9 +120,16 @@ const featureImage = {
   }
 
   .instagram-section__feature {
-    @apply relative overflow-hidden;
-    min-height: 24rem;
+    @apply relative overflow-hidden md:min-h-[24rem];
     background: #d7d1cb;
+  }
+
+  .instagram-section__feature::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(0deg, rgba(26, 28, 28, 1) 0%, rgba(0, 0, 0, 0.28) 20%, rgba(0, 0, 0, 0) 72%);
+    pointer-events: none;
   }
 
   .instagram-section__feature-image {
@@ -176,10 +165,6 @@ const featureImage = {
       gap: 1rem;
     }
 
-    .instagram-section__post {
-      flex-basis: min(40vw, 17rem);
-    }
-
     .instagram-section__feature {
       min-height: 36rem;
     }
@@ -187,16 +172,8 @@ const featureImage = {
 
   @media (min-width: 1024px) {
     .instagram-section__feed {
-      display: grid;
       grid-template-columns: repeat(4, minmax(0, 1fr));
       gap: 1rem;
-      overflow: visible;
-      scroll-snap-type: none;
-      padding-bottom: 0;
-    }
-
-    .instagram-section__post {
-      flex-basis: auto;
     }
 
     .instagram-section__feature {

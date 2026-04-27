@@ -20,7 +20,7 @@ if (!moto) {
 <BaseLayout
   title={`${moto.nombre} | Cyclone Motos`}
   description={moto.descripcion ?? `Conoce la ${moto.nombre}, disponible en Cyclone Motos.`}
-  image={moto.imagenPrincipal ? urlFor(moto.imagenPrincipal).width(1200).height(630).url() : undefined}
+  image={moto.imagenPrincipal ? urlFor(moto.imagenPrincipal).width(1200).quality(86).auto('format').url() : undefined}
 >
   <!-- Detalle de la moto — diseño pendiente -->
   <div class="container mx-auto px-4 py-16">

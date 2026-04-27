@@ -45,8 +45,8 @@ const hasMultipleSlides = motos.length > 1;
       <div class="moto-slider__viewport" id="moto-slider-viewport">
         <div class="moto-slider__track" id="moto-slider-track">
           {motos.map((moto, index) => {
-            const imageUrl = urlFor(moto.imagenSliderHome).width(960).height(1120).quality(80).auto('format').url();
-            const imageUrl2x = urlFor(moto.imagenSliderHome).width(1440).height(1680).quality(76).auto('format').url();
+            const imageUrl = urlFor(moto.imagenSliderHome).width(960).quality(86).auto('format').url();
+            const imageUrl2x = urlFor(moto.imagenSliderHome).width(1440).quality(82).auto('format').url();
             const imageAlt = moto.imagenSliderHome?.alt || `${moto.displayName} de Cyclone Motos`;
 
             return (

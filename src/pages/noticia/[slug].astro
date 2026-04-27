@@ -1,0 +1,414 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { sanityClient, urlFor } from '../../lib/sanity';
+import { allSlugsQuery, postBySlugQuery } from '../../lib/queries';
+import { toHTML } from '@portabletext/to-html';
+import type { Post, SanityImage } from '../../lib/types';
+
+const categoryLabels: Record<string, string> = {
+  tips: 'Tips',
+  eventos: 'Eventos',
+  nuevo: 'Nuevo',
+};
+
+const escapeHtml = (value = '') =>
+  value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+
+const buildImageMarkup = (image: SanityImage, desktopWidth: number, desktopHeight: number) => {
+  const desktopUrl = urlFor(image).width(desktopWidth).quality(90).auto('format').url();
+  const desktopUrl2x = urlFor(image)
+    .width(Math.round(desktopWidth * 1.5))
+    .quality(84)
+    .auto('format')
+    .url();
+  const mobileImage = image.mobileImage;
+  const mobileUrl = mobileImage?.asset?._ref
+    ? urlFor(mobileImage).width(720).quality(88).auto('format').url()
+    : desktopUrl;
+  const mobileUrl2x = mobileImage?.asset?._ref
+    ? urlFor(mobileImage).width(1080).quality(84).auto('format').url()
+    : desktopUrl2x;
+  const alt = escapeHtml(mobileImage?.alt || image.alt || '');
+
+  return {
+    alt,
+    desktopUrl,
+    desktopUrl2x,
+    mobileUrl,
+    mobileUrl2x,
+  };
+};
+
+export async function getStaticPaths() {
+  const slugs: Array<{ slug: string }> = await sanityClient.fetch(allSlugsQuery);
+  return slugs.map(({ slug }) => ({ params: { slug } }));
+}
+
+const { slug } = Astro.params;
+const post: Post | null = await sanityClient.fetch(postBySlugQuery, { slug });
+
+if (!post) {
+  return Astro.redirect('/404');
+}
+
+const heroImage = post.heroImages?.[0] || post.homeImage;
+const heroImageMarkup = heroImage ? buildImageMarkup(heroImage, 1600, 760) : null;
+const socialImageUrl = heroImage ? urlFor(heroImage).width(1200).quality(88).auto('format').url() : undefined;
+const formattedDate = post.publishedAt
+  ? new Date(post.publishedAt).toLocaleDateString('es-CL', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    })
+  : null;
+const categoryLabel = post.category ? categoryLabels[post.category] || post.category : null;
+
+const bodyHTML = post.body
+  ? toHTML(post.body, {
+      components: {
+        types: {
+          image: ({ value }) => {
+            if (!value?.asset?._ref) {
+              return '';
+            }
+
+            const imageMarkup = buildImageMarkup(value, 1200, 760);
+            const caption = value.caption
+              ? `<figcaption class="portable-image__caption">${escapeHtml(value.caption)}</figcaption>`
+              : '';
+
+            return `
+              <figure class="portable-image">
+                <picture>
+                  <source
+                    media="(max-width: 767px)"
+                    srcset="${imageMarkup.mobileUrl} 720w, ${imageMarkup.mobileUrl2x} 1080w"
+                    sizes="100vw"
+                  />
+                  <img
+                    src="${imageMarkup.desktopUrl}"
+                    srcset="${imageMarkup.desktopUrl} 1200w, ${imageMarkup.desktopUrl2x} 1800w"
+                    sizes="(min-width: 1200px) 860px, 100vw"
+                    alt="${imageMarkup.alt}"
+                    loading="lazy"
+                    decoding="async"
+                  />
+                </picture>
+                ${caption}
+              </figure>
+            `;
+          },
+        },
+        marks: {
+          link: ({ children, value }) => {
+            const href = value?.href ? escapeHtml(value.href) : '#';
+            const rel = value?.blank ? ' rel="noreferrer noopener"' : '';
+            const target = value?.blank ? ' target="_blank"' : '';
+            return `<a href="${href}"${target}${rel}>${children}</a>`;
+          },
+        },
+      },
+    })
+  : '';
+---
+
+<BaseLayout
+  title={`${post.title} | Cyclone Motos`}
+  description={post.excerpt}
+  image={socialImageUrl}
+>
+  <article class="post-detail">
+    <div class="post-detail__container">
+      <header class="post-detail__header">
+        {categoryLabel && <p class="post-detail__category">{categoryLabel}</p>}
+        <h1 class="post-detail__title">{post.title}</h1>
+
+        {(formattedDate || post.author) && (
+          <div class="post-detail__meta">
+            {post.author && <span>Por <strong>{post.author.name}</strong></span>}
+            {formattedDate && <time datetime={post.publishedAt}>{formattedDate}</time>}
+          </div>
+        )}
+      </header>
+
+      {heroImageMarkup && (
+        <picture class="post-detail__hero">
+          <source
+            media="(max-width: 767px)"
+            srcset={`${heroImageMarkup.mobileUrl} 720w, ${heroImageMarkup.mobileUrl2x} 1080w`}
+            sizes="100vw"
+          />
+          <img
+            src={heroImageMarkup.desktopUrl}
+            srcset={`${heroImageMarkup.desktopUrl} 1600w, ${heroImageMarkup.desktopUrl2x} 2400w`}
+            sizes="(min-width: 1200px) 1120px, 100vw"
+            alt={heroImageMarkup.alt || post.title}
+            width="1600"
+            height="760"
+            class="post-detail__hero-image"
+            loading="eager"
+            decoding="async"
+          />
+        </picture>
+      )}
+
+      {post.excerpt && <p class="post-detail__excerpt">{post.excerpt}</p>}
+
+      {bodyHTML && <div class="post-detail__body" set:html={bodyHTML} />}
+
+      {post.galleryPhotos && post.galleryPhotos.length > 0 && (
+        <section class="post-detail__gallery" aria-labelledby="post-gallery-title">
+          <div class="post-detail__gallery-header">
+            <p class="post-detail__gallery-eyebrow">Galeria</p>
+            <h2 id="post-gallery-title" class="post-detail__gallery-title">Fotos de la noticia</h2>
+          </div>
+
+          <div class="post-detail__gallery-grid">
+            {post.galleryPhotos.map((image, index) => {
+              const galleryImage = buildImageMarkup(image, 960, 720);
+
+              return (
+                <picture class="post-detail__gallery-item">
+                  <source
+                    media="(max-width: 767px)"
+                    srcset={`${galleryImage.mobileUrl} 720w, ${galleryImage.mobileUrl2x} 1080w`}
+                    sizes="100vw"
+                  />
+                  <img
+                    src={galleryImage.desktopUrl}
+                    srcset={`${galleryImage.desktopUrl} 960w, ${galleryImage.desktopUrl2x} 1440w`}
+                    sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw"
+                    alt={galleryImage.alt || `${post.title} ${index + 1}`}
+                    width="960"
+                    height="720"
+                    loading="lazy"
+                    decoding="async"
+                  />
+                </picture>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
+      <div class="post-detail__back">
+        <a href="/noticia">Volver a noticias</a>
+      </div>
+    </div>
+  </article>
+</BaseLayout>
+
+<style>
+  .post-detail {
+    padding: var(--section-spacing) 0;
+    background: var(--color-bg);
+  }
+
+  .post-detail__container {
+    @apply mx-auto;
+    max-width: min(72rem, calc(100vw - 2rem));
+    padding: 0 var(--container-padding);
+  }
+
+  .post-detail__header {
+    max-width: 48rem;
+    margin-bottom: 2rem;
+  }
+
+  .post-detail__category,
+  .post-detail__gallery-eyebrow {
+    @apply font-body uppercase;
+    color: var(--color-primary);
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    margin-bottom: 0.75rem;
+  }
+
+  .post-detail__title {
+    @apply font-heading text-h2;
+    color: var(--color-text);
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+
+  .post-detail__meta {
+    @apply flex flex-wrap gap-4 font-body;
+    margin-top: 1rem;
+    color: var(--color-muted);
+    font-size: 0.95rem;
+  }
+
+  .post-detail__hero {
+    @apply block overflow-hidden;
+    margin-bottom: 1.75rem;
+  }
+
+  .post-detail__hero-image {
+    @apply w-full h-full block;
+    aspect-ratio: 16 / 7.6;
+    object-fit: cover;
+  }
+
+  .post-detail__excerpt {
+    @apply font-body text-body-lg;
+    max-width: 46rem;
+    margin-bottom: 2rem;
+    color: rgba(26, 28, 28, 0.76);
+    line-height: 1.7;
+  }
+
+  .post-detail__body {
+    @apply font-body text-body;
+    max-width: 54rem;
+    color: var(--color-text);
+    line-height: 1.75;
+  }
+
+  .post-detail__body :global(h2) {
+    @apply font-heading text-h3;
+    margin: 2.5rem 0 1rem;
+    color: var(--color-text);
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+
+  .post-detail__body :global(h3) {
+    @apply font-heading text-h4;
+    margin: 2rem 0 0.85rem;
+    color: var(--color-text);
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+
+  .post-detail__body :global(h4) {
+    @apply font-heading;
+    margin: 1.8rem 0 0.75rem;
+    color: var(--color-text);
+    font-size: 1.1rem;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+
+  .post-detail__body :global(p),
+  .post-detail__body :global(ul),
+  .post-detail__body :global(ol),
+  .post-detail__body :global(blockquote),
+  .post-detail__body :global(pre) {
+    margin-bottom: 1.35rem;
+  }
+
+  .post-detail__body :global(ul),
+  .post-detail__body :global(ol) {
+    padding-left: 1.5rem;
+  }
+
+  .post-detail__body :global(li) {
+    margin-bottom: 0.45rem;
+  }
+
+  .post-detail__body :global(blockquote) {
+    border-left: 4px solid var(--color-primary);
+    padding: 0.65rem 0 0.65rem 1.15rem;
+    color: var(--color-muted);
+    font-style: italic;
+  }
+
+  .post-detail__body :global(a) {
+    color: var(--color-primary);
+    text-decoration: underline;
+  }
+
+  .post-detail__body :global(code) {
+    background: rgba(26, 28, 28, 0.06);
+    padding: 0.2em 0.4em;
+    border-radius: 0.25rem;
+    font-size: 0.88em;
+  }
+
+  .post-detail__body :global(pre) {
+    background: #121517;
+    color: #ffffff;
+    padding: 1.2rem 1.35rem;
+    overflow-x: auto;
+  }
+
+  .post-detail__body :global(pre code) {
+    background: transparent;
+    padding: 0;
+  }
+
+  .post-detail__body :global(.portable-image) {
+    margin: 2rem 0;
+  }
+
+  .post-detail__body :global(.portable-image img) {
+    width: 100%;
+    height: auto;
+  }
+
+  .post-detail__body :global(.portable-image__caption) {
+    @apply font-body text-body-sm;
+    margin-top: 0.7rem;
+    color: var(--color-muted);
+  }
+
+  .post-detail__gallery {
+    margin-top: 3.25rem;
+  }
+
+  .post-detail__gallery-title {
+    @apply font-heading text-h3;
+    color: var(--color-text);
+    font-weight: 700;
+    text-transform: uppercase;
+    margin-bottom: 1.5rem;
+  }
+
+  .post-detail__gallery-grid {
+    @apply grid;
+    gap: 1rem;
+  }
+
+  .post-detail__gallery-item img {
+    @apply block w-full h-full;
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
+  }
+
+  .post-detail__back {
+    margin-top: 3rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid rgba(26, 28, 28, 0.08);
+  }
+
+  .post-detail__back a {
+    @apply inline-flex items-center font-body uppercase no-underline;
+    color: var(--color-primary);
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+  }
+
+  .post-detail__back a::before {
+    content: '<';
+    margin-right: 0.6rem;
+  }
+
+  @media (min-width: 768px) {
+    .post-detail__gallery-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .post-detail__gallery-grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+</style>
