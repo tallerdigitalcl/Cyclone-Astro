@@ -16,7 +16,19 @@ const backgroundImage2x = section?.imagenFondo
   ? urlFor(section.imagenFondo).width(2800).quality(76).auto('format').url()
   : null;
 
-const backgroundAlt = section?.imagenFondo?.alt || section?.titulo || 'Sección informativa de Cyclone Motos';
+const mobileBackgroundImage = section?.imagenFondo?.mobileImage?.asset?._ref
+  ? urlFor(section.imagenFondo.mobileImage).width(900).quality(80).auto('format').url()
+  : backgroundImage;
+
+const mobileBackgroundImage2x = section?.imagenFondo?.mobileImage?.asset?._ref
+  ? urlFor(section.imagenFondo.mobileImage).width(1400).quality(74).auto('format').url()
+  : backgroundImage2x;
+
+const backgroundAlt =
+  section?.imagenFondo?.mobileImage?.alt ||
+  section?.imagenFondo?.alt ||
+  section?.titulo ||
+  'Sección informativa de Cyclone Motos';
 ---
 
 {section && (
@@ -24,17 +36,28 @@ const backgroundAlt = section?.imagenFondo?.alt || section?.titulo || 'Sección 
     <article class="info-section__panel">
       <div class="info-section__media">
         {backgroundImage && (
-          <img
-            class="info-section__image"
-            src={backgroundImage}
-            srcset={backgroundImage2x ? `${backgroundImage} 1800w, ${backgroundImage2x} 2800w` : undefined}
-            sizes="100vw"
-            alt={backgroundAlt}
-            width="1800"
-            height="1000"
-            loading="lazy"
-            decoding="async"
-          />
+          <picture>
+            <source
+              media="(max-width: 767px)"
+              srcset={
+                mobileBackgroundImage2x
+                  ? `${mobileBackgroundImage} 900w, ${mobileBackgroundImage2x} 1400w`
+                  : mobileBackgroundImage || undefined
+              }
+              sizes="100vw"
+            />
+            <img
+              class="info-section__image"
+              src={backgroundImage}
+              srcset={backgroundImage2x ? `${backgroundImage} 1800w, ${backgroundImage2x} 2800w` : undefined}
+              sizes="100vw"
+              alt={backgroundAlt}
+              width="1800"
+              height="1000"
+              loading="lazy"
+              decoding="async"
+            />
+          </picture>
         )}
       </div>
 
