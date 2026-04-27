@@ -1,48 +1,29 @@
 ---
-import { existsSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
-import { resolve } from 'node:path';
-
-const publicDir = fileURLToPath(new URL('../../../public', import.meta.url));
-const assetExtensions = ['avif', 'webp', 'png', 'jpg', 'jpeg'];
-
-function resolvePublicAsset(basePath: string) {
-  for (const extension of assetExtensions) {
-    const absolutePath = resolve(publicDir, `${basePath}.${extension}`);
-
-    if (existsSync(absolutePath)) {
-      return `/${basePath}.${extension}`;
-    }
-  }
-
-  return null;
-}
-
 const instagramPosts = [
   {
     title: 'Post destacado RX 1',
     alt: 'Publicacion de Instagram de Cyclone Motos destacando la RX 1',
-    src: resolvePublicAsset('home/instagram/feed/post-01'),
+    src: '/home/instagram/feed/post-01.avif',
   },
   {
     title: 'Post destacado RX 401',
     alt: 'Publicacion de Instagram de Cyclone Motos destacando la RX 401',
-    src: resolvePublicAsset('home/instagram/feed/post-02'),
+    src: '/home/instagram/feed/post-02.avif',
   },
   {
     title: 'Post destacado RA 2',
     alt: 'Publicacion de Instagram de Cyclone Motos destacando la RA 2',
-    src: resolvePublicAsset('home/instagram/feed/post-03'),
+    src: '/home/instagram/feed/post-03.avif',
   },
   {
     title: 'Post destacado aventura',
     alt: 'Publicacion de Instagram de Cyclone Motos mostrando una moto de aventura',
-    src: resolvePublicAsset('home/instagram/feed/post-04'),
+    src: '/home/instagram/feed/post-04.avif',
   },
 ];
 
 const featureImage = {
-  src: resolvePublicAsset('home/instagram/feature/instagram-feature'),
+  src: '/home/instagram/feature/instagram-feature.avif',
   alt: 'Motocicleta Cyclone en escena urbana al atardecer',
 };
 ---
@@ -57,23 +38,15 @@ const featureImage = {
       <div class="instagram-section__feed" aria-label="Galeria destacada de Instagram">
         {instagramPosts.map((post) => (
           <article class="instagram-section__post">
-            {post.src ? (
-              <img
-                src={post.src}
-                alt={post.alt}
-                class="instagram-section__post-image"
-                width="640"
-                height="800"
-                loading="lazy"
-                decoding="async"
-              />
-            ) : (
-              <div class="instagram-section__post-placeholder" aria-label={`${post.title} pendiente por subir`}>
-                <span class="instagram-section__placeholder-eyebrow">Instagram</span>
-                <strong class="instagram-section__placeholder-title">{post.title}</strong>
-                <span class="instagram-section__placeholder-path">/public/home/instagram/feed</span>
-              </div>
-            )}
+            <img
+              src={post.src}
+              alt={post.alt}
+              class="instagram-section__post-image"
+              width="640"
+              height="800"
+              loading="lazy"
+              decoding="async"
+            />
           </article>
         ))}
       </div>
@@ -81,23 +54,15 @@ const featureImage = {
   </div>
 
   <div class="instagram-section__feature">
-    {featureImage.src ? (
-      <img
-        src={featureImage.src}
-        alt={featureImage.alt}
-        class="instagram-section__feature-image"
-        width="1920"
-        height="1180"
-        loading="lazy"
-        decoding="async"
-      />
-    ) : (
-      <div class="instagram-section__feature-placeholder" aria-label="Imagen principal de Instagram pendiente por subir">
-        <span class="instagram-section__placeholder-eyebrow">Imagen principal</span>
-        <strong class="instagram-section__placeholder-title">Sube la foto grande de esta seccion</strong>
-        <span class="instagram-section__placeholder-path">/public/home/instagram/feature</span>
-      </div>
-    )}
+    <img
+      src={featureImage.src}
+      alt={featureImage.alt}
+      class="instagram-section__feature-image"
+      width="1920"
+      height="1180"
+      loading="lazy"
+      decoding="async"
+    />
   </div>
 </section>
 
@@ -172,41 +137,6 @@ const featureImage = {
     object-fit: cover;
   }
 
-  .instagram-section__post-placeholder,
-  .instagram-section__feature-placeholder {
-    @apply flex flex-col justify-end;
-    width: 100%;
-    height: 100%;
-    padding: 1.25rem;
-    background:
-      linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0%, rgba(0, 0, 0, 0.24) 100%),
-      linear-gradient(135deg, #70839c 0%, #c3c7cd 100%);
-    color: #ffffff;
-  }
-
-  .instagram-section__placeholder-eyebrow {
-    @apply font-body uppercase;
-    font-size: 0.75rem;
-    font-weight: 700;
-    letter-spacing: 0.12em;
-    opacity: 0.8;
-  }
-
-  .instagram-section__placeholder-title {
-    @apply font-heading;
-    margin-top: 0.5rem;
-    font-size: 1.35rem;
-    line-height: 1;
-    text-transform: uppercase;
-  }
-
-  .instagram-section__placeholder-path {
-    @apply font-body;
-    margin-top: 0.8rem;
-    font-size: 0.78rem;
-    opacity: 0.82;
-  }
-
   .instagram-section__feature {
     @apply relative overflow-hidden;
     min-height: 24rem;
@@ -216,27 +146,6 @@ const featureImage = {
   .instagram-section__feature-image {
     @apply w-full h-full;
     object-fit: cover;
-  }
-
-  .instagram-section__feature-placeholder {
-    min-height: 24rem;
-    justify-content: center;
-    align-items: center;
-    text-align: center;
-    background:
-      radial-gradient(circle at 60% 45%, rgba(255, 179, 118, 0.72) 0%, rgba(255, 179, 118, 0) 18%),
-      linear-gradient(180deg, #d5d0cb 0%, #e4ddd6 42%, #c7c0b8 100%);
-    color: var(--color-text);
-  }
-
-  .instagram-section__feature-placeholder .instagram-section__placeholder-eyebrow,
-  .instagram-section__feature-placeholder .instagram-section__placeholder-path {
-    color: rgba(26, 28, 28, 0.76);
-  }
-
-  .instagram-section__feature-placeholder .instagram-section__placeholder-title {
-    color: var(--color-text);
-    max-width: 18ch;
   }
 
   @media (min-width: 768px) {
