@@ -52,19 +52,21 @@ export const motosQuery = `
   }
 `;
 
-// Motos en oferta para el home
-export const motosOfertaQuery = `
-  *[_type == "moto" && enOferta == true] | order(_createdAt desc) [0..5] {
+// Ofertas del home
+export const ofertasHomeQuery = `
+  *[_type == "oferta"] | order(orden asc, _createdAt desc) [0..7] {
     _id,
-    nombre,
-    "slug": slug.current,
-    marca,
-    modelo,
-    anio,
-    precio,
-    precioAnterior,
-    enOferta,
-    imagenPrincipal
+    apiMotoId,
+    orden,
+    imagenFondo {
+      ...,
+      alt,
+      mobileImage {
+        ...,
+        alt
+      }
+    },
+    "slug": *[_type == "moto" && apiMotoId == ^.apiMotoId][0].slug.current
   }
 `;
 

@@ -5,6 +5,7 @@ export interface SanityImage {
     _type: 'reference';
   };
   alt?: string;
+  mobileImage?: SanityImage;
   hotspot?: {
     x: number;
     y: number;
@@ -114,6 +115,21 @@ export interface HomeSliderMoto extends Moto {
   apiModel: PromobilityMotoModel;
   displayName: string;
   displayPrice?: string | null;
+  displayListPrice?: string | null;
+  displayBonus?: string | null;
+}
+
+export interface Oferta {
+  _id: string;
+  apiMotoId: string;
+  slug?: string;
+  orden?: number;
+  imagenFondo: SanityImage;
+}
+
+export interface HomeOffer extends Oferta {
+  apiModel: PromobilityMotoModel;
+  displayName: string;
   displayListPrice?: string | null;
   displayBonus?: string | null;
 }

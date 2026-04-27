@@ -3,7 +3,7 @@ import { createRequiredAltField } from './imageFields';
 
 export default defineType({
   name: 'heroSlide',
-  title: 'Hero Slide',
+  title: 'Home - Hero Slide',
   type: 'document',
   fields: [
     defineField({

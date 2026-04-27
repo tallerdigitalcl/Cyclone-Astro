@@ -4,5 +4,6 @@ import blockContent from './blockContent';
 import moto from './moto';
 import heroSlide from './heroSlide';
 import homeInfoSection from './homeInfoSection';
+import oferta from './oferta';
 
-export const schemaTypes = [post, author, blockContent, moto, heroSlide, homeInfoSection];
+export const schemaTypes = [post, author, blockContent, moto, heroSlide, homeInfoSection, oferta];

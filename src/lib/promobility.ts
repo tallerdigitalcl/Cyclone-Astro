@@ -1,4 +1,4 @@
-import type { HomeSliderMoto, Moto, PromobilityMotoModel } from './types';
+import type { HomeOffer, HomeSliderMoto, Moto, Oferta, PromobilityMotoModel } from './types';
 
 const DEFAULT_BASE_URL = 'https://track.promobility.cl/api/vehiculos/modelo';
 const DEFAULT_SITE_ID = '6';
@@ -65,12 +65,8 @@ export async function fetchPromobilityModelo(idVehiculo: string): Promise<Promob
   return JSON.parse(rawBody) as PromobilityMotoModel;
 }
 
-export async function buildHomeSliderMotos(motos: Moto[]): Promise<HomeSliderMoto[]> {
-  const sliderMotos = motos.filter(
-    (moto) => moto.apiMotoId && moto.slug && moto.imagenSliderHome?.asset?._ref
-  );
-
-  const uniqueIds = [...new Set(sliderMotos.map((moto) => moto.apiMotoId!))];
+async function fetchPromobilityModelMap(ids: string[]) {
+  const uniqueIds = [...new Set(ids.filter(Boolean))];
   const apiEntries = await Promise.all(
     uniqueIds.map(async (id) => {
       try {
@@ -86,7 +82,15 @@ export async function buildHomeSliderMotos(motos: Moto[]): Promise<HomeSliderMot
     })
   );
 
-  const apiById = new Map(apiEntries);
+  return new Map(apiEntries);
+}
+
+export async function buildHomeSliderMotos(motos: Moto[]): Promise<HomeSliderMoto[]> {
+  const sliderMotos = motos.filter(
+    (moto) => moto.apiMotoId && moto.slug && moto.imagenSliderHome?.asset?._ref
+  );
+
+  const apiById = await fetchPromobilityModelMap(sliderMotos.map((moto) => moto.apiMotoId!));
 
   return sliderMotos
     .map((moto) => {
@@ -106,4 +110,27 @@ export async function buildHomeSliderMotos(motos: Moto[]): Promise<HomeSliderMot
       } satisfies HomeSliderMoto;
     })
     .filter((moto): moto is HomeSliderMoto => Boolean(moto));
+}
+
+export async function buildHomeOffers(ofertas: Oferta[]): Promise<HomeOffer[]> {
+  const validOffers = ofertas.filter((oferta) => oferta.apiMotoId && oferta.imagenFondo?.asset?._ref);
+  const apiById = await fetchPromobilityModelMap(validOffers.map((oferta) => oferta.apiMotoId));
+
+  return validOffers
+    .map((oferta) => {
+      const apiModel = apiById.get(oferta.apiMotoId);
+
+      if (!apiModel) {
+        return null;
+      }
+
+      return {
+        ...oferta,
+        apiModel,
+        displayName: apiModel.modelo || `Moto ${oferta.apiMotoId}`,
+        displayListPrice: normalizePrice(apiModel.precio_lista),
+        displayBonus: normalizePrice(apiModel.bono),
+      } satisfies HomeOffer;
+    })
+    .filter((oferta): oferta is HomeOffer => Boolean(oferta));
 }

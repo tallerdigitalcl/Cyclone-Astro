@@ -1,11 +1,322 @@
 ---
-// Sección de Instagram — feed o galería estática
-// Props: ninguno
+import { existsSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { resolve } from 'node:path';
+
+const publicDir = fileURLToPath(new URL('../../../public', import.meta.url));
+const assetExtensions = ['avif', 'webp', 'png', 'jpg', 'jpeg'];
+
+function resolvePublicAsset(basePath: string) {
+  for (const extension of assetExtensions) {
+    const absolutePath = resolve(publicDir, `${basePath}.${extension}`);
+
+    if (existsSync(absolutePath)) {
+      return `/${basePath}.${extension}`;
+    }
+  }
+
+  return null;
+}
+
+const instagramPosts = [
+  {
+    title: 'Post destacado RX 1',
+    alt: 'Publicacion de Instagram de Cyclone Motos destacando la RX 1',
+    src: resolvePublicAsset('home/instagram/feed/post-01'),
+  },
+  {
+    title: 'Post destacado RX 401',
+    alt: 'Publicacion de Instagram de Cyclone Motos destacando la RX 401',
+    src: resolvePublicAsset('home/instagram/feed/post-02'),
+  },
+  {
+    title: 'Post destacado RA 2',
+    alt: 'Publicacion de Instagram de Cyclone Motos destacando la RA 2',
+    src: resolvePublicAsset('home/instagram/feed/post-03'),
+  },
+  {
+    title: 'Post destacado aventura',
+    alt: 'Publicacion de Instagram de Cyclone Motos mostrando una moto de aventura',
+    src: resolvePublicAsset('home/instagram/feed/post-04'),
+  },
+];
+
+const featureImage = {
+  src: resolvePublicAsset('home/instagram/feature/instagram-feature'),
+  alt: 'Motocicleta Cyclone en escena urbana al atardecer',
+};
 ---
 
-<section id="instagram-section">
-  <!-- Título de sección -->
-  <!-- Handle de Instagram -->
-  <!-- Grid de imágenes (embed o estático) -->
-  <!-- Botón "Seguirnos en Instagram" -->
+<section class="instagram-section" aria-labelledby="instagram-section-title">
+  <div class="instagram-section__feed-area">
+    <div class="instagram-section__container">
+      <header class="instagram-section__header">
+        <h2 id="instagram-section-title" class="instagram-section__title">Instagram</h2>
+      </header>
+
+      <div class="instagram-section__feed" aria-label="Galeria destacada de Instagram">
+        {instagramPosts.map((post) => (
+          <article class="instagram-section__post">
+            {post.src ? (
+              <img
+                src={post.src}
+                alt={post.alt}
+                class="instagram-section__post-image"
+                width="640"
+                height="800"
+                loading="lazy"
+                decoding="async"
+              />
+            ) : (
+              <div class="instagram-section__post-placeholder" aria-label={`${post.title} pendiente por subir`}>
+                <span class="instagram-section__placeholder-eyebrow">Instagram</span>
+                <strong class="instagram-section__placeholder-title">{post.title}</strong>
+                <span class="instagram-section__placeholder-path">/public/home/instagram/feed</span>
+              </div>
+            )}
+          </article>
+        ))}
+      </div>
+    </div>
+  </div>
+
+  <div class="instagram-section__feature">
+    {featureImage.src ? (
+      <img
+        src={featureImage.src}
+        alt={featureImage.alt}
+        class="instagram-section__feature-image"
+        width="1920"
+        height="1180"
+        loading="lazy"
+        decoding="async"
+      />
+    ) : (
+      <div class="instagram-section__feature-placeholder" aria-label="Imagen principal de Instagram pendiente por subir">
+        <span class="instagram-section__placeholder-eyebrow">Imagen principal</span>
+        <strong class="instagram-section__placeholder-title">Sube la foto grande de esta seccion</strong>
+        <span class="instagram-section__placeholder-path">/public/home/instagram/feature</span>
+      </div>
+    )}
+  </div>
 </section>
+
+<style>
+  .instagram-section {
+    @apply bg-white;
+  }
+
+  .instagram-section__feed-area {
+    @apply relative overflow-hidden;
+    padding: var(--section-spacing) 0 2.25rem;
+    background:
+      linear-gradient(
+        180deg,
+        rgba(255, 255, 255, 0.72) 0%,
+        rgba(255, 255, 255, 0.56) 26%,
+        rgba(255, 255, 255, 0.24) 58%,
+        rgba(255, 255, 255, 0.08) 82%,
+        rgba(255, 255, 255, 0) 100%
+      ),
+      linear-gradient(
+        90deg,
+        #8493a6 0%,
+        #7990a9 14%,
+        #879cb2 28%,
+        #95a8bc 46%,
+        #aab8c8 64%,
+        #bcc4cf 80%,
+        #c9ccd1 100%
+      );
+  }
+
+  .instagram-section__container {
+    @apply mx-auto;
+    max-width: var(--container-max);
+    padding: 0 var(--container-padding);
+  }
+
+  .instagram-section__header {
+    @apply flex justify-center;
+    margin-bottom: 2rem;
+  }
+
+  .instagram-section__title {
+    @apply font-heading text-h2 uppercase text-text font-medium;
+  }
+
+  .instagram-section__feed {
+    @apply flex;
+    gap: 0.85rem;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    padding-bottom: 0.5rem;
+  }
+
+  .instagram-section__feed::-webkit-scrollbar {
+    display: none;
+  }
+
+  .instagram-section__post {
+    @apply relative overflow-hidden bg-white/10;
+    flex: 0 0 min(68vw, 16rem);
+    aspect-ratio: 4 / 5;
+    scroll-snap-align: start;
+    box-shadow: var(--shadow-md);
+  }
+
+  .instagram-section__post-image {
+    @apply w-full h-full;
+    object-fit: cover;
+  }
+
+  .instagram-section__post-placeholder,
+  .instagram-section__feature-placeholder {
+    @apply flex flex-col justify-end;
+    width: 100%;
+    height: 100%;
+    padding: 1.25rem;
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0%, rgba(0, 0, 0, 0.24) 100%),
+      linear-gradient(135deg, #70839c 0%, #c3c7cd 100%);
+    color: #ffffff;
+  }
+
+  .instagram-section__placeholder-eyebrow {
+    @apply font-body uppercase;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    opacity: 0.8;
+  }
+
+  .instagram-section__placeholder-title {
+    @apply font-heading;
+    margin-top: 0.5rem;
+    font-size: 1.35rem;
+    line-height: 1;
+    text-transform: uppercase;
+  }
+
+  .instagram-section__placeholder-path {
+    @apply font-body;
+    margin-top: 0.8rem;
+    font-size: 0.78rem;
+    opacity: 0.82;
+  }
+
+  .instagram-section__feature {
+    @apply relative overflow-hidden;
+    min-height: 24rem;
+    background: #d7d1cb;
+  }
+
+  .instagram-section__feature-image {
+    @apply w-full h-full;
+    object-fit: cover;
+  }
+
+  .instagram-section__feature-placeholder {
+    min-height: 24rem;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    background:
+      radial-gradient(circle at 60% 45%, rgba(255, 179, 118, 0.72) 0%, rgba(255, 179, 118, 0) 18%),
+      linear-gradient(180deg, #d5d0cb 0%, #e4ddd6 42%, #c7c0b8 100%);
+    color: var(--color-text);
+  }
+
+  .instagram-section__feature-placeholder .instagram-section__placeholder-eyebrow,
+  .instagram-section__feature-placeholder .instagram-section__placeholder-path {
+    color: rgba(26, 28, 28, 0.76);
+  }
+
+  .instagram-section__feature-placeholder .instagram-section__placeholder-title {
+    color: var(--color-text);
+    max-width: 18ch;
+  }
+
+  @media (min-width: 768px) {
+    .instagram-section__feed-area {
+      padding-bottom: 2.75rem;
+      background:
+        linear-gradient(
+          180deg,
+          rgba(255, 255, 255, 0.74) 0%,
+          rgba(255, 255, 255, 0.58) 24%,
+          rgba(255, 255, 255, 0.26) 56%,
+          rgba(255, 255, 255, 0.1) 80%,
+          rgba(255, 255, 255, 0) 100%
+        ),
+        linear-gradient(
+          90deg,
+          #697e99 0%,
+          #7488a3 12%,
+          #8395ac 24%,
+          #94a3b8 40%,
+          #a6b1c0 58%,
+          #b7c0ca 76%,
+          #c9ccd1 100%
+        );
+    }
+
+    .instagram-section__feed {
+      gap: 1rem;
+    }
+
+    .instagram-section__post {
+      flex-basis: min(40vw, 17rem);
+    }
+
+    .instagram-section__feature {
+      min-height: 36rem;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .instagram-section__feed {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 1rem;
+      overflow: visible;
+      scroll-snap-type: none;
+      padding-bottom: 0;
+    }
+
+    .instagram-section__post {
+      flex-basis: auto;
+    }
+
+    .instagram-section__feature {
+      min-height: 42rem;
+    }
+  }
+
+  @media (min-width: 1280px) {
+    .instagram-section__feed-area {
+      background:
+        linear-gradient(
+          90deg,
+          #8493a6 0%,
+          #8897aa 10%,
+          #959ead 20%,
+          #949dac 32%,
+          #98a1b0 45%,
+          #98a1b0 58%,
+          #9ca5b4 74%,
+          #97a0af 100%
+        );
+    }
+
+    .instagram-section__feed {
+      gap: 1.1rem;
+    }
+
+    .instagram-section__feature {
+      min-height: 48rem;
+    }
+  }
+</style>

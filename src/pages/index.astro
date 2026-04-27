@@ -6,20 +6,21 @@ import InfoSection from '../components/home/InfoSection.astro';
 import MotosOferta from '../components/home/MotosOferta.astro';
 import InstagramSection from '../components/home/InstagramSection.astro';
 import LatestNews from '../components/home/LatestNews.astro';
-import { buildHomeSliderMotos } from '../lib/promobility';
+import { buildHomeOffers, buildHomeSliderMotos } from '../lib/promobility';
 import { sanityClient, urlFor } from '../lib/sanity';
-import { motosHomeSliderQuery, motosOfertaQuery, postsQuery, heroSlidesQuery, homeInfoSectionQuery } from '../lib/queries';
-import type { HomeInfoSection, HomeSliderMoto, Moto, Post, HeroSlide } from '../lib/types';
+import { motosHomeSliderQuery, ofertasHomeQuery, postsQuery, heroSlidesQuery, homeInfoSectionQuery } from '../lib/queries';
+import type { HomeInfoSection, HomeOffer, HomeSliderMoto, Moto, Oferta, Post, HeroSlide } from '../lib/types';
 
-const [heroSlides, motosSliderSanity, homeInfoSection, motosOferta, posts] = await Promise.all([
+const [heroSlides, motosSliderSanity, homeInfoSection, ofertasSanity, posts] = await Promise.all([
   sanityClient.fetch<HeroSlide[]>(heroSlidesQuery),
   sanityClient.fetch<Moto[]>(motosHomeSliderQuery),
   sanityClient.fetch<HomeInfoSection | null>(homeInfoSectionQuery),
-  sanityClient.fetch<Moto[]>(motosOfertaQuery),
+  sanityClient.fetch<Oferta[]>(ofertasHomeQuery),
   sanityClient.fetch<Post[]>(postsQuery),
 ]);
 
 const motosSlider: HomeSliderMoto[] = await buildHomeSliderMotos(motosSliderSanity);
+const ofertas: HomeOffer[] = await buildHomeOffers(ofertasSanity);
 
 const ultimasNoticias = posts.slice(0, 3);
 
@@ -37,7 +38,7 @@ const heroLcpImage = heroSlides[0]?.imagen
   <Hero slides={heroSlides} />
   <MotoSlider motos={motosSlider} />
   <InfoSection section={homeInfoSection} />
-  <MotosOferta motos={motosOferta} />
+  <MotosOferta ofertas={ofertas} />
   <InstagramSection />
   <LatestNews posts={ultimasNoticias} />
 </BaseLayout>
