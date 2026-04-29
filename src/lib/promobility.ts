@@ -5,7 +5,7 @@ const DEFAULT_SITE_ID = '6';
 const DEFAULT_ORIGIN = 'cyclonemotos.cl';
 const REQUEST_TIMEOUT_MS = 30_000;
 
-function normalizePrice(value?: string | null) {
+export function normalizePrice(value?: string | null) {
   if (!value) {
     return null;
   }

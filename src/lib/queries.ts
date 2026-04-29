@@ -127,7 +127,63 @@ export const motoBySlugQuery = `
     precioAnterior,
     enOferta,
     imagenPrincipal,
+    apiMotoId,
+    scrollSequenceFrames[] | order(grado asc) {
+      ...,
+      grado,
+      alt,
+      mobileImage {
+        ...,
+        alt
+      }
+    },
+    heroImagenes[]{
+      ...,
+      alt,
+      asset-> {
+        _id,
+        url
+      }
+    },
+    zonaInformativa {
+      titulo,
+      descripcion,
+      imagenFondo {
+        ...,
+        alt,
+        mobileImage {
+          ...,
+          alt
+        }
+      }
+    },
+    caracteristicasAdicionales[]{
+      titulo,
+      detalle,
+      imagen {
+        ...,
+        alt,
+        mobileImage {
+          ...,
+          alt
+        }
+      }
+    },
+    fichaTecnica {
+      asset-> {
+        url,
+        originalFilename
+      }
+    },
     galeria,
+    galeriaFotos[]{
+      ...,
+      alt,
+      mobileImage {
+        ...,
+        alt
+      }
+    },
     descripcion,
     body,
     specs
@@ -146,6 +202,7 @@ export const allMotoSlugsQuery = `
 export const heroSlidesQuery = `
   *[_type == "heroSlide"] | order(orden asc) {
     _id,
+    estiloHero,
     titulo1,
     titulo2,
     descripcion,

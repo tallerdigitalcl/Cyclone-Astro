@@ -8,6 +8,8 @@ export default defineType({
   groups: [
     { name: 'general', title: 'General', default: true },
     { name: 'hero', title: 'Hero' },
+    { name: 'scrollSequence', title: 'Scroll sequence' },
+    { name: 'info', title: 'Zona informativa' },
     { name: 'colors', title: 'Colores' },
     { name: 'features', title: 'Caracteristicas' },
     { name: 'gallery', title: 'Galeria' },
@@ -54,10 +56,11 @@ export default defineType({
       validation: (Rule) => Rule.required(),
     }),
     defineField({
-      name: 'heroImagenes',
-      title: 'Hero imagenes',
+      name: 'scrollSequenceFrames',
+      title: 'Secuencia de scroll 0 a 30 grados',
       type: 'array',
-      group: 'hero',
+      description: 'Sube exactamente 13 imagenes: 0, 2.5, 5, 7.5, 10, 12.5, 15, 17.5, 20, 22.5, 25, 27.5 y 30 grados.',
+      group: 'scrollSequence',
       of: [
         {
           type: 'image',
@@ -66,6 +69,13 @@ export default defineType({
             accept: 'image/webp,image/avif',
           },
           fields: [
+            defineField({
+              name: 'grado',
+              title: 'Grado',
+              type: 'number',
+              description: 'Ej: 0, 2.5, 5, 7.5 ... hasta 30.',
+              validation: (Rule) => Rule.required().min(0).max(30),
+            }),
             createRequiredAltField({
               title: 'Texto alternativo Desktop',
             }),
@@ -73,7 +83,30 @@ export default defineType({
           ],
         },
       ],
-      validation: (Rule) => Rule.required().min(1),
+      validation: (Rule) =>
+        Rule.length(13).error('Debes subir exactamente 13 imagenes para la secuencia de 0 a 30 grados.'),
+    }),
+    defineField({
+      name: 'heroImagenes',
+      title: 'Hero iconos',
+      type: 'array',
+      description: 'Iconos que aparecen en la zona inferior derecha del hero de la moto. Ej: Euro 3, ABS.',
+      group: 'hero',
+      of: [
+        {
+          type: 'image',
+          options: {
+            hotspot: false,
+            accept: 'image/webp,image/avif,image/svg+xml',
+          },
+          fields: [
+            createRequiredAltField({
+              title: 'Texto alternativo del icono',
+            }),
+          ],
+        },
+      ],
+      validation: (Rule) => Rule.max(4),
     }),
     defineField({
       name: 'imagenSliderHome',
@@ -91,6 +124,43 @@ export default defineType({
         createMobileImageField(),
       ],
       validation: (Rule) => Rule.required(),
+    }),
+    defineField({
+      name: 'zonaInformativa',
+      title: 'Zona informativa',
+      type: 'object',
+      group: 'info',
+      fields: [
+        defineField({
+          name: 'titulo',
+          title: 'Titulo',
+          type: 'string',
+          validation: (Rule) => Rule.required(),
+        }),
+        defineField({
+          name: 'descripcion',
+          title: 'Descripcion',
+          type: 'text',
+          rows: 4,
+          validation: (Rule) => Rule.required(),
+        }),
+        defineField({
+          name: 'imagenFondo',
+          title: 'Imagen de fondo Desktop',
+          type: 'image',
+          options: {
+            hotspot: true,
+            accept: 'image/webp,image/avif',
+          },
+          fields: [
+            createRequiredAltField({
+              title: 'Texto alternativo Desktop',
+            }),
+            createMobileImageField(),
+          ],
+          validation: (Rule) => Rule.required(),
+        }),
+      ],
     }),
     defineField({
       name: 'colores',

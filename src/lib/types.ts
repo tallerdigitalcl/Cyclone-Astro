@@ -3,6 +3,7 @@ export interface SanityImage {
   asset: {
     _ref: string;
     _type: 'reference';
+    url?: string;
   };
   alt?: string;
   mobileImage?: SanityImage;
@@ -40,6 +41,29 @@ export interface MotoSpec {
   value: string;
 }
 
+export interface SanityFile {
+  asset?: {
+    url?: string;
+    originalFilename?: string;
+  };
+}
+
+export interface MotoAdditionalFeature {
+  titulo: string;
+  detalle: string;
+  imagen: SanityImage;
+}
+
+export interface MotoInfoSection {
+  titulo: string;
+  descripcion: string;
+  imagenFondo: SanityImage;
+}
+
+export interface MotoScrollSequenceFrame extends SanityImage {
+  grado?: number;
+}
+
 export interface PromobilityMotoColor {
   id: number;
   name: string;
@@ -72,6 +96,7 @@ export interface HeroStat {
 
 export interface HeroSlide {
   _id: string;
+  estiloHero?: 'titleLeftDetailRight' | 'titleRightDetailLeft' | 'titleCenterNoDetail';
   titulo1: string;
   titulo2?: string;
   descripcion?: string;
@@ -106,7 +131,11 @@ export interface Moto {
   destacada?: boolean;
   imagenPrincipal?: SanityImage;
   imagenSliderHome?: SanityImage;
+  scrollSequenceFrames?: MotoScrollSequenceFrame[];
   heroImagenes?: SanityImage[];
+  zonaInformativa?: MotoInfoSection;
+  caracteristicasAdicionales?: MotoAdditionalFeature[];
+  fichaTecnica?: SanityFile;
   galeria?: SanityImage[];
   galeriaFotos?: SanityImage[];
   descripcion?: string;

@@ -23,6 +23,7 @@ const Tag = href ? 'a' : 'button';
 <Tag
   href={href}
   target={href ? target : undefined}
+  rel={href && target === '_blank' ? 'noopener noreferrer' : undefined}
   type={!href ? type : undefined}
   class:list={['btn', `btn--${variant}`, `btn--${size}`, className]}
 >

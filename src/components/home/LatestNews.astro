@@ -42,7 +42,7 @@ const filterLabels = ['Todas', ...availableCategories.map((category) => category
             ? urlFor(mobileImage).width(720).quality(86).auto('format').url()
             : desktopUrl;
           const mobileUrl2x = mobileImage?.asset?._ref
-            ? urlFor(mobileImage).width(1080).quality(82).auto('format').url()
+            ? urlFor(mobileImage).width(644).quality(74).auto('format').url()
             : desktopUrl2x;
           const imageAlt = mobileImage?.alt || image?.alt || post.homeTitle || post.title;
           const category = post.category ? categoryLabels[post.category] || post.category : null;

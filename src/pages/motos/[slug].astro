@@ -1,8 +1,10 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
+import Button from '../../components/ui/Button.astro';
 import { sanityClient, urlFor } from '../../lib/sanity';
 import { motoBySlugQuery, allMotoSlugsQuery } from '../../lib/queries';
-import type { Moto } from '../../lib/types';
+import { fetchPromobilityModelo, normalizePrice } from '../../lib/promobility';
+import type { Moto, PromobilityMotoModel } from '../../lib/types';
 
 export async function getStaticPaths() {
   const slugs = await sanityClient.fetch<{ slug: string }[]>(allMotoSlugsQuery);
@@ -15,6 +17,48 @@ const moto = await sanityClient.fetch<Moto>(motoBySlugQuery, { slug });
 if (!moto) {
   return Astro.redirect('/motos');
 }
+
+let apiModel: PromobilityMotoModel | null = null;
+
+if (moto.apiMotoId) {
+  try {
+    apiModel = await fetchPromobilityModelo(moto.apiMotoId);
+  } catch (error) {
+    console.warn(
+      `No se pudo consultar Promobility para la moto ${moto.apiMotoId}:`,
+      error instanceof Error ? error.message : error
+    );
+  }
+}
+
+const additionalFeatures = moto.caracteristicasAdicionales ?? [];
+const infoSection = moto.zonaInformativa;
+const technicalSheetUrl = moto.fichaTecnica?.asset?.url;
+const sequenceFrames = (moto.scrollSequenceFrames ?? [])
+  .filter((frame) => frame.asset?._ref)
+  .sort((a, b) => (a.grado ?? 0) - (b.grado ?? 0));
+const hasSequenceHero = sequenceFrames.length > 0;
+const initialFrame = sequenceFrames.at(-1);
+const modelName = apiModel?.modelo || moto.nombre;
+const displayListPrice = normalizePrice(apiModel?.precio_lista);
+const displayBonusPrice = normalizePrice(apiModel?.precio);
+const heroIcons = moto.heroImagenes ?? [];
+const sequenceFramesForClient = sequenceFrames.map((frame) => ({
+  desktop: urlFor(frame).width(1500).quality(86).auto('format').url(),
+  mobile: urlFor(frame.mobileImage?.asset?._ref ? frame.mobileImage : frame).width(920).quality(82).auto('format').url(),
+}));
+const finalStats = [
+  { value: apiModel?.cilindrada, label: 'Cilindrada', suffix: 'cc' },
+  { value: apiModel?.peso, label: 'Peso', suffix: 'kg' },
+  { value: apiModel?.altura_asiento, label: 'Altura del asiento', suffix: 'mm' },
+  { value: apiModel?.tank_capacity, label: 'Capacidad estanque', suffix: 'L' },
+].filter((stat) => stat.value);
+
+function formatStatValue(value?: string | null, suffix?: string) {
+  if (!value) return '';
+  const cleanValue = String(value).replace(/[^\d.,]/g, '').trim() || String(value).trim();
+  return suffix && !String(value).toLowerCase().includes(suffix.toLowerCase()) ? `${cleanValue} ${suffix}` : cleanValue;
+}
 ---
 
 <BaseLayout
@@ -22,11 +66,950 @@ if (!moto) {
   description={moto.descripcion ?? `Conoce la ${moto.nombre}, disponible en Cyclone Motos.`}
   image={moto.imagenPrincipal ? urlFor(moto.imagenPrincipal).width(1200).quality(86).auto('format').url() : undefined}
 >
-  <!-- Detalle de la moto — diseño pendiente -->
-  <div class="container mx-auto px-4 py-16">
-    <h1>{moto.nombre}</h1>
-    {moto.marca && <p>{moto.marca}</p>}
-    {moto.anio && <p>{moto.anio}</p>}
-    {moto.precio && <p>${moto.precio.toLocaleString('es-CL')}</p>}
-  </div>
+  {hasSequenceHero && initialFrame && (
+    <section class="moto-sequence" data-moto-sequence aria-labelledby="moto-sequence-title">
+      <div class="moto-sequence__stage">
+        <div class="moto-sequence__background" aria-hidden="true">
+          <img class="moto-sequence__background-image" src="/moto/hero.webp" alt="" width="1600" height="950" loading="eager" decoding="async" />
+          <span class="moto-sequence__ghost">{modelName}</span>
+        </div>
+
+        <div class="moto-sequence__media">
+          <img
+            class="moto-sequence__image"
+            src={urlFor(initialFrame).width(1500).quality(86).auto('format').url()}
+            alt={initialFrame.alt || `${modelName} de Cyclone Motos`}
+            width="1500"
+            height="950"
+            loading="eager"
+            fetchpriority="high"
+            decoding="sync"
+          />
+        </div>
+
+        <div class="moto-sequence__initial">
+          <h1 id="moto-sequence-title" class="moto-sequence__initial-title">{modelName}</h1>
+          {displayListPrice && <p class="moto-sequence__list-price">Precio lista desde ${displayListPrice}</p>}
+          {displayBonusPrice && (
+            <p class="moto-sequence__bonus">
+              <span>Precio bono:</span>
+              <strong>${displayBonusPrice}</strong>
+            </p>
+          )}
+          <Button href="#cotizar" size="lg">Cotiza aquí</Button>
+        </div>
+
+        <div class="moto-sequence__icons" aria-label="Certificaciones">
+          {heroIcons.length > 0 ? (
+            heroIcons.map((icon) => {
+              const iconUrl = icon.asset?.url || urlFor(icon).width(96).quality(88).auto('format').url();
+
+              return (
+                <img
+                  src={iconUrl}
+                  alt={icon.alt || ''}
+                  width="64"
+                  height="64"
+                  loading="eager"
+                  decoding="async"
+                />
+              );
+            })
+          ) : (
+            <>
+              <span class="moto-sequence__icon-fallback">
+                <strong>e3</strong>
+                <small>Euro 3</small>
+              </span>
+              <span class="moto-sequence__icon-fallback">
+                <strong>ABS</strong>
+                <small>Frenos ABS</small>
+              </span>
+            </>
+          )}
+        </div>
+
+        <div class="moto-sequence__final">
+          {apiModel?.colors && apiModel.colors.length > 0 && (
+            <ul class="moto-sequence__colors" aria-label="Colores disponibles">
+              {apiModel.colors.slice(0, 6).map((color, index) => (
+                <li style={`--item-index: ${index}; --item-total: ${Math.min(apiModel?.colors?.length ?? 1, 6) - 1}`}>
+                  <span
+                    class:list={[
+                      'moto-sequence__color',
+                      index === 0 ? 'is-active' : '',
+                    ]}
+                    style={`--color-swatch: ${color.color || '#d8d8d8'}`}
+                  ></span>
+                  {index === 0 && <span class="moto-sequence__color-name">{color.name}</span>}
+                </li>
+              ))}
+            </ul>
+          )}
+
+          {finalStats.length > 0 && (
+            <div class="moto-sequence__specs" aria-label="Datos técnicos principales">
+              {finalStats.map((stat, index) => (
+                <div class="moto-sequence__spec" style={`--item-index: ${index}; --item-total: ${finalStats.length - 1}`}>
+                  <strong>{formatStatValue(stat.value, stat.suffix)}</strong>
+                  <span>{stat.label}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div class="moto-sequence__final-bar">
+            <h2 class="moto-sequence__final-title">{modelName}</h2>
+            <div class="moto-sequence__final-action">
+              {displayBonusPrice && (
+                <p>
+                  <span>Precio bono:</span>
+                  <strong>${displayBonusPrice}</strong>
+                </p>
+              )}
+              <Button href="#cotizar" size="lg">Cotiza aquí</Button>
+            </div>
+          </div>
+        </div>
+
+        <script type="application/json" class="moto-sequence__frames" set:html={JSON.stringify(sequenceFramesForClient)} />
+      </div>
+    </section>
+  )}
+
+  {additionalFeatures.length > 0 && (
+    <section class="moto-features" aria-labelledby="moto-features-title">
+      <div class="moto-features__container">
+        <h2 id="moto-features-title" class="moto-features__title">
+          Características adicionales
+        </h2>
+
+        <div class="moto-features__grid">
+          {additionalFeatures.map((feature, index) => {
+            const desktopImage = urlFor(feature.imagen).width(560).quality(86).auto('format').url();
+            const desktopImage2x = urlFor(feature.imagen).width(840).quality(80).auto('format').url();
+            const mobileSource = feature.imagen.mobileImage?.asset?._ref ? feature.imagen.mobileImage : feature.imagen;
+            const mobileImage = urlFor(mobileSource).width(420).quality(84).auto('format').url();
+            const mobileImage2x = urlFor(mobileSource).width(640).quality(78).auto('format').url();
+            const imageAlt = feature.imagen.mobileImage?.alt || feature.imagen.alt || feature.titulo;
+
+            return (
+              <article class="moto-features__card">
+                <picture>
+                  <source
+                    media="(max-width: 767px)"
+                    srcset={`${mobileImage} 420w, ${mobileImage2x} 640w`}
+                    sizes="(min-width: 480px) 45vw, 90vw"
+                  />
+                  <img
+                    class="moto-features__image"
+                    src={desktopImage}
+                    srcset={`${desktopImage} 560w, ${desktopImage2x} 840w`}
+                    sizes="(min-width: 1280px) 19vw, (min-width: 768px) 22vw, 90vw"
+                    alt={imageAlt}
+                    width="560"
+                    height="700"
+                    loading={index < 4 ? 'eager' : 'lazy'}
+                    decoding="async"
+                  />
+                </picture>
+
+                <div class="moto-features__content">
+                  <h3 class="moto-features__name">{feature.titulo}</h3>
+                  <p class="moto-features__detail">{feature.detalle}</p>
+                </div>
+              </article>
+            );
+          })}
+        </div>
+
+        {technicalSheetUrl && (
+          <div class="moto-features__actions">
+            <Button href={technicalSheetUrl} target="_blank" size="lg">
+              Ver ficha técnica
+            </Button>
+          </div>
+        )}
+      </div>
+    </section>
+  )}
+
+  {infoSection?.imagenFondo && (
+    <section class="moto-info" aria-labelledby="moto-info-title">
+      <picture class="moto-info__media">
+        {(() => {
+          const desktopImage = urlFor(infoSection.imagenFondo).width(1800).quality(84).auto('format').url();
+          const desktopImage2x = urlFor(infoSection.imagenFondo).width(2600).quality(76).auto('format').url();
+          const mobileSource = infoSection.imagenFondo.mobileImage?.asset?._ref
+            ? infoSection.imagenFondo.mobileImage
+            : infoSection.imagenFondo;
+          const mobileImage = urlFor(mobileSource).width(820).quality(82).auto('format').url();
+          const mobileImage2x = urlFor(mobileSource).width(1200).quality(76).auto('format').url();
+          const imageAlt = infoSection.imagenFondo.mobileImage?.alt || infoSection.imagenFondo.alt || infoSection.titulo;
+
+          return (
+            <>
+              <source
+                media="(max-width: 767px)"
+                srcset={`${mobileImage} 820w, ${mobileImage2x} 1200w`}
+                sizes="100vw"
+              />
+              <img
+                class="moto-info__image"
+                src={desktopImage}
+                srcset={`${desktopImage} 1800w, ${desktopImage2x} 2600w`}
+                sizes="100vw"
+                alt={imageAlt}
+                width="1800"
+                height="980"
+                loading="lazy"
+                decoding="async"
+              />
+            </>
+          );
+        })()}
+      </picture>
+
+      <div class="moto-info__overlay" aria-hidden="true"></div>
+
+      <div class="moto-info__container">
+        <div class="moto-info__content">
+          <h2 id="moto-info-title" class="moto-info__title">{infoSection.titulo}</h2>
+          <p class="moto-info__description">{infoSection.descripcion}</p>
+        </div>
+      </div>
+    </section>
+  )}
 </BaseLayout>
+
+<script>
+  const sequenceSections = document.querySelectorAll<HTMLElement>('[data-moto-sequence]');
+
+  sequenceSections.forEach((section) => {
+    const stage = section.querySelector<HTMLElement>('.moto-sequence__stage');
+    const image = section.querySelector<HTMLImageElement>('.moto-sequence__image');
+    const framesNode = section.querySelector<HTMLScriptElement>('.moto-sequence__frames');
+
+    if (!stage || !image || !framesNode?.textContent) return;
+
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const frames = JSON.parse(framesNode.textContent) as { desktop: string; mobile: string }[];
+    const useMobileFrames = window.matchMedia('(max-width: 767px)').matches;
+    const frameUrls = frames.map((frame) => (useMobileFrames ? frame.mobile : frame.desktop));
+
+    if (!frameUrls.length) return;
+
+    const preloadFrame = (src: string) => {
+      const preloadedImage = new Image();
+      preloadedImage.decoding = 'async';
+      preloadedImage.src = src;
+    };
+
+    frameUrls.slice(0, 4).forEach(preloadFrame);
+
+    if (prefersReducedMotion) {
+      image.src = frameUrls[0];
+      section.style.setProperty('--sequence-progress', '1');
+      return;
+    }
+
+    let activeFrame = -1;
+    let ticking = false;
+
+    const updateSequence = () => {
+      const rect = section.getBoundingClientRect();
+      const scrollableDistance = Math.max(1, section.offsetHeight - window.innerHeight);
+      const progress = Math.min(1, Math.max(0, -rect.top / scrollableDistance));
+      const frameIndex = Math.round((1 - progress) * (frameUrls.length - 1));
+
+      section.style.setProperty('--sequence-progress', progress.toFixed(3));
+
+      if (frameIndex !== activeFrame) {
+        activeFrame = frameIndex;
+        image.src = frameUrls[frameIndex];
+        const nextFrame = frameUrls[Math.max(0, frameIndex - 1)];
+
+        if (nextFrame) {
+          preloadFrame(nextFrame);
+        }
+      }
+
+      ticking = false;
+    };
+
+    const requestUpdate = () => {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(updateSequence);
+    };
+
+    updateSequence();
+    window.addEventListener('scroll', requestUpdate, { passive: true });
+    window.addEventListener('resize', requestUpdate);
+  });
+</script>
+
+<style>
+  .moto-sequence {
+    --sequence-progress: 0;
+    position: relative;
+    height: 205vh;
+    background: #ffffff;
+  }
+
+  .moto-sequence__stage {
+    position: sticky;
+    top: 0;
+    min-height: 100vh;
+    overflow: hidden;
+    background: #ffffff;
+  }
+
+  .moto-sequence__background {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+
+  .moto-sequence__background-image {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: auto;
+    height: 100%;
+    max-width: none;
+    object-fit: contain;
+    object-position: left center;
+    opacity: calc(1 - var(--sequence-progress));
+  }
+
+  .moto-sequence__ghost {
+    position: absolute;
+    top: 50%;
+    left: 6%;
+    height: 80dvh;
+    font-family: var(--font-heading);
+    font-size: 80dvh;
+    font-weight: 900;
+    line-height: 0.82;
+    letter-spacing: -0.08em;
+    color: rgba(26, 28, 28, calc(0.045 * (1 - var(--sequence-progress))));
+    text-transform: uppercase;
+    transform: translateY(-50%);
+    transition: opacity 120ms linear;
+  }
+
+  .moto-sequence__media {
+    position: absolute;
+    z-index: 2;
+    left: calc(-4vw + (var(--sequence-progress) * 54vw));
+    top: calc(100% - (var(--sequence-progress) * 50%));
+    width: calc(clamp(42rem, 78vw, 74rem) - (var(--sequence-progress) * clamp(9rem, 24vw, 22rem)));
+    max-width: 74rem;
+    min-width: 0;
+    transform:
+      translateX(calc(var(--sequence-progress) * -50%))
+      translateY(calc(-100% + (var(--sequence-progress) * 50%)));
+    filter: drop-shadow(0 2.75rem 2.2rem rgba(8, 18, 24, calc(0.2 + var(--sequence-progress) * 0.08)));
+  }
+
+  .moto-sequence__image {
+    display: block;
+    width: 100%;
+    height: auto;
+    user-select: none;
+    pointer-events: none;
+  }
+
+  .moto-sequence__initial {
+    position: absolute;
+    z-index: 5;
+    top: 22%;
+    right: min(7vw, 6rem);
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    width: min(32rem, 38vw);
+    text-align: right;
+    color: var(--color-text);
+    opacity: calc(1 - (var(--sequence-progress) * 1.65));
+    transform: translateX(calc(var(--sequence-progress) * 2rem));
+  }
+
+  .moto-sequence__initial-title {
+    @apply font-heading uppercase;
+    color: var(--color-text);
+    font-size: clamp(3rem, 5.2vw, 5.25rem);
+    font-weight: 900;
+    line-height: 0.9;
+    letter-spacing: -0.06em;
+  }
+
+  .moto-sequence__list-price {
+    @apply font-body uppercase;
+    margin-top: 1.25rem;
+    color: var(--color-text);
+    font-size: var(--text-body);
+    letter-spacing: 0.04em;
+  }
+
+  .moto-sequence__bonus {
+    @apply font-heading uppercase;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.25rem;
+    margin: 1rem 0 1.5rem;
+    color: var(--color-text);
+  }
+
+  .moto-sequence__bonus span {
+    font-size: var(--text-body);
+    font-weight: 800;
+  }
+
+  .moto-sequence__bonus strong {
+    font-size: var(--text-h3);
+    line-height: 1;
+  }
+
+  .moto-sequence__icons {
+    position: absolute;
+    z-index: 6;
+    right: min(7vw, 6rem);
+    bottom: 3.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 1rem;
+    opacity: calc(1 - (var(--sequence-progress) * 1.8));
+  }
+
+  .moto-sequence__icons img {
+    width: 3.75rem;
+    height: 3.75rem;
+    object-fit: contain;
+  }
+
+  .moto-sequence__icon-fallback {
+    display: grid;
+    place-items: center;
+    width: 4.25rem;
+    min-height: 3.75rem;
+    color: var(--color-text);
+    text-align: center;
+  }
+
+  .moto-sequence__icon-fallback strong {
+    @apply font-heading uppercase;
+    font-size: 1.85rem;
+    font-weight: 900;
+    line-height: 0.85;
+    letter-spacing: -0.08em;
+  }
+
+  .moto-sequence__icon-fallback small {
+    @apply font-body uppercase;
+    margin-top: 0.2rem;
+    font-size: 0.5rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+  }
+
+  .moto-sequence__final {
+    position: absolute;
+    inset: 0;
+    z-index: 4;
+    opacity: calc((var(--sequence-progress) - 0.44) * 1.8);
+    pointer-events: none;
+  }
+
+  .moto-sequence__colors {
+    position: absolute;
+    left: clamp(5.5rem, 13vw, 14rem);
+    top: 23%;
+    width: 8rem;
+    height: 25rem;
+    padding: 0;
+    margin: 0;
+    list-style: none;
+  }
+
+  .moto-sequence__colors li {
+    position: absolute;
+    left: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    min-height: 1.4rem;
+    transform: translateY(-50%);
+  }
+
+  .moto-sequence__colors li:nth-child(1) {
+    top: 0%;
+    left: 2.05rem;
+  }
+
+  .moto-sequence__colors li:nth-child(2) {
+    top: 19%;
+    left: 0.85rem;
+  }
+
+  .moto-sequence__colors li:nth-child(3) {
+    top: 39%;
+    left: 0;
+  }
+
+  .moto-sequence__colors li:nth-child(4) {
+    top: 61%;
+    left: 0;
+  }
+
+  .moto-sequence__colors li:nth-child(5) {
+    top: 81%;
+    left: 0.85rem;
+  }
+
+  .moto-sequence__colors li:nth-child(6) {
+    top: 100%;
+    left: 2.05rem;
+  }
+
+  .moto-sequence__color {
+    display: block;
+    width: 1.25rem;
+    height: 1.25rem;
+    border-radius: 9999px;
+    background: var(--color-swatch);
+    border: 1px solid rgba(26, 28, 28, 0.12);
+    box-shadow: 0 0.35rem 0.8rem rgba(26, 28, 28, 0.16);
+  }
+
+  .moto-sequence__color.is-active {
+    outline: 2px solid rgba(26, 28, 28, 0.12);
+    outline-offset: 0.18rem;
+  }
+
+  .moto-sequence__color-name {
+    @apply font-body uppercase;
+    color: var(--color-text);
+    font-size: 0.62rem;
+    letter-spacing: 0.08em;
+  }
+
+  .moto-sequence__specs {
+    position: absolute;
+    right: min(7vw, 5.25rem);
+    top: 15%;
+    width: 19rem;
+    height: 31rem;
+    padding-left: 0;
+  }
+
+  .moto-sequence__spec {
+    position: absolute;
+    display: grid;
+    gap: 0.2rem;
+    min-width: 12rem;
+    padding-left: 1.5rem;
+    transform: translateY(-50%);
+  }
+
+  .moto-sequence__spec:nth-of-type(1) {
+    top: 0%;
+    left: 0.95rem;
+  }
+
+  .moto-sequence__spec:nth-of-type(2) {
+    top: 33.333%;
+    left: 3.45rem;
+  }
+
+  .moto-sequence__spec:nth-of-type(3) {
+    top: 66.666%;
+    left: 3.45rem;
+  }
+
+  .moto-sequence__spec:nth-of-type(4) {
+    top: 100%;
+    left: 0.95rem;
+  }
+
+  .moto-sequence__spec::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0.55rem;
+    width: 0.42rem;
+    height: 0.42rem;
+    border-radius: 9999px;
+    background: var(--color-primary);
+  }
+
+  .moto-sequence__spec strong {
+    @apply font-heading;
+    color: var(--color-text);
+    font-size: var(--text-h4);
+    font-weight: 700;
+    line-height: 1;
+  }
+
+  .moto-sequence__spec span {
+    @apply font-body uppercase;
+    color: var(--color-primary);
+    font-size: 0.62rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+  }
+
+  .moto-sequence__final-bar {
+    position: absolute;
+    left: min(7vw, 5rem);
+    right: min(7vw, 5rem);
+    bottom: 4rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 2rem;
+  }
+
+  .moto-sequence__final-title {
+    @apply font-heading uppercase;
+    color: var(--color-text);
+    font-size: clamp(3rem, 5vw, 5rem);
+    font-weight: 900;
+    line-height: 0.9;
+    letter-spacing: -0.06em;
+  }
+
+  .moto-sequence__final-action {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    pointer-events: auto;
+  }
+
+  .moto-sequence__final-action p {
+    @apply font-heading uppercase;
+    display: flex;
+    align-items: baseline;
+    gap: 0.6rem;
+    color: var(--color-text);
+  }
+
+  .moto-sequence__final-action span {
+    @apply font-body;
+    font-size: var(--text-button);
+    font-weight: 800;
+  }
+
+  .moto-sequence__final-action strong {
+    font-size: var(--text-h3);
+    line-height: 1;
+  }
+
+  .moto-info {
+    @apply relative overflow-hidden;
+    min-height: 34rem;
+    background: var(--color-secondary-dark);
+  }
+
+  .moto-info__media,
+  .moto-info__image {
+    @apply absolute inset-0 h-full w-full;
+  }
+
+  .moto-info__image {
+    object-fit: cover;
+    object-position: center;
+  }
+
+  .moto-info__overlay {
+    @apply absolute inset-0;
+    background:
+      linear-gradient(180deg, rgba(26, 28, 28, 0.18) 0%, rgba(26, 28, 28, 0.46) 100%),
+      linear-gradient(90deg, rgba(26, 28, 28, 0.06) 0%, rgba(26, 28, 28, 0.46) 48%, rgba(26, 28, 28, 0.62) 100%);
+  }
+
+  .moto-info__container {
+    @apply relative z-10 mx-auto flex min-h-[34rem] items-center;
+    max-width: var(--container-max);
+    padding: 0 var(--container-padding);
+  }
+
+  .moto-info__content {
+    margin-left: auto;
+    max-width: 36rem;
+    text-align: center;
+    color: var(--color-text-light);
+  }
+
+  .moto-info__title {
+    @apply font-heading uppercase text-white text-h2;
+    font-weight: 700;
+    text-shadow: 0 0.25rem 1.5rem rgba(0, 0, 0, 0.28);
+  }
+
+  .moto-info__description {
+    @apply font-body text-body-lg;
+    margin-top: 1rem;
+    color: rgba(255, 255, 255, 0.92);
+    font-weight: 700;
+    line-height: 1.45;
+    text-shadow: 0 0.2rem 1rem rgba(0, 0, 0, 0.34);
+  }
+
+  .moto-features {
+    @apply relative overflow-hidden;
+    padding: 4.25rem 0 3.75rem;
+    background: var(--color-secondary-dark);
+    color: var(--color-text-light);
+  }
+
+  .moto-features__container {
+    @apply mx-auto;
+    max-width: var(--container-max);
+    padding: 0 var(--container-padding);
+  }
+
+  .moto-features__title {
+    @apply font-heading text-center uppercase text-white text-h2;
+    font-weight: 700;
+    margin-bottom: 2.5rem;
+  }
+
+  .moto-features__grid {
+    @apply grid;
+    gap: 0.65rem;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .moto-features__card {
+    @apply relative overflow-hidden;
+    background: #0f1111;
+    aspect-ratio: 4 / 5;
+  }
+
+  .moto-features__image {
+    @apply h-full w-full;
+    object-fit: cover;
+    transition: transform 520ms ease;
+  }
+
+  .moto-features__card:hover .moto-features__image {
+    transform: scale(1.035);
+  }
+
+  .moto-features__content {
+    @apply absolute inset-x-0 bottom-0;
+    padding: 2.5rem 1rem 1rem;
+    background: linear-gradient(0deg, rgba(15, 17, 17, 0.9) 0%, rgba(15, 17, 17, 0) 100%);
+    opacity: 0;
+    transform: translateY(0.5rem);
+    transition:
+      opacity var(--transition-base),
+      transform var(--transition-base);
+  }
+
+  .moto-features__card:hover .moto-features__content,
+  .moto-features__card:focus-within .moto-features__content {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .moto-features__name {
+    @apply font-heading uppercase text-white;
+    font-size: var(--text-h4);
+    font-weight: 700;
+  }
+
+  .moto-features__detail {
+    @apply font-body;
+    margin-top: 0.35rem;
+    color: rgba(255, 255, 255, 0.78);
+    font-size: var(--text-body-sm);
+  }
+
+  .moto-features__actions {
+    @apply flex justify-center;
+    margin-top: 2rem;
+  }
+
+  @media (min-width: 768px) {
+    .moto-features {
+      padding: 4.75rem 0 4.25rem;
+    }
+
+    .moto-features__grid {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+  }
+
+  @media (min-width: 768px) and (max-width: 1180px) {
+    .moto-sequence__media {
+      left: calc(-7vw + (var(--sequence-progress) * 57vw));
+      width: calc(clamp(34rem, 72vw, 52rem) - (var(--sequence-progress) * clamp(6rem, 18vw, 13rem)));
+      top: calc(100% - (var(--sequence-progress) * 50%));
+    }
+
+    .moto-sequence__initial {
+      right: var(--container-padding);
+      width: min(25rem, 36vw);
+    }
+  }
+
+  @media (max-width: 767px) {
+    .moto-sequence {
+      height: 180vh;
+    }
+
+    .moto-sequence__stage {
+      min-height: 100svh;
+    }
+
+    .moto-sequence__background-image {
+      height: 44vh;
+      object-position: top center;
+    }
+
+    .moto-sequence__ghost {
+      top: 21%;
+      left: 3%;
+      height: 34dvh;
+      font-size: 34dvh;
+    }
+
+    .moto-sequence__media {
+      left: calc(-18vw + (var(--sequence-progress) * 68vw));
+      top: calc(62% - (var(--sequence-progress) * 12%));
+      width: calc(120vw - (var(--sequence-progress) * 18vw));
+      min-width: 0;
+    }
+
+    .moto-sequence__initial {
+      top: auto;
+      right: var(--container-padding);
+      bottom: 7rem;
+      width: calc(100% - (var(--container-padding) * 2));
+      align-items: flex-end;
+      text-align: right;
+    }
+
+    .moto-sequence__initial-title {
+      font-size: clamp(3.25rem, 17vw, 5rem);
+    }
+
+    .moto-sequence__icons {
+      right: var(--container-padding);
+      bottom: 2rem;
+      gap: 0.75rem;
+    }
+
+    .moto-sequence__icons img {
+      width: 3rem;
+      height: 3rem;
+    }
+
+    .moto-sequence__icon-fallback {
+      width: 3.4rem;
+      min-height: 3rem;
+    }
+
+    .moto-sequence__icon-fallback strong {
+      font-size: 1.45rem;
+    }
+
+    .moto-sequence__colors {
+      left: var(--container-padding);
+      top: 14%;
+      gap: 0.75rem;
+    }
+
+    .moto-sequence__color {
+      width: 1rem;
+      height: 1rem;
+    }
+
+    .moto-sequence__specs {
+      right: var(--container-padding);
+      top: 13%;
+      width: 12rem;
+      height: 14rem;
+      padding-left: 0;
+    }
+
+    .moto-sequence__spec:nth-of-type(1) {
+      left: 0.45rem;
+    }
+
+    .moto-sequence__spec:nth-of-type(2),
+    .moto-sequence__spec:nth-of-type(3) {
+      left: 2rem;
+    }
+
+    .moto-sequence__spec:nth-of-type(4) {
+      left: 0.45rem;
+    }
+
+    .moto-sequence__spec {
+      min-width: 8rem;
+      padding-left: 1.1rem;
+    }
+
+    .moto-sequence__spec::before {
+      left: 0;
+      top: 0.42rem;
+    }
+
+    .moto-sequence__spec strong {
+      font-size: var(--text-body-lg);
+    }
+
+    .moto-sequence__final-bar {
+      left: var(--container-padding);
+      right: var(--container-padding);
+      bottom: 2rem;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 1rem;
+    }
+
+    .moto-sequence__final-action {
+      width: 100%;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+
+    .moto-sequence__final-action p {
+      flex-direction: column;
+      gap: 0.2rem;
+    }
+
+    .moto-info {
+      min-height: 31rem;
+    }
+
+    .moto-info__overlay {
+      background:
+        linear-gradient(180deg, rgba(26, 28, 28, 0.16) 0%, rgba(26, 28, 28, 0.64) 100%),
+        linear-gradient(0deg, rgba(26, 28, 28, 0.78) 0%, rgba(26, 28, 28, 0.12) 62%);
+    }
+
+    .moto-info__container {
+      min-height: 31rem;
+      align-items: flex-end;
+      padding-bottom: 2.25rem;
+    }
+
+    .moto-info__content {
+      margin-left: 0;
+      max-width: 100%;
+      text-align: left;
+    }
+
+    .moto-features__content {
+      opacity: 1;
+      transform: none;
+    }
+  }
+</style>

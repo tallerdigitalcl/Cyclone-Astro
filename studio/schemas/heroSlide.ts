@@ -7,6 +7,31 @@ export default defineType({
   type: 'document',
   fields: [
     defineField({
+      name: 'estiloHero',
+      title: 'Estilo del hero',
+      type: 'string',
+      description: 'Define la posicion del contenido y del panel de detalle para este slide.',
+      initialValue: 'titleLeftDetailRight',
+      options: {
+        layout: 'radio',
+        list: [
+          {
+            title: 'Titulo izquierda, detalle derecha',
+            value: 'titleLeftDetailRight',
+          },
+          {
+            title: 'Titulo derecha, detalle izquierda',
+            value: 'titleRightDetailLeft',
+          },
+          {
+            title: 'Titulo centrado, sin detalle',
+            value: 'titleCenterNoDetail',
+          },
+        ],
+      },
+      validation: (Rule) => Rule.required(),
+    }),
+    defineField({
       name: 'titulo1',
       title: 'Titulo 1 (blanco)',
       type: 'string',
