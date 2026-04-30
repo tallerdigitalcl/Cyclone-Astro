@@ -61,16 +61,6 @@ const backgroundAlt =
           </picture>
         )}
       </div>
-      <img
-        class="info-section__foreground"
-        src="/home/infoSection/parallax_fondo.webp"
-        alt=""
-        width="1800"
-        height="560"
-        loading="lazy"
-        decoding="async"
-        aria-hidden="true"
-      />
 
       <div class="info-section__container">
         <div class="info-section__content" data-info-content>
@@ -105,7 +95,7 @@ const backgroundAlt =
       const viewportHeight = window.innerHeight || 1;
       const shouldUseParallax = rect.top <= 0;
       const exitProgress = Math.min(Math.max((viewportHeight - rect.bottom) / (viewportHeight * 0.75), 0), 1);
-      const contentOffset = exitProgress * Math.min(viewportHeight * 0.44, 390);
+      const contentOffset = exitProgress * Math.min(viewportHeight * 0.84, 390);
 
       media?.classList.toggle('info-section__media--parallax', shouldUseParallax);
       content.style.setProperty('--info-content-parallax-y', `${contentOffset}px`);
@@ -167,13 +157,6 @@ const backgroundAlt =
     object-fit: cover;
     object-position: center;
   }
-
-  .info-section__foreground {
-    @apply absolute inset-x-0 bottom-0 z-20 w-full;
-    height: auto;
-    pointer-events: none;
-  }
-
   .info-section__content {
     @apply sticky z-10 flex flex-col justify-start;
     gap: 1.25rem;
@@ -241,5 +224,29 @@ const backgroundAlt =
       opacity: 0;
       pointer-events: none;
     }
+    .info-section__media {
+    background-position: center top;
+    background-repeat: no-repeat;
+    background-size: cover;
+    /* sin background-image aquí → el picture queda visible */
+  }
+
+  .info-section__media--parallax {
+    background-image: var(--info-section-bg);
+    background-attachment: fixed;
+  }
+
+  .info-section__media--parallax picture {
+    opacity: 0;
+    pointer-events: none;
+  }
+  .info-section__media {
+    max-height: 100vh;
+    height: 100vh;
+  }
+  .info-section__media--parallax {
+    max-height: none;
+    height: 100%;
+  }
   }
 </style>
