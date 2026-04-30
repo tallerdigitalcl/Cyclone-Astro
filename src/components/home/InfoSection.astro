@@ -35,7 +35,7 @@ const backgroundAlt =
 {section && (
   <section class="info-section" aria-labelledby="info-section-title">
     <article class="info-section__panel">
-      <div class="info-section__media">
+      <div class="info-section__media" data-info-media style={backgroundImage ? `--info-section-bg: url('${backgroundImage}')` : undefined}>
         {backgroundImage && (
           <picture>
             <source
@@ -61,9 +61,19 @@ const backgroundAlt =
           </picture>
         )}
       </div>
+      <img
+        class="info-section__foreground"
+        src="/home/infoSection/parallax_fondo.webp"
+        alt=""
+        width="1800"
+        height="560"
+        loading="lazy"
+        decoding="async"
+        aria-hidden="true"
+      />
 
       <div class="info-section__container">
-        <div class="info-section__content">
+        <div class="info-section__content" data-info-content>
           <h2 id="info-section-title" class="info-section__title">{section.titulo}</h2>
           <p class="info-section__description">{section.descripcion}</p>
 
@@ -78,6 +88,43 @@ const backgroundAlt =
   </section>
 )}
 
+<script>
+  const infoSections = document.querySelectorAll<HTMLElement>('.info-section');
+
+  infoSections.forEach((section) => {
+    const media = section.querySelector<HTMLElement>('[data-info-media]');
+    const content = section.querySelector<HTMLElement>('[data-info-content]');
+    const isDesktop = window.matchMedia('(min-width: 768px)').matches;
+
+    if (!content || !isDesktop) return;
+
+    let ticking = false;
+
+    const updateMediaMode = () => {
+      const rect = section.getBoundingClientRect();
+      const viewportHeight = window.innerHeight || 1;
+      const shouldUseParallax = rect.top <= 0;
+      const exitProgress = Math.min(Math.max((viewportHeight - rect.bottom) / (viewportHeight * 0.75), 0), 1);
+      const contentOffset = exitProgress * Math.min(viewportHeight * 0.44, 390);
+
+      media?.classList.toggle('info-section__media--parallax', shouldUseParallax);
+      content.style.setProperty('--info-content-parallax-y', `${contentOffset}px`);
+      ticking = false;
+    };
+
+    const requestUpdate = () => {
+      if (!ticking) {
+        window.requestAnimationFrame(updateMediaMode);
+        ticking = true;
+      }
+    };
+
+    updateMediaMode();
+    window.addEventListener('scroll', requestUpdate, { passive: true });
+    window.addEventListener('resize', requestUpdate);
+  });
+</script>
+
 <style>
   .info-section {
     @apply relative;
@@ -86,17 +133,25 @@ const backgroundAlt =
   .info-section__container {
     @apply relative z-10 mx-auto;
     max-width: var(--container-max);
+    min-height: inherit;
     padding: 0 var(--container-padding);
   }
 
   .info-section__panel {
-    @apply relative overflow-hidden;
+    @apply relative;
     min-height: 77rem;
     background: var(--color-secondary-dark);
+    clip-path: inset(0);
   }
 
   .info-section__media {
-    @apply absolute inset-0;
+    @apply absolute inset-0 overflow-hidden;
+  }
+
+  .info-section__media picture {
+    position: absolute;
+    inset: 0;
+    display: block;
   }
 
   .info-section__media::after {
@@ -110,13 +165,22 @@ const backgroundAlt =
   .info-section__image {
     @apply w-full h-full;
     object-fit: cover;
+    object-position: center;
+  }
+
+  .info-section__foreground {
+    @apply absolute inset-x-0 bottom-0 z-20 w-full;
+    height: auto;
+    pointer-events: none;
   }
 
   .info-section__content {
-    @apply relative z-10 flex h-full flex-col justify-center;
+    @apply sticky z-10 flex flex-col justify-start;
     gap: 1.25rem;
-    min-height: inherit;
     padding: 3rem 0;
+    top: var(--header-height);
+    transform: translate3d(0, var(--info-content-parallax-y, 0), 0);
+    will-change: transform;
     color: var(--color-text-light);
   }
 
@@ -137,13 +201,45 @@ const backgroundAlt =
     }
 
     .info-section__content {
+      @apply relative;
+      top: auto;
       justify-content: flex-end;
       max-width: 100%;
+      min-height: 28rem;
       padding: 1.5rem;
+      transform: none;
+      will-change: auto;
+    }
+
+    .info-section__media picture {
+      inset: 0;
+    }
+
+    .info-section__image {
+      object-position: center;
     }
 
     .info-section__title {
       max-width: 100%;
+    }
+  }
+
+  @media (min-width: 768px) {
+    .info-section__media {
+      background-image: var(--info-section-bg);
+      background-attachment: scroll;
+      background-position: center top;
+      background-repeat: no-repeat;
+      background-size: cover;
+    }
+
+    .info-section__media--parallax {
+      background-attachment: fixed;
+    }
+
+    .info-section__media picture {
+      opacity: 0;
+      pointer-events: none;
     }
   }
 </style>
