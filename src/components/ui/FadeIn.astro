@@ -1,0 +1,37 @@
+---
+const { class: className = "", as = "div" } = Astro.props;
+---
+
+<component this={as} class={`fade-in-up ${className}`} data-fade-in>
+  <slot />
+</component>
+
+<script is:inline>
+if (typeof window !== "undefined") {
+  window.addEventListener("DOMContentLoaded", () => {
+    const fadeEls = document.querySelectorAll('[data-fade-in]');
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('fade-in-up--visible');
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.18 });
+    fadeEls.forEach(el => observer.observe(el));
+  });
+}
+</script>
+
+<style>
+.fade-in-up {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.7s cubic-bezier(0.16,1,0.3,1), transform 0.7s cubic-bezier(0.16,1,0.3,1);
+  will-change: opacity, transform;
+}
+.fade-in-up--visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+</style>

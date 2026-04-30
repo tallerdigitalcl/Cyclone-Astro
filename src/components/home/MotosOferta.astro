@@ -1,6 +1,7 @@
 ---
 import { urlFor } from '../../lib/sanity';
 import type { HomeOffer } from '../../lib/types';
+import FadeIn from '../ui/FadeIn.astro';
 
 interface Props {
   ofertas: HomeOffer[];
@@ -14,8 +15,13 @@ const hasMultipleOffers = ofertas.length > 1;
   <section class="motos-oferta" aria-labelledby="motos-oferta-title">
     <div class="motos-oferta__container">
       <div class="motos-oferta__intro">
-        <h2 id="motos-oferta-title" class="motos-oferta__title">Nuestras ultimas ofertas</h2>
-        <a href="/motos" class="motos-oferta__all-link">Ver todas las ofertas</a>
+        <FadeIn type="left"> 
+          <h2 id="motos-oferta-title" class="motos-oferta__title">Nuestras ultimas ofertas</h2>
+        </FadeIn>
+        <FadeIn type="zoom-in">
+          <a href="/motos" class="motos-oferta__all-link">Ver todas las ofertas</a>
+        </FadeIn>
+        
       </div>
 
       <div class="motos-oferta__cards" aria-label="Listado de ofertas destacadas">
@@ -62,19 +68,23 @@ const hasMultipleOffers = ofertas.length > 1;
               </div>
 
               <div class="motos-oferta__content">
-                <div class="motos-oferta__top">
-                  <h3 class="motos-oferta__name">{oferta.displayName}</h3>
-                  <span class="motos-oferta__cta">
-                    Ver oferta
-                    <span aria-hidden="true" class="motos-oferta__cta-arrow">→</span>
-                  </span>
-                </div>
+                <FadeIn type="up">
+                  <div class="motos-oferta__top">
+                    <h3 class="motos-oferta__name">{oferta.displayName}</h3>
+                    <span class="motos-oferta__cta">
+                      Ver oferta
+                      <span aria-hidden="true" class="motos-oferta__cta-arrow">→</span>
+                    </span>
+                  </div>
+                </FadeIn>
 
                 <div class="motos-oferta__pricing">
+                  <FadeIn type="up">
                   {oferta.displayListPrice && (
                     <p class="motos-oferta__list-price">Precio Lista Desde: ${oferta.displayListPrice}</p>
                   )}
                   {oferta.displayBonus && <p class="motos-oferta__bonus">Bono ${oferta.displayBonus}</p>}
+                  </FadeIn>
                 </div>
               </div>
             </a>

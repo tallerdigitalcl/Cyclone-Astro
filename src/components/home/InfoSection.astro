@@ -2,6 +2,7 @@
 import { urlFor } from '../../lib/sanity';
 import type { HomeInfoSection } from '../../lib/types';
 import Button from '../ui/Button.astro';
+import FadeIn from '../ui/FadeIn.astro';
 
 interface Props {
   section?: HomeInfoSection | null;
@@ -64,13 +65,19 @@ const backgroundAlt =
 
       <div class="info-section__container">
         <div class="info-section__content" data-info-content>
-          <h2 id="info-section-title" class="info-section__title">{section.titulo}</h2>
-          <p class="info-section__description">{section.descripcion}</p>
+          <FadeIn type="left">
+            <h2 id="info-section-title" class="info-section__title">{section.titulo}</h2>
+          </FadeIn>
+          <FadeIn type="left">
+            <p class="info-section__description">{section.descripcion}</p>
+          </FadeIn>
 
           {section.botonTexto && section.botonUrl && (
-            <Button href={section.botonUrl} size="lg">
-              {section.botonTexto}
-            </Button>
+            <FadeIn type="zoom-in">
+              <Button href={section.botonUrl} size="lg">
+                {section.botonTexto}
+              </Button>
+            </FadeIn>
           )}
         </div>
       </div>

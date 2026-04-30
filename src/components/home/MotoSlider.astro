@@ -2,6 +2,7 @@
 import { urlFor } from '../../lib/sanity';
 import type { HomeSliderMoto } from '../../lib/types';
 import Button from '../ui/Button.astro';
+import FadeIn from '../ui/FadeIn.astro';
 
 interface Props {
   motos: HomeSliderMoto[];
@@ -15,7 +16,9 @@ const hasMultipleSlides = motos.length > 1;
   <section class="moto-slider" aria-labelledby="moto-slider-title">
     <div class="moto-slider__container">
       <div class="moto-slider__header">
-        <h2 id="moto-slider-title" class="moto-slider__title">Elige la moto de tus sueños</h2>
+        <FadeIn type="left">
+          <h2 id="</FadeIn>moto-slider-title" class="moto-slider__title">Elige la moto de tus sueños</h2>
+        </FadeIn>
 
         {hasMultipleSlides && (
           <div class="moto-slider__controls" aria-label="Controles del slider">
@@ -69,22 +72,30 @@ const hasMultipleSlides = motos.length > 1;
                 </div>
 
                 <div class="moto-slider__content">
-                  <h3 id={`moto-slider-card-${moto._id}`} class="moto-slider__name">
-                    {moto.displayName}
-                  </h3>
+                  <FadeIn>
+                    <h3 id={`moto-slider-card-${moto._id}`} class="moto-slider__name">
+                      {moto.displayName}
+                    </h3>
+                  </FadeIn>
 
                   <div class="moto-slider__pricing">
-                    {moto.displayListPrice && <p class="moto-slider__list-price">{moto.displayListPrice}</p>}
-                    {moto.displayPrice && <p class="moto-slider__price">{moto.displayPrice}</p>}
+                    <FadeIn> 
+                      {moto.displayListPrice && <p class="moto-slider__list-price">{moto.displayListPrice}</p>}
+                      {moto.displayPrice && <p class="moto-slider__price">{moto.displayPrice}</p>}
+                    </FadeIn>
                   </div>
 
                   <div class="moto-slider__actions">
-                    <Button type="button" size="md" class="md:min-w-40">
-                      Cotizar
-                    </Button>
-                    <Button href={`/motos/${moto.slug}`} variant="secondary" size="md" class="md:min-w-40">
-                      Ver modelo
-                    </Button>
+                    <FadeIn type="zoom-in"> 
+                      <Button type="button" size="md" class="md:min-w-40">
+                        Cotizar
+                      </Button>
+                    </FadeIn>
+                    <FadeIn type="zoom-in"> 
+                      <Button href={`/motos/${moto.slug}`} variant="secondary" size="md" class="md:min-w-40">
+                        Ver modelo
+                      </Button>
+                    </FadeIn>
                   </div>
                 </div>
               </article>
