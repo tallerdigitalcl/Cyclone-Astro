@@ -16,7 +16,7 @@ const hasMultipleOffers = ofertas.length > 1;
     <div class="motos-oferta__container">
       <div class="motos-oferta__intro">
         <FadeIn type="left"> 
-          <h2 id="motos-oferta-title" class="motos-oferta__title">Nuestras ultimas ofertas</h2>
+          <h2 id="motos-oferta-title" class="motos-oferta__title">Nuestras últimas ofertas</h2>
         </FadeIn>
         <FadeIn type="zoom-in">
           <a href="/motos" class="motos-oferta__all-link">Ver todas las ofertas</a>
@@ -164,8 +164,19 @@ const hasMultipleOffers = ofertas.length > 1;
 
 <style>
   .motos-oferta {
-    @apply bg-secondary text-white;
+    @apply relative bg-secondary text-white;
     padding: var(--section-spacing) 0;
+  }
+
+ .motos-oferta::after  .motos-oferta::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -1px;
+    height: 3px;
+    background: var(--color-secondary-dark);
+    pointer-events: none;
   }
 
   .motos-oferta__container {
@@ -267,7 +278,7 @@ const hasMultipleOffers = ofertas.length > 1;
   }
 
   .motos-oferta__image {
-    @apply w-full h-full;
+    @apply block w-full h-full;
     object-fit: cover;
   }
 

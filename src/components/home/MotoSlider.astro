@@ -164,6 +164,17 @@ const hasMultipleSlides = motos.length > 1;
     background-size: 100% 65%, 100% 65%;
   }
 
+  .moto-slider::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -1px;
+    height: 3px;
+    background: var(--moto-slider-band-gradient);
+    pointer-events: none;
+  }
+
   .moto-slider__container {
     @apply mx-auto;
     max-width: var(--container-max);
@@ -263,7 +274,7 @@ const hasMultipleSlides = motos.length > 1;
   }
 
   .moto-slider__image {
-    @apply w-full h-full;
+    @apply block w-full h-full;
     object-fit: cover;
   }
 

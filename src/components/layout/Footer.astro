@@ -1,9 +1,8 @@
 ---
 const inventoryLinks = [
   { label: 'Aventura', href: '/motos' },
-  { label: 'Velocidad', href: '/motos' },
+  { label: 'Ruta', href: '/motos' },
   { label: 'Calle', href: '/motos' },
-  { label: 'ATV', href: '/motos' },
 ];
 
 const worldLinks = [
@@ -44,7 +43,7 @@ const currentYear = new Date().getFullYear();
     <div class="footer__main">
       <section class="footer__brand" aria-label="Marca">
         <a href="/" class="footer__logo" aria-label="Ir al inicio de Cyclone Motos">
-          <img src="/header/cyclone-logo.webp" alt="Cyclone Motos" width="160" height="36" loading="lazy" decoding="async" />
+          <img src="/footer/logo_footer.webp" alt="Cyclone Motos" width="160" height="36" loading="lazy" decoding="async" />
         </a>
         <p class="footer__brand-tag">Red nacional de concesionarios oficiales</p>
       </section>
@@ -224,13 +223,30 @@ const currentYear = new Date().getFullYear();
   }
 
   .footer__link {
-    @apply font-body text-body transition-colors duration-200;
+    @apply relative inline-flex w-fit font-body text-body transition-colors duration-200;
     color: var(--color-text-muted);
+  }
+
+  .footer__link::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -0.18rem;
+    height: 1px;
+    background: currentColor;
+    transform: scaleX(0);
+    transform-origin: center;
+    transition: transform 320ms cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   .footer__link:hover {
     color: var(--color-text);
     text-decoration: none;
+  }
+
+  .footer__link:hover::after {
+    transform: scaleX(1);
   }
 
   .footer__link--muted {

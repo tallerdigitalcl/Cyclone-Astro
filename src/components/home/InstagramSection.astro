@@ -90,6 +90,17 @@ const featureImage = {
       );
   }
 
+  .instagram-section__feed-area::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -1px;
+    height: 3px;
+    background: #98a2b0;
+    pointer-events: none;
+  }
+
   .instagram-section__container {
     @apply mx-auto;
     max-width: var(--container-max);
@@ -118,7 +129,7 @@ const featureImage = {
   }
 
   .instagram-section__post-image {
-    @apply w-full h-full;
+    @apply block w-full h-full;
     object-fit: cover;
   }
 
@@ -136,7 +147,7 @@ const featureImage = {
   }
 
   .instagram-section__feature-image {
-    @apply w-full h-full;
+    @apply block w-full h-full;
     object-fit: cover;
   }
 
