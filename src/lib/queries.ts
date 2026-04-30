@@ -105,7 +105,7 @@ export const ofertasHomeQuery = `
 
 // Motos destacadas para el slider del home
 export const motosHomeSliderQuery = `
-  *[_type == "moto" && defined(apiMotoId) && defined(imagenSliderHome.asset)] | order(_createdAt desc) [0..11] {
+  *[_type == "moto" && defined(apiMotoId) && defined(imagenSliderHome.asset)] | order(_createdAt asc) [0..11] {
     _id,
     nombre,
     "slug": slug.current,
