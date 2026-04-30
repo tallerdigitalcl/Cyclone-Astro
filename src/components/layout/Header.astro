@@ -82,6 +82,7 @@ const navLinks = [
 </header>
 
 <script>
+  const header = document.querySelector<HTMLElement>('.header');
   const toggle = document.getElementById('menu-toggle');
   const menu = document.getElementById('mobile-menu');
   toggle?.addEventListener('click', () => {
@@ -97,17 +98,77 @@ const navLinks = [
     modelosMenu?.classList.toggle('flex');
     modelosIcon?.classList.toggle('rotate-180');
   });
+
+  let ticking = false;
+  let blurTimer: number | undefined;
+
+  const updateHeaderState = () => {
+    const currentScrollY = window.scrollY;
+    const isAtPageTop = currentScrollY <= 4;
+
+    if (isAtPageTop) {
+      window.clearTimeout(blurTimer);
+      blurTimer = undefined;
+      header?.classList.remove('header--blurred');
+      header?.classList.remove('header--line-hidden');
+    } else {
+      header?.classList.add('header--line-hidden');
+
+      if (!header?.classList.contains('header--blurred') && blurTimer === undefined) {
+        blurTimer = window.setTimeout(() => {
+          header?.classList.add('header--blurred');
+          blurTimer = undefined;
+        }, 980);
+      }
+    }
+
+    ticking = false;
+  };
+
+  window.addEventListener(
+    'scroll',
+    () => {
+      if (!ticking) {
+        window.requestAnimationFrame(updateHeaderState);
+        ticking = true;
+      }
+    },
+    { passive: true }
+  );
 </script>
 
 <style>
   /* ---- Header base ---- */
   .header {
     @apply w-full fixed top-0 left-0 right-0 z-50;
-    background: linear-gradient(180deg,rgba(0,0,0,0.66) 0%,rgba(0,0,0,0.5) 0%,rgba(0,0,0,0) 100%)
+    background: linear-gradient(180deg,rgba(0,0,0,0.8) 0%,rgba(0,0,0,0.7) 0%,rgba(0,0,0,0) 100%);
+    transition: backdrop-filter 900ms ease;
+  }
+
+  .header--blurred {
+    background: linear-gradient(180deg, rgba(0, 0, 0, 0.62) 0%, rgba(0, 0, 0, 0.48) 100%);
+    backdrop-filter: blur(4px);
   }
 
   .header__inner {
-    @apply max-w-container mx-auto px-6 flex items-center justify-between h-[80px] border-b border-white/90;
+    @apply relative max-w-container mx-auto px-6 flex items-center justify-between h-[80px];
+  }
+
+  .header__inner::after {
+    content: '';
+    position: absolute;
+    left: 1.5rem;
+    right: 1.5rem;
+    bottom: 0;
+    height: 1px;
+    background: rgba(255, 255, 255, 0.9);
+    transform: scaleX(1);
+    transform-origin: center;
+    transition: transform 1100ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .header--line-hidden .header__inner::after {
+    transform: scaleX(0);
   }
 
   .header__logo img {

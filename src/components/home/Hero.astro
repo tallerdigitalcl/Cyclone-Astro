@@ -16,6 +16,12 @@ const isSlider = slides.length > 1;
     <div class="hero__track" id="hero-track">
       {slides.map((slide, i) => {
         const heroStyle = slide.estiloHero ?? 'titleLeftDetailRight';
+        const buttonAlignmentClass =
+          heroStyle === 'titleRightDetailLeft'
+            ? 'self-end'
+            : heroStyle === 'titleCenterNoDetail'
+              ? 'self-center'
+              : 'self-start';
         const shouldShowStats = heroStyle !== 'titleCenterNoDetail' && slide.stats && slide.stats.length > 0;
         const imgUrl    = urlFor(slide.imagen).width(1600).quality(85).auto('format').url();
         const imgUrl2x  = urlFor(slide.imagen).width(2560).quality(80).auto('format').url();
@@ -61,7 +67,7 @@ const isSlider = slides.length > 1;
                 {slide.titulo2 && <p class="hero__title2">{slide.titulo2}</p>}
                 {slide.descripcion && <p class="hero__desc">{slide.descripcion}</p>}
                 {slide.botonTexto && slide.botonUrl && (
-                  <Button href={slide.botonUrl} size="wide" class="mt-7 self-start">
+                  <Button href={slide.botonUrl} size="wide" class={`mt-7 ${buttonAlignmentClass}`}>
                     {slide.botonTexto}
                   </Button>
                 )}
@@ -232,7 +238,7 @@ const isSlider = slides.length > 1;
   /* ---- Contenido textual ---- */
   .hero__content {
     @apply flex flex-col;
-    max-width: 600px;
+    max-width: 760px;
     padding: 3.5rem 0;
     animation: hero-content-in 2100ms cubic-bezier(0.16, 1, 0.3, 1) 120ms both;
     will-change: opacity, transform;
@@ -277,23 +283,20 @@ const isSlider = slides.length > 1;
 
   /* ---- Panel de estadísticas (derecha) ---- */
   .hero__stats {
-    @apply relative z-10;
+    @apply relative z-10 overflow-hidden;
     padding: 0 var(--container-padding);
-    animation: hero-stats-in 2100ms cubic-bezier(0.16, 1, 0.3, 1) 280ms both;
-    will-change: opacity, transform;
+    background: rgba(255, 255, 255, 0.18);
+    backdrop-filter: blur(8px);
   }
 
   .hero__container--titleRightDetailLeft .hero__stats {
-    animation-name: hero-stats-in-left;
   }
 
   .hero__stat {
     @apply flex flex-col gap-1;
     min-height: 5.5rem;
     padding: 1.5rem 1.25rem;
-    background: rgba(255, 255, 255, 0.18);
-    backdrop-filter: blur(4px);
-    -webkit-backdrop-filter: blur(4px);
+    background: transparent;
   }
 
   .hero__stat-label {
@@ -353,18 +356,6 @@ const isSlider = slides.length > 1;
     }
   }
 
-  @keyframes hero-stats-in {
-    from {
-      opacity: 0;
-      transform: translate3d(2.25rem, 0, 0);
-    }
-
-    to {
-      opacity: 1;
-      transform: translate3d(0, 0, 0);
-    }
-  }
-
   @keyframes hero-content-in-right {
     from {
       opacity: 0;
@@ -381,18 +372,6 @@ const isSlider = slides.length > 1;
     from {
       opacity: 0;
       transform: translate3d(0, 1.5rem, 0);
-    }
-
-    to {
-      opacity: 1;
-      transform: translate3d(0, 0, 0);
-    }
-  }
-
-  @keyframes hero-stats-in-left {
-    from {
-      opacity: 0;
-      transform: translate3d(-2.25rem, 0, 0);
     }
 
     to {

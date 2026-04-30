@@ -25,6 +25,15 @@ export function normalizePrice(value?: string | null) {
   return new Intl.NumberFormat('es-CL').format(numericValue);
 }
 
+function normalizeNumber(value?: string | null) {
+  if (!value) {
+    return 0;
+  }
+
+  const numericValue = Number.parseInt(value.replace(/[^\d]/g, ''), 10);
+  return Number.isNaN(numericValue) ? 0 : numericValue;
+}
+
 function getPromobilityConfig() {
   const token = import.meta.env.PROMOBILITY_API_TOKEN;
 
@@ -95,6 +104,7 @@ export async function buildHomeSliderMotos(motos: Moto[]): Promise<HomeSliderMot
   return sliderMotos
     .map((moto) => {
       const apiModel = apiById.get(moto.apiMotoId!);
+      const hasBonus = normalizeNumber(apiModel?.bono) > 0;
 
       if (!apiModel) {
         return null;
@@ -105,7 +115,7 @@ export async function buildHomeSliderMotos(motos: Moto[]): Promise<HomeSliderMot
         apiModel,
         displayName: apiModel.modelo || moto.nombre,
         displayPrice: normalizePrice(apiModel.precio),
-        displayListPrice: normalizePrice(apiModel.precio_lista),
+        displayListPrice: hasBonus ? normalizePrice(apiModel.precio_lista) : null,
         displayBonus: null,
       } satisfies HomeSliderMoto;
     })
