@@ -10,23 +10,23 @@ interface Props {
 
 const { section } = Astro.props;
 
-const backgroundImage = section?.imagenFondo
+const desktopUrl = section?.imagenFondo
   ? urlFor(section.imagenFondo).width(1800).quality(82).auto('format').url()
   : null;
 
-const backgroundImage2x = section?.imagenFondo
+const desktopUrl2x = section?.imagenFondo
   ? urlFor(section.imagenFondo).width(2800).quality(76).auto('format').url()
   : null;
 
-const mobileBackgroundImage = section?.imagenFondo?.mobileImage?.asset?._ref
+const mobileUrl = section?.imagenFondo?.mobileImage?.asset?._ref
   ? urlFor(section.imagenFondo.mobileImage).width(900).quality(80).auto('format').url()
-  : backgroundImage;
+  : desktopUrl;
 
-const mobileBackgroundImage2x = section?.imagenFondo?.mobileImage?.asset?._ref
+const mobileUrl2x = section?.imagenFondo?.mobileImage?.asset?._ref
   ? urlFor(section.imagenFondo.mobileImage).width(1400).quality(74).auto('format').url()
-  : backgroundImage2x;
+  : desktopUrl2x;
 
-const backgroundAlt =
+const imageAlt =
   section?.imagenFondo?.mobileImage?.alt ||
   section?.imagenFondo?.alt ||
   section?.titulo ||
@@ -36,24 +36,21 @@ const backgroundAlt =
 {section && (
   <section class="info-section" aria-labelledby="info-section-title">
     <article class="info-section__panel">
-      <div class="info-section__media" data-info-media style={backgroundImage ? `--info-section-bg: url('${backgroundImage}')` : undefined}>
-        {backgroundImage && (
+      <div class="info-section__media" data-info-media>
+        {desktopUrl && (
           <picture>
             <source
               media="(max-width: 767px)"
-              srcset={
-                mobileBackgroundImage2x
-                  ? `${mobileBackgroundImage} 900w, ${mobileBackgroundImage2x} 1400w`
-                  : mobileBackgroundImage || undefined
-              }
+              srcset={mobileUrl2x ? `${mobileUrl} 900w, ${mobileUrl2x} 1400w` : mobileUrl || undefined}
               sizes="100vw"
             />
             <img
               class="info-section__image"
-              src={backgroundImage}
-              srcset={backgroundImage2x ? `${backgroundImage} 1800w, ${backgroundImage2x} 2800w` : undefined}
+              data-info-image
+              src={desktopUrl}
+              srcset={desktopUrl2x ? `${desktopUrl} 1800w, ${desktopUrl2x} 2800w` : undefined}
               sizes="100vw"
-              alt={backgroundAlt}
+              alt={imageAlt}
               width="1800"
               height="1000"
               loading="lazy"
@@ -61,6 +58,7 @@ const backgroundAlt =
             />
           </picture>
         )}
+        <div class="info-section__overlay" aria-hidden="true"></div>
       </div>
 
       <div class="info-section__container">
@@ -86,45 +84,101 @@ const backgroundAlt =
 )}
 
 <script>
-  const infoSections = document.querySelectorAll<HTMLElement>('.info-section');
+  // Extra px added to image height to allow parallax travel (same value used in CSS)
+  const PARALLAX_EXTRA = 160; // 80px top + 80px bottom
+  const PARALLAX_STRENGTH = 0.14;
+  const PARALLAX_MAX = PARALLAX_EXTRA / 2;
 
-  infoSections.forEach((section) => {
-    const media = section.querySelector<HTMLElement>('[data-info-media]');
+  document.querySelectorAll<HTMLElement>('.info-section').forEach((section) => {
+    const image = section.querySelector<HTMLImageElement>('[data-info-image]');
     const content = section.querySelector<HTMLElement>('[data-info-content]');
-    const isDesktop = window.matchMedia('(min-width: 768px)').matches;
 
-    if (!content || !isDesktop) return;
+    if (!image || !content) return;
 
     let ticking = false;
+    const mq = window.matchMedia('(min-width: 768px)');
+    let isDesktop = mq.matches;
 
-    const updateMediaMode = () => {
+    const reset = () => {
+      image.style.transform = '';
+      content.style.setProperty('--info-content-parallax-y', '0px');
+    };
+
+    const update = () => {
+      if (!isDesktop) {
+        reset();
+        ticking = false;
+        return;
+      }
+
       const rect = section.getBoundingClientRect();
-      const viewportHeight = window.innerHeight || 1;
-      const shouldUseParallax = rect.top <= 0;
-      const exitProgress = Math.min(Math.max((viewportHeight - rect.bottom) / (viewportHeight * 0.75), 0), 1);
-      const contentOffset = exitProgress * Math.min(viewportHeight * 0.84, 390);
+      const vh = window.innerHeight;
 
-      media?.classList.toggle('info-section__media--parallax', shouldUseParallax);
+      // Parallax: image moves slower than scroll
+      const sectionCenter = rect.top + rect.height / 2;
+      const viewportCenter = vh / 2;
+      const rawParallax = (sectionCenter - viewportCenter) * PARALLAX_STRENGTH;
+      const parallaxY = Math.max(-PARALLAX_MAX, Math.min(PARALLAX_MAX, rawParallax));
+      image.style.transform = `translateY(${parallaxY}px)`;
+
+      // Content exit: slides up as section bottom leaves viewport
+      const exitProgress = Math.min(Math.max((vh - rect.bottom) / (vh * 0.75), 0), 1);
+      const contentOffset = exitProgress * Math.min(vh * 0.84, 390);
       content.style.setProperty('--info-content-parallax-y', `${contentOffset}px`);
+
       ticking = false;
     };
 
     const requestUpdate = () => {
       if (!ticking) {
-        window.requestAnimationFrame(updateMediaMode);
+        requestAnimationFrame(update);
         ticking = true;
       }
     };
 
-    updateMediaMode();
+    mq.addEventListener('change', (e) => {
+      isDesktop = e.matches;
+      requestUpdate();
+    });
+
+    update();
     window.addEventListener('scroll', requestUpdate, { passive: true });
-    window.addEventListener('resize', requestUpdate);
+    window.addEventListener('resize', requestUpdate, { passive: true });
   });
 </script>
 
 <style>
   .info-section {
     @apply relative;
+  }
+
+  .info-section__panel {
+    @apply relative;
+    /* clip-path clips the parallax image overflow WITHOUT breaking position:sticky on children
+       (overflow:hidden would break sticky — this is the correct approach) */
+    clip-path: inset(0);
+    min-height: 77rem;
+    background: var(--color-secondary-dark);
+  }
+
+  .info-section__media {
+    @apply absolute inset-0;
+  }
+
+  .info-section__media picture {
+    @apply absolute inset-0 block;
+  }
+
+  .info-section__image {
+    @apply block w-full;
+    height: 100%;
+    object-fit: cover;
+    object-position: center top;
+  }
+
+  .info-section__overlay {
+    @apply absolute inset-0 pointer-events-none;
+    background: linear-gradient(0deg, rgba(26, 28, 28, 1) 0%, rgba(0, 0, 0, 0.28) 20%, rgba(0, 0, 0, 0) 72%);
   }
 
   .info-section__container {
@@ -134,36 +188,6 @@ const backgroundAlt =
     padding: 0 var(--container-padding);
   }
 
-  .info-section__panel {
-    @apply relative;
-    min-height: 77rem;
-    background: var(--color-secondary-dark);
-    clip-path: inset(0);
-  }
-
-  .info-section__media {
-    @apply absolute inset-0 overflow-hidden;
-  }
-
-  .info-section__media picture {
-    position: absolute;
-    inset: 0;
-    display: block;
-  }
-
-  .info-section__media::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(0deg, rgba(26, 28, 28, 1) 0%, rgba(0, 0, 0, 0.28) 20%, rgba(0, 0, 0, 0) 72%);
-    pointer-events: none;
-  }
-
-  .info-section__image {
-    @apply w-full h-full;
-    object-fit: cover;
-    object-position: center;
-  }
   .info-section__content {
     @apply sticky z-10 flex flex-col justify-start;
     gap: 1.25rem;
@@ -185,6 +209,15 @@ const backgroundAlt =
     color: rgba(255, 255, 255, 0.82);
   }
 
+  /* Desktop: image is taller than container to allow parallax travel */
+  @media (min-width: 768px) {
+    .info-section__image {
+      height: calc(100% + 160px); /* matches PARALLAX_EXTRA in JS */
+      margin-top: -80px;          /* center the extra height */
+    }
+  }
+
+  /* Mobile */
   @media (max-width: 767px) {
     .info-section__panel {
       min-height: 28rem;
@@ -200,60 +233,5 @@ const backgroundAlt =
       transform: none;
       will-change: auto;
     }
-
-    .info-section__media picture {
-      inset: 0;
-    }
-
-    .info-section__image {
-      object-position: center;
-    }
-
-    .info-section__title {
-      max-width: 100%;
-    }
-  }
-
-  @media (min-width: 768px) {
-    .info-section__media {
-      background-image: var(--info-section-bg);
-      background-attachment: scroll;
-      background-position: center top;
-      background-repeat: no-repeat;
-      background-size: cover;
-    }
-
-    .info-section__media--parallax {
-      background-attachment: fixed;
-    }
-
-    .info-section__media picture {
-      opacity: 0;
-      pointer-events: none;
-    }
-    .info-section__media {
-    background-position: center top;
-    background-repeat: no-repeat;
-    background-size: cover;
-    /* sin background-image aquí → el picture queda visible */
-  }
-
-  .info-section__media--parallax {
-    background-image: var(--info-section-bg);
-    background-attachment: fixed;
-  }
-
-  .info-section__media--parallax picture {
-    opacity: 0;
-    pointer-events: none;
-  }
-  .info-section__media {
-    max-height: 100vh;
-    height: 100vh;
-  }
-  .info-section__media--parallax {
-    max-height: none;
-    height: 100%;
-  }
   }
 </style>
