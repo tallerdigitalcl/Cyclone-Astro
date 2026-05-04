@@ -1,6 +1,7 @@
 ---
 import { urlFor } from '../../lib/sanity';
 import type { Post } from '../../lib/types';
+import FadeIn from '../ui/FadeIn.astro';
 
 interface Props {
   posts: Post[];
@@ -23,13 +24,16 @@ const filterLabels = ['Todas', ...availableCategories.map((category) => category
   <section class="latest-news" aria-labelledby="latest-news-title">
     <div class="latest-news__container">
       <div class="latest-news__header">
+        <FadeIn type="left">
         <h2 id="latest-news-title" class="latest-news__title">Noticias</h2>
-
-        <div class="latest-news__filters" aria-label="Categorias destacadas">
-          {filterLabels.map((label, index) => (
-            <span class:list={['latest-news__filter', index === 0 && 'is-active']}>{label}</span>
-          ))}
-        </div>
+        </FadeIn>
+        <FadeIn type="right">
+          <div class="latest-news__filters" aria-label="Categorias destacadas">
+            {filterLabels.map((label, index) => (
+              <span class:list={['latest-news__filter', index === 0 && 'is-active']}>{label}</span>
+            ))}
+          </div>
+        </FadeIn>
       </div>
 
       <div class="latest-news__grid">
@@ -49,40 +53,42 @@ const filterLabels = ['Todas', ...availableCategories.map((category) => category
           const title = post.homeTitle || post.title;
 
           return (
-            <article class:list={['latest-news__card', index === 0 && 'latest-news__card--featured']}>
-              {image && desktopUrl && (
-                <a href={`/noticia/${post.slug}`} class="latest-news__image-link" aria-hidden="true" tabindex="-1">
-                  <picture>
-                    <source
-                      media="(max-width: 767px)"
-                      srcset={mobileUrl2x ? `${mobileUrl} 720w, ${mobileUrl2x} 1080w` : mobileUrl || undefined}
-                      sizes="(max-width: 1023px) 100vw, 33vw"
-                    />
-                    <img
-                      src={desktopUrl}
-                      srcset={desktopUrl2x ? `${desktopUrl} 960w, ${desktopUrl2x} 1440w` : undefined}
-                      sizes={index === 0 ? '(min-width: 1024px) 32vw, 100vw' : '(min-width: 1024px) 20vw, 100vw'}
-                      alt={imageAlt}
-                      width="960"
-                      height="600"
-                      class="latest-news__image"
-                      loading={index === 0 ? 'eager' : 'lazy'}
-                      fetchpriority={index === 0 ? 'low' : 'auto'}
-                      decoding="async"
-                    />
-                  </picture>
-                </a>
-              )}
+            <FadeIn type="up" class:list={['latest-news__slide', index === 0 && 'latest-news__slide--featured']}>
+              <article class:list={['latest-news__card', index === 0 && 'latest-news__card--featured']}>
+                {image && desktopUrl && (
+                  <a href={`/noticia/${post.slug}`} class="latest-news__image-link" aria-hidden="true" tabindex="-1">
+                    <picture>
+                      <source
+                        media="(max-width: 767px)"
+                        srcset={mobileUrl2x ? `${mobileUrl} 720w, ${mobileUrl2x} 1080w` : mobileUrl || undefined}
+                        sizes="(max-width: 1023px) 100vw, 33vw"
+                      />
+                      <img
+                        src={desktopUrl}
+                        srcset={desktopUrl2x ? `${desktopUrl} 960w, ${desktopUrl2x} 1440w` : undefined}
+                        sizes={index === 0 ? '(min-width: 1024px) 32vw, 100vw' : '(min-width: 1024px) 20vw, 100vw'}
+                        alt={imageAlt}
+                        width="960"
+                        height="600"
+                        class="latest-news__image"
+                        loading={index === 0 ? 'eager' : 'lazy'}
+                        fetchpriority={index === 0 ? 'low' : 'auto'}
+                        decoding="async"
+                      />
+                    </picture>
+                  </a>
+                )}
 
-              <div class="latest-news__body">
-                {category && <p class="latest-news__category">{category}</p>}
-                <h3 class="latest-news__card-title">
-                  <a href={`/noticia/${post.slug}`}>{title}</a>
-                </h3>
-                {post.excerpt && <p class="latest-news__excerpt">{post.excerpt}</p>}
-                <a href={`/noticia/${post.slug}`} class="latest-news__cta">Leer mas</a>
-              </div>
-            </article>
+                <div class="latest-news__body">
+                  {category && <p class="latest-news__category fade-child fade-child--left fade-delay-2">{category}</p>}
+                  <h3 class="latest-news__card-title fade-child fade-child--left fade-delay-3">
+                    <a href={`/noticia/${post.slug}`}>{title}</a>
+                  </h3>
+                  {post.excerpt && <p class="latest-news__excerpt fade-child fade-child--left fade-delay-3">{post.excerpt}</p>}
+                  <a href={`/noticia/${post.slug}`} class="latest-news__cta fade-child fade-child--zoom-in fade-delay-4">Leer mas</a>
+                </div>
+              </article>
+            </FadeIn>
           );
         })}
       </div>
@@ -190,7 +196,7 @@ const filterLabels = ['Todas', ...availableCategories.map((category) => category
   }
 
   .latest-news__cta {
-    @apply inline-flex items-center uppercase no-underline;
+    @apply relative inline-flex items-center uppercase no-underline;
     width: fit-content;
     margin-top: auto;
     color: var(--color-primary);
@@ -198,6 +204,19 @@ const filterLabels = ['Todas', ...availableCategories.map((category) => category
     font-size: 0.74rem;
     font-weight: 800;
     letter-spacing: 0.1em;
+  }
+
+  .latest-news__cta::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 1.2rem;
+    bottom: -0.18rem;
+    height: 1px;
+    background: currentColor;
+    transform: scaleX(0);
+    transform-origin: center;
+    transition: transform 320ms cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   .latest-news__cta::after {
@@ -210,19 +229,26 @@ const filterLabels = ['Todas', ...availableCategories.map((category) => category
     text-decoration: none;
   }
 
+  .latest-news__cta:hover::before {
+    transform: scaleX(1);
+  }
+
   @media (min-width: 768px) {
     .latest-news__grid {
       grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 1.1rem;
     }
 
-    .latest-news__card--featured {
+    :global(.latest-news__slide--featured) {
       grid-column: 1 / -1;
+    }
+
+    :global(.latest-news__slide--featured) .latest-news__card--featured {
       display: grid;
       grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.9fr);
     }
 
-    .latest-news__card--featured .latest-news__image {
+    :global(.latest-news__slide--featured) .latest-news__card--featured .latest-news__image {
       aspect-ratio: 16 / 10;
       min-height: 18rem;
     }
@@ -238,8 +264,12 @@ const filterLabels = ['Todas', ...availableCategories.map((category) => category
       gap: 1rem;
     }
 
-    .latest-news__card--featured {
+    :global(.latest-news__slide--featured) {
       grid-column: span 2;
+    }
+
+    :global(.latest-news__slide--featured) .latest-news__card--featured {
+      height: 100%;
     }
   }
 </style>

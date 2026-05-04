@@ -39,6 +39,7 @@ const hasMultipleOffers = ofertas.length > 1;
           const offerHref = oferta.slug ? `/motos/${oferta.slug}` : '/motos';
 
           return (
+            <FadeIn type="up" class="motos-oferta__slide">
             <a
               href={offerHref}
               class="motos-oferta__card"
@@ -68,26 +69,23 @@ const hasMultipleOffers = ofertas.length > 1;
               </div>
 
               <div class="motos-oferta__content">
-                <FadeIn type="up">
-                  <div class="motos-oferta__top">
-                    <h3 class="motos-oferta__name">{oferta.displayName}</h3>
-                    <span class="motos-oferta__cta">
-                      Ver oferta
-                      <span aria-hidden="true" class="motos-oferta__cta-arrow">→</span>
-                    </span>
-                  </div>
-                </FadeIn>
+                <div class="motos-oferta__top fade-child fade-child--left fade-delay-2">
+                  <h3 class="motos-oferta__name">{oferta.displayName}</h3>
+                  <span class="motos-oferta__cta">
+                    Ver oferta
+                    <span aria-hidden="true" class="motos-oferta__cta-arrow">→</span>
+                  </span>
+                </div>
 
-                <div class="motos-oferta__pricing">
-                  <FadeIn type="up">
+                <div class="motos-oferta__pricing fade-child fade-child--left fade-delay-3">
                   {oferta.displayListPrice && (
                     <p class="motos-oferta__list-price">Precio Lista Desde: ${oferta.displayListPrice}</p>
                   )}
                   {oferta.displayBonus && <p class="motos-oferta__bonus">Bono ${oferta.displayBonus}</p>}
-                  </FadeIn>
                 </div>
               </div>
             </a>
+            </FadeIn>
           );
         })}
       </div>
@@ -114,7 +112,7 @@ const hasMultipleOffers = ofertas.length > 1;
   <script>
     const offersViewport = document.querySelector('.motos-oferta__cards');
     const offerDots = Array.from(document.querySelectorAll('[data-offer-dot]'));
-    const offerCards = Array.from(document.querySelectorAll('.motos-oferta__card'));
+    const offerCards = Array.from(document.querySelectorAll('.motos-oferta__slide'));
 
     function setActiveOfferDot(activeIndex) {
       offerDots.forEach((dot, index) => {
@@ -201,20 +199,25 @@ const hasMultipleOffers = ofertas.length > 1;
     min-height: 3rem;
     padding: 0.85rem 1.5rem;
     border: 1px solid rgba(255, 255, 255, 0.58);
+    background-image: radial-gradient(circle at center, #ffffff 0%, #ffffff 54%, transparent 55%);
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: 0% 0%;
     color: var(--color-text-light);
     font-family: var(--font-body);
     font-size: var(--text-button);
     font-weight: 700;
     letter-spacing: 0.08em;
     transition:
+      background-size 360ms ease-in-out,
       border-color var(--transition-base),
-      background-color var(--transition-base),
       color var(--transition-base);
   }
 
   .motos-oferta__all-link:hover {
-    border-color: rgba(255, 255, 255, 0.86);
-    background: rgba(255, 255, 255, 0.08);
+    background-size: 260% 260%;
+    border-color: #ffffff;
+    color: #000000;
     text-decoration: none;
   }
 
@@ -259,12 +262,15 @@ const hasMultipleOffers = ofertas.length > 1;
     transform: scale(1.05);
   }
 
-  .motos-oferta__card {
-    @apply relative overflow-hidden no-underline;
+  .motos-oferta__slide {
     flex: 0 0 min(84vw, 24rem);
+    scroll-snap-align: start;
+  }
+
+  .motos-oferta__card {
+    @apply relative overflow-hidden no-underline block;
     min-height: 25rem;
     aspect-ratio: 5 / 5;
-    scroll-snap-align: start;
     background: var(--color-secondary-dark);
     color: var(--color-text-light);
   }
@@ -306,12 +312,29 @@ const hasMultipleOffers = ofertas.length > 1;
   }
 
   .motos-oferta__cta {
-    @apply inline-flex items-center gap-2 uppercase;
+    @apply relative inline-flex items-center gap-2 uppercase;
     width: fit-content;
     font-family: var(--font-body);
     font-size: var(--text-button);
     font-weight: 800;
     letter-spacing: 0.08em;
+  }
+
+  .motos-oferta__cta::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -0.18rem;
+    height: 1px;
+    background: currentColor;
+    transform: scaleX(0);
+    transform-origin: center;
+    transition: transform 320ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .motos-oferta__card:hover .motos-oferta__cta::after {
+    transform: scaleX(1);
   }
 
   .motos-oferta__cta-arrow {
@@ -356,9 +379,12 @@ const hasMultipleOffers = ofertas.length > 1;
       scroll-snap-type: none;
     }
 
+    .motos-oferta__slide {
+      flex-basis: auto;
+    }
+
     .motos-oferta__card {
       min-height: 21rem;
-      flex-basis: auto;
     }
 
     .motos-oferta__dots {

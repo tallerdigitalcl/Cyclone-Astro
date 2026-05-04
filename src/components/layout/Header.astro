@@ -189,7 +189,28 @@ const navLinks = [
   }
 
   .nav__link {
-    @apply flex items-center gap-1 text-sm font-medium text-white/90 hover:text-white transition-colors duration-200 tracking-wide;
+    @apply relative flex items-center gap-1 text-sm font-medium text-white/90 hover:text-white transition-colors duration-200 tracking-wide no-underline;
+  }
+
+  .nav__link:hover {
+    text-decoration: none;
+  }
+
+  .nav__link:not(.nav__link--dropdown)::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -0.18rem;
+    height: 1px;
+    background: currentColor;
+    transform: scaleX(0);
+    transform-origin: center;
+    transition: transform 320ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .nav__link:not(.nav__link--dropdown):hover::after {
+    transform: scaleX(1);
   }
 
   .nav__link--dropdown {

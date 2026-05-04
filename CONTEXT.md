@@ -59,7 +59,7 @@ Sanity Studio:
 |---|---|---|
 | `/` | Home | Conectado a Sanity + Promobility |
 | `/motos` | Catalogo de motos | Conectado a Sanity |
-| `/motos/[slug]` | Detalle de moto | Generacion estatica |
+| `/motos/[slug]` | Detalle de moto | Generacion estatica + mezcla Sanity/Promobility |
 | `/noticia` | Listado de noticias | Conectado a Sanity |
 | `/noticia/[slug]` | Noticia individual | Generacion estatica |
 
@@ -94,6 +94,8 @@ Nota: la ruta antigua `/blog` fue reemplazada por `/noticia`.
 - Navegacion principal hardcoded.
 - La ruta de noticias apunta a `/noticia`.
 - Tiene gradiente vertical negro desde arriba.
+- En top de pagina se muestra transparente con linea inferior blanca.
+- Al hacer scroll mantiene fondo con blur y animacion de linea inferior.
 
 ### Hero
 - Usa `heroSlide` desde Sanity.
@@ -101,6 +103,12 @@ Nota: la ruta antigua `/blog` fue reemplazada por `/noticia`.
 - Preload LCP se genera desde `src/pages/index.astro` y se pasa a `BaseLayout`.
 - Slider manual sin librerias externas.
 - Usa `scroll-snap` e `IntersectionObserver`.
+- Soporta 3 estilos administrables desde Sanity:
+  - titulo izquierda, detalle derecha
+  - titulo derecha, detalle izquierda
+  - titulo centrado, sin detalle
+- El alineamiento del boton se adapta automaticamente al estilo del slide.
+- Tiene animaciones de entrada y hover mejorado en botones rojos.
 
 ### MotoSlider
 - Consulta motos desde Sanity usando `apiMotoId` e `imagenSliderHome`.
@@ -109,6 +117,7 @@ Nota: la ruta antigua `/blog` fue reemplazada por `/noticia`.
 - `Cotizar` esta solo visual por ahora.
 - `Ver modelo` apunta a `/motos/[slug]`.
 - Slider manual sin libreria externa.
+- Si `bono` es `0`, no muestra precio lista tachado.
 - Responsive:
   - mobile: una card por vista.
   - tablet: cards mas amplias.
@@ -128,6 +137,8 @@ Nota: la ruta antigua `/blog` fue reemplazada por `/noticia`.
 - La imagen ocupa todo el ancho.
 - Tiene overlay de negro a transparente desde abajo hacia arriba.
 - Usa `<picture>` para servir mobile en pantallas pequenas.
+- En desktop usa sticky scroll para el contenido y efecto parallax en el fondo.
+- El contenido queda recortado dentro del panel con `clip-path` para no invadir la seccion siguiente.
 
 ### MotosOferta
 - Administrable desde Sanity con schema `oferta`.
@@ -142,6 +153,7 @@ Nota: la ruta antigua `/blog` fue reemplazada por `/noticia`.
 - Mobile: slider horizontal con `scroll-snap`.
 - Dots mobile con area tactil suficiente para PageSpeed.
 - Dots sincronizados con `IntersectionObserver`.
+- Cards ajustadas para menor altura visual respecto al primer mockup.
 
 ### InstagramSection
 - Implementacion temporal mientras se conecta Meta API.
@@ -153,8 +165,8 @@ Nota: la ruta antigua `/blog` fue reemplazada por `/noticia`.
   - `public/home/instagram/feature/instagram-feature.avif`
 - La zona superior tiene gradient manual.
 - La imagen grande inferior es independiente.
-- Desktop: grid.
-- Mobile: scroll horizontal con `scroll-snap`.
+- Desktop y mobile: feed en grilla 2x2.
+- La imagen inferior tiene overlay tipo InfoSection.
 
 ### LatestNews
 - Seccion final del home.
@@ -173,6 +185,31 @@ Nota: la ruta antigua `/blog` fue reemplazada por `/noticia`.
 - Columnas de navegacion.
 - Newsletter visual sin backend por ahora.
 - Lista social corregida semanticamente con `ul/li`.
+- Links del footer usan hover con subrayado animado, alineado visualmente con el header.
+
+## Interna de motos actual
+
+### Hero secuencial
+- La pagina `/motos/[slug]` mezcla datos editoriales de Sanity con datos comerciales y tecnicos de Promobility.
+- Si la moto tiene `scrollSequenceFrames`, se activa un hero secuencial con animacion por scroll.
+- La secuencia usa exactamente 13 imagenes desde 0 a 30 grados.
+- El hero inicial muestra:
+  - nombre de la moto
+  - precio lista
+  - precio bono
+  - boton de cotizacion
+  - iconos inferiores derechos administrables desde Sanity
+- El estado final del hero muestra:
+  - colores disponibles desde la API
+  - specs principales desde la API
+  - nombre de la moto y CTA final
+- Usa imagen de fondo estatica local en `public/moto/hero.webp`.
+
+### Secciones editoriales de moto
+- `caracteristicasAdicionales` ya se renderiza en la interna con grilla de imagenes, titulo y detalle.
+- `fichaTecnica` se expone mediante boton hacia el PDF.
+- `zonaInformativa` ya se renderiza debajo de caracteristicas.
+- `tituloGaleria` y `galeriaFotos` ya existen a nivel schema, aunque el desarrollo visual puede seguir creciendo.
 
 ## Integracion con Promobility API
 Archivo clave: `src/lib/promobility.ts`
@@ -211,8 +248,8 @@ Importante:
 | `post` | Reestructurado | Se muestra como Noticias |
 | `author` | Activo | Imagen con alt |
 | `blockContent` | Activo | Rich text con imagenes webp/avif y alt |
-| `heroSlide` | Activo | Hero principal con desktop/mobile |
-| `moto` | Reestructurado | Capa editorial para cruce con API |
+| `heroSlide` | Activo | Hero principal con desktop/mobile y 3 estilos |
+| `moto` | Reestructurado | Capa editorial para cruce con API + interna de motos |
 | `homeInfoSection` | Activo | InfoSection del home |
 | `oferta` | Activo | Ofertas del home |
 
@@ -241,12 +278,19 @@ Campos principales:
 - `tituloDescriptivo`
 - `descripcion`
 - `heroImagenes`
+- `scrollSequenceFrames`
 - `imagenSliderHome`
+- `zonaInformativa`
 - `colores`
 - `caracteristicasAdicionales`
 - `fichaTecnica`
 - `tituloGaleria`
 - `galeriaFotos`
+
+Notas:
+- `heroImagenes` ahora corresponde a los iconos del hero de la interna.
+- `scrollSequenceFrames` exige 13 imagenes exactas, cada una con alt y opcion mobile.
+- `zonaInformativa` tiene titulo, descripcion e imagen de fondo con version mobile.
 
 ### Schema `oferta`
 Campos:
@@ -295,6 +339,8 @@ Tipos importantes:
 - `HomeInfoSection`
 - `Oferta`
 - `HomeOffer`
+- `MotoAdditionalFeature`
+- `MotoInfoSection`
 
 ## Optimizaciones de rendimiento y SEO aplicadas
 - CSS pequeno inlineado con `inlineStylesheets: 'always'`.
@@ -308,6 +354,9 @@ Tipos importantes:
 - `MotosOferta` usa `IntersectionObserver` para dots en mobile.
 - Promobility se consume en servidor durante build, no desde el cliente.
 - Se corrigio la semantica ARIA del footer.
+- Fuentes servidas localmente para evitar bloqueo por Google Fonts.
+- Header con estado blur manejado en cliente sin librerias externas.
+- Hero del home e interna de motos usan transiciones y animaciones manuales, evitando librerias pesadas.
 
 ## Flujo de deploy
 
@@ -347,7 +396,6 @@ npx sanity deploy
 ## Pendientes conocidos
 - Conectar `Cotizar` con flujo real.
 - Conectar `InstagramSection` con Meta API.
-- Actualizar la interna completa de moto al nuevo schema editorial.
-- Mejorar detalle de moto mezclando Sanity + Promobility.
-- Crear webhook Sanity -> Cloudflare Pages si se quiere redeploy automatico al publicar contenido.
+- Seguir puliendo la interna de moto, especialmente detalles responsive y acabados del hero secuencial.
+- Evaluar webhook Sanity -> Cloudflare Pages para que los cambios editoriales disparen deploy automatico.
 - Revisar si conviene migrar a SSR para precios/contenido en tiempo real.

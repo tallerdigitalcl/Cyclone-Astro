@@ -1,37 +1,116 @@
 ---
-const { class: className = "", as = "div" } = Astro.props;
+interface Props {
+  type?: "up" | "down" | "left" | "right" | "zoom-in";
+  delay?: number;
+  class?: string;
+  as?: string;
+}
+
+const {
+  type = "up",
+  delay = 0,
+  class: className = "",
+  as: Tag = "div",
+} = Astro.props;
 ---
 
-<component this={as} class={`fade-in-up ${className}`} data-fade-in>
+<Tag
+  class={`fade-in fade-in--${type} ${className}`}
+  data-fade-in
+  style={delay ? `transition-delay:${delay}ms` : ""}
+>
   <slot />
-</component>
+</Tag>
 
-<script is:inline>
-if (typeof window !== "undefined") {
-  window.addEventListener("DOMContentLoaded", () => {
-    const fadeEls = document.querySelectorAll('[data-fade-in]');
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          entry.target.classList.add('fade-in-up--visible');
-          observer.unobserve(entry.target);
-        }
-      });
-    }, { threshold: 0.18 });
-    fadeEls.forEach(el => observer.observe(el));
-  });
-}
+<script>
+  function initFadeIn() {
+    const els = document.querySelectorAll<HTMLElement>(
+      "[data-fade-in]:not([data-fade-observed])"
+    );
+    if (!els.length) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("fade-in--visible");
+          } else {
+            entry.target.classList.remove("fade-in--visible");
+          }
+        });
+      },
+      { threshold: 0.12, rootMargin: "0px 0px -32px 0px" }
+    );
+
+    els.forEach((el) => {
+      el.setAttribute("data-fade-observed", "");
+      observer.observe(el);
+    });
+  }
+
+  // Handles both fresh load and Astro view transitions
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initFadeIn);
+  } else {
+    initFadeIn();
+  }
+
+  document.addEventListener("astro:page-load", initFadeIn);
 </script>
 
 <style>
-.fade-in-up {
-  opacity: 0;
-  transform: translateY(20px);
-  transition: opacity 0.7s cubic-bezier(0.16,1,0.3,1), transform 0.7s cubic-bezier(0.16,1,0.3,1);
-  will-change: opacity, transform;
-}
-.fade-in-up--visible {
-  opacity: 1;
-  transform: translateY(0);
-}
+  .fade-in {
+    opacity: 0;
+    transition:
+      opacity 0.65s cubic-bezier(0.16, 1, 0.3, 1),
+      transform 0.65s cubic-bezier(0.16, 1, 0.3, 1);
+    will-change: opacity, transform;
+  }
+
+  .fade-in--up      { transform: translateY(28px); }
+  .fade-in--down    { transform: translateY(-28px); }
+  .fade-in--left    { transform: translateX(-28px); }
+  .fade-in--right   { transform: translateX(-28px); }
+  .fade-in--zoom-in { transform: scale(0.94); }
+
+  @media (min-width: 768px) {
+    .fade-in--right { transform: translateX(28px); }
+  }
+
+  .fade-in--visible {
+    opacity: 1;
+    transform: translateY(0) translateX(0) scale(1);
+  }
+
+  /* ── Child element utilities (use inside any FadeIn wrapper) ── */
+  /* Apply fade-child + fade-child--{direction} + fade-delay-{n} to inner elements */
+
+  :global(.fade-child) {
+    opacity: 0;
+    transition:
+      opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1),
+      transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  :global(.fade-child--up)      { transform: translateY(22px); }
+  :global(.fade-child--down)    { transform: translateY(-22px); }
+  :global(.fade-child--left)    { transform: translateX(-22px); }
+  :global(.fade-child--right)   { transform: translateX(-22px); }
+  :global(.fade-child--zoom-in) { transform: scale(0.9); }
+
+  @media (min-width: 768px) {
+    :global(.fade-child--right) { transform: translateX(22px); }
+  }
+
+  :global(.fade-in--visible .fade-child) {
+    opacity: 1;
+    transform: translateY(0) translateX(0) scale(1);
+  }
+
+  /* Delay steps — transition-delay applied on the visible state */
+  :global(.fade-in--visible .fade-delay-1) { transition-delay: 0.2s; }
+  :global(.fade-in--visible .fade-delay-2) { transition-delay: 0.4s; }
+  :global(.fade-in--visible .fade-delay-3) { transition-delay: 0.6s; }
+  :global(.fade-in--visible .fade-delay-4) { transition-delay: 0.8s; }
+  :global(.fade-in--visible .fade-delay-5) { transition-delay: 1s; }
 </style>

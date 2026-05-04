@@ -73,12 +73,17 @@ const Tag = href ? 'a' : 'button';
   .btn--secondary {
     border-color: rgba(255, 255, 255, 0.75);
     background: transparent;
+    background-image: radial-gradient(circle at center, #ffffff 0%, #ffffff 54%, transparent 55%);
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: 0% 0%;
     color: var(--color-text-light);
   }
 
   .btn--secondary:hover {
-    border-color: var(--color-text-light);
-    background: rgba(255, 255, 255, 0.08);
+    background-size: 260% 260%;
+    border-color: #ffffff;
+    color: #000000;
   }
 
   .btn--outline {

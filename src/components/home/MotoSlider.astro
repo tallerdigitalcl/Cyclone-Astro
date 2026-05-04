@@ -17,7 +17,7 @@ const hasMultipleSlides = motos.length > 1;
     <div class="moto-slider__container">
       <div class="moto-slider__header">
         <FadeIn type="left">
-          <h2 id="</FadeIn>moto-slider-title" class="moto-slider__title">Elige la moto de tus sueños</h2>
+          <h2 id="moto-slider-title" class="moto-slider__title">Elige la moto de tus sueños</h2>
         </FadeIn>
 
         {hasMultipleSlides && (
@@ -54,55 +54,64 @@ const hasMultipleSlides = motos.length > 1;
             const imageAlt = moto.imagenSliderHome?.alt || `${moto.displayName} de Cyclone Motos`;
 
             return (
-              <article class="moto-slider__card" aria-labelledby={`moto-slider-card-${moto._id}`}>
-                <div class="moto-slider__media">
-                  <img
-                    class="moto-slider__image"
-                    src={imageUrl}
-                    srcset={`${imageUrl} 960w, ${imageUrl2x} 1440w`}
-                    sizes="(min-width: 1280px) 33vw, (min-width: 768px) 46vw, 82vw"
-                    alt={imageAlt}
-                    width="960"
-                    height="1120"
-                    loading={index < 2 ? 'eager' : 'lazy'}
-                    fetchpriority={index < 2 ? 'low' : 'auto'}
-                    decoding="async"
-                  />
-                  <div class="moto-slider__overlay" aria-hidden="true"></div>
-                </div>
-
-                <div class="moto-slider__content">
-                  <FadeIn>
-                    <h3 id={`moto-slider-card-${moto._id}`} class="moto-slider__name">
-                      {moto.displayName}
-                    </h3>
-                  </FadeIn>
-
-                  <div class="moto-slider__pricing">
-                    <FadeIn> 
-                      {moto.displayListPrice && <p class="moto-slider__list-price">{moto.displayListPrice}</p>}
-                      {moto.displayPrice && <p class="moto-slider__price">{moto.displayPrice}</p>}
-                    </FadeIn>
+              <FadeIn type="up" class="moto-slider__slide">
+                <article class="moto-slider__card" aria-labelledby={`moto-slider-card-${moto._id}`}>
+                  <div class="moto-slider__media">
+                    <img
+                      class="moto-slider__image"
+                      src={imageUrl}
+                      srcset={`${imageUrl} 960w, ${imageUrl2x} 1440w`}
+                      sizes="(min-width: 1280px) 33vw, (min-width: 768px) 46vw, 82vw"
+                      alt={imageAlt}
+                      width="960"
+                      height="1120"
+                      loading={index < 2 ? 'eager' : 'lazy'}
+                      fetchpriority={index < 2 ? 'low' : 'auto'}
+                      decoding="async"
+                    />
+                    <div class="moto-slider__overlay" aria-hidden="true"></div>
                   </div>
 
-                  <div class="moto-slider__actions">
-                    <FadeIn type="zoom-in"> 
+                  <div class="moto-slider__content">
+                    <h3 id={`moto-slider-card-${moto._id}`} class="moto-slider__name fade-child fade-child--left fade-delay-2">
+                      {moto.displayName}
+                    </h3>
+
+                    <div class="moto-slider__pricing fade-child fade-child--left fade-delay-3">
+                      {moto.displayListPrice && <p class="moto-slider__list-price">{moto.displayListPrice}</p>}
+                      {moto.displayPrice && <p class="moto-slider__price">{moto.displayPrice}</p>}
+                    </div>
+
+                    <div class="moto-slider__actions fade-child fade-child--zoom-in fade-delay-4">
                       <Button type="button" size="md" class="md:min-w-40">
                         Cotizar
                       </Button>
-                    </FadeIn>
-                    <FadeIn type="zoom-in"> 
                       <Button href={`/motos/${moto.slug}`} variant="secondary" size="md" class="md:min-w-40">
                         Ver modelo
                       </Button>
-                    </FadeIn>
+                    </div>
                   </div>
-                </div>
-              </article>
+                </article>
+              </FadeIn>
             );
           })}
         </div>
       </div>
+
+      {hasMultipleSlides && (
+        <div class="moto-slider__dots md:hidden" id="moto-slider-dots" aria-label="Paginacion del slider">
+          {motos.map((moto, index) => (
+            <button
+              type="button"
+              class:list={['moto-slider__dot', index === 0 && 'is-active']}
+              data-slider-dot
+              data-slider-index={index}
+              aria-label={`Ir a la moto ${index + 1}: ${moto.displayName}`}
+              aria-pressed={index === 0 ? 'true' : 'false'}
+            ></button>
+          ))}
+        </div>
+      )}
     </div>
   </section>
 )}
@@ -113,27 +122,77 @@ const hasMultipleSlides = motos.length > 1;
   const previousButton = document.getElementById('moto-slider-prev');
   const nextButton = document.getElementById('moto-slider-next');
 
-  function getStepSize() {
-    const firstCard = track?.querySelector<HTMLElement>('.moto-slider__card');
-    if (!firstCard) return 0;
+  // Dot navigation (mobile)
+  const sliderDots = Array.from(document.querySelectorAll('[data-slider-dot]'));
+  const sliderSlides = Array.from(document.querySelectorAll('.moto-slider__slide'));
 
-    const cardWidth = firstCard.offsetWidth;
-    const trackStyles = getComputedStyle(track);
-    const gap = Number.parseFloat(trackStyles.columnGap || trackStyles.gap || '0');
-    return cardWidth + gap;
-  }
+  let currentIndex = 0;
 
-  function scrollSlider(direction) {
+  function scrollToSlide(index: number) {
     if (!viewport) return;
-
-    viewport.scrollBy({
-      left: getStepSize() * direction,
+    const targetSlide = sliderSlides[index] as HTMLElement;
+    if (!targetSlide) return;
+    const slideRect = targetSlide.getBoundingClientRect();
+    const viewportRect = viewport.getBoundingClientRect();
+    viewport.scrollTo({
+      left: viewport.scrollLeft + slideRect.left - viewportRect.left,
       behavior: 'smooth',
     });
   }
 
+  function scrollSlider(direction: number) {
+    const nextIndex = Math.max(0, Math.min(sliderSlides.length - 1, currentIndex + direction));
+    scrollToSlide(nextIndex);
+  }
+
   previousButton?.addEventListener('click', () => scrollSlider(-1));
   nextButton?.addEventListener('click', () => scrollSlider(1));
+
+  function setActiveSliderDot(activeIndex: number) {
+    sliderDots.forEach((dot, index) => {
+      const isActive = index === activeIndex;
+      dot.classList.toggle('is-active', isActive);
+      dot.setAttribute('aria-pressed', String(isActive));
+    });
+  }
+
+  sliderDots.forEach((dot, index) => {
+    dot.addEventListener('click', () => {
+      if (!viewport) return;
+      const targetSlide = sliderSlides[index] as HTMLElement;
+      if (!targetSlide) return;
+      const slideRect = targetSlide.getBoundingClientRect();
+      const viewportRect = viewport.getBoundingClientRect();
+      viewport.scrollTo({
+        left: viewport.scrollLeft + slideRect.left - viewportRect.left,
+        behavior: 'smooth',
+      });
+    });
+  });
+
+  if (viewport && sliderSlides.length > 0) {
+    const dotObserver = new IntersectionObserver(
+      (entries) => {
+        const visibleEntry = entries
+          .filter((entry) => entry.isIntersecting)
+          .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+
+        if (!visibleEntry) return;
+
+        const activeIndex = sliderSlides.indexOf(visibleEntry.target as HTMLElement);
+        if (activeIndex >= 0) {
+          currentIndex = activeIndex;
+          setActiveSliderDot(activeIndex);
+        }
+      },
+      {
+        root: viewport,
+        threshold: [0.6, 0.75, 0.9],
+      }
+    );
+
+    sliderSlides.forEach((slide) => dotObserver.observe(slide));
+  }
 </script>
 
 <style>
@@ -246,7 +305,6 @@ const hasMultipleSlides = motos.length > 1;
     scrollbar-width: none;
     -ms-overflow-style: none;
     scroll-snap-type: x mandatory;
-    scroll-behavior: smooth;
     padding-bottom: 0.5rem;
     padding-right: 1rem;
   }
@@ -260,12 +318,15 @@ const hasMultipleSlides = motos.length > 1;
     gap: var(--moto-slider-gap);
   }
 
+  .moto-slider__slide {
+    flex: 0 0 var(--moto-slider-card-width);
+    scroll-snap-align: start;
+  }
+
   .moto-slider__card {
     @apply relative overflow-hidden;
-    flex: 0 0 var(--moto-slider-card-width);
     min-height: 24rem;
-    aspect-ratio: 5 / 4;
-    scroll-snap-align: start;
+    aspect-ratio: 4 / 4;
     background: var(--color-secondary-dark);
   }
 
@@ -289,6 +350,9 @@ const hasMultipleSlides = motos.length > 1;
     @apply relative z-10 h-full flex flex-col justify-between;
     padding: 1.5rem;
   }
+
+  /* ── Inner element animations ───────────────────────────── */
+  /* Handled by FadeIn.astro utilities: fade-child, fade-child--{dir}, fade-delay-{n} */
 
   .moto-slider__name {
     @apply font-heading uppercase text-white text-h3;
@@ -316,6 +380,33 @@ const hasMultipleSlides = motos.length > 1;
   .moto-slider__actions {
     @apply flex flex-wrap gap-3;
     margin-top: 1.5rem;
+  }
+
+  .moto-slider__dots {
+    @apply flex items-center justify-center;
+    gap: 0.25rem;
+    margin-top: 0.9rem;
+  }
+
+  .moto-slider__dot {
+    @apply relative inline-flex items-center justify-center rounded-full border-0 p-0;
+    width: 2.75rem;
+    height: 2.75rem;
+    background: transparent;
+  }
+
+  .moto-slider__dot::before {
+    content: '';
+    width: 0.625rem;
+    height: 0.625rem;
+    border-radius: 9999px;
+    background: rgba(0, 0, 0, 0.22);
+    transition: background-color var(--transition-base), transform var(--transition-base);
+  }
+
+  .moto-slider__dot.is-active::before {
+    background: var(--color-primary);
+    transform: scale(1.05);
   }
 
   @media (min-width: 768px) {
