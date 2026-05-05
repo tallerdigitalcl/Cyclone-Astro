@@ -116,7 +116,10 @@ const imageAlt =
       // Negative or zero = section bottom hasn't reached viewport bottom yet → no parallax.
       const scrolledPastTrigger = vh - rect.bottom;
 
-      if (scrolledPastTrigger > 0) {
+      if (rect.bottom <= 0) {
+        // Section fully above viewport — reset to prevent unbounded translateY from growing scroll height
+        image.style.transform = '';
+      } else if (scrolledPastTrigger > 0) {
         // Image moves down (lags behind) relative to the section as it exits
         image.style.transform = `translateY(${scrolledPastTrigger * PARALLAX_SPEED}px)`;
       } else {
