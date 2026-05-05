@@ -84,10 +84,8 @@ const imageAlt =
 )}
 
 <script>
-  // Extra px added to image height to allow parallax travel (same value used in CSS)
-  const PARALLAX_EXTRA = 160; // 80px top + 80px bottom
-  const PARALLAX_STRENGTH = 0.14;
-  const PARALLAX_MAX = PARALLAX_EXTRA / 2;
+  // Image lags at this fraction relative to scroll (0.4 = moves at 40% of scroll speed)
+  const PARALLAX_SPEED = 1;
 
   document.querySelectorAll<HTMLElement>('.info-section').forEach((section) => {
     const image = section.querySelector<HTMLImageElement>('[data-info-image]');
@@ -114,15 +112,19 @@ const imageAlt =
       const rect = section.getBoundingClientRect();
       const vh = window.innerHeight;
 
-      // Parallax: image moves slower than scroll
-      const sectionCenter = rect.top + rect.height / 2;
-      const viewportCenter = vh / 2;
-      const rawParallax = (sectionCenter - viewportCenter) * PARALLAX_STRENGTH;
-      const parallaxY = Math.max(-PARALLAX_MAX, Math.min(PARALLAX_MAX, rawParallax));
-      image.style.transform = `translateY(${parallaxY}px)`;
+      // Trigger: how many px the section bottom has scrolled past the viewport bottom.
+      // Negative or zero = section bottom hasn't reached viewport bottom yet → no parallax.
+      const scrolledPastTrigger = vh - rect.bottom;
+
+      if (scrolledPastTrigger > 0) {
+        // Image moves down (lags behind) relative to the section as it exits
+        image.style.transform = `translateY(${scrolledPastTrigger * PARALLAX_SPEED}px)`;
+      } else {
+        image.style.transform = '';
+      }
 
       // Content exit: slides up as section bottom leaves viewport
-      const exitProgress = Math.min(Math.max((vh - rect.bottom) / (vh * 0.75), 0), 1);
+      const exitProgress = Math.min(Math.max(scrolledPastTrigger / (vh * 0.75), 0), 1);
       const contentOffset = exitProgress * Math.min(vh * 0.84, 390);
       content.style.setProperty('--info-content-parallax-y', `${contentOffset}px`);
 
@@ -209,11 +211,13 @@ const imageAlt =
     color: rgba(255, 255, 255, 0.82);
   }
 
-  /* Desktop: image is taller than container to allow parallax travel */
+  /* Desktop: image is taller than container to cover parallax travel.
+     At PARALLAX_SPEED=0.35, the image moves (sectionHeight + vh) * 0.35 px total.
+     Adding 40% extra height covers that travel generously. */
   @media (min-width: 768px) {
     .info-section__image {
-      height: calc(100% + 160px); /* matches PARALLAX_EXTRA in JS */
-      margin-top: -80px;          /* center the extra height */
+      height: 140%;
+      margin-top: 0;
     }
   }
 
@@ -226,12 +230,24 @@ const imageAlt =
     .info-section__content {
       @apply relative;
       top: auto;
-      justify-content: flex-end;
+      justify-content: center;
       max-width: 100%;
       min-height: 28rem;
       padding: 1.5rem;
       transform: none;
       will-change: auto;
+    }
+
+    .info-section__overlay {
+      background: linear-gradient(
+      90deg,
+        #05788f 0%,
+        #1b839c 24%,
+        #4d99b1 58%,
+        #79b6c9 82%,
+        #90c1d5 100%
+      );
+      opacity: 0.72;
     }
   }
 </style>

@@ -27,6 +27,7 @@ const hasMultipleSlides = motos.length > 1;
               class="moto-slider__control"
               id="moto-slider-prev"
               aria-label="Ver motos anteriores"
+              disabled
             >
               <svg viewBox="0 0 24 24" aria-hidden="true" class="moto-slider__control-icon">
                 <path d="m14.7 6.3-1.4-1.4L6.2 12l7.1 7.1 1.4-1.4L9.6 13H20v-2H9.6l5.1-4.7Z" fill="currentColor" />
@@ -117,81 +118,145 @@ const hasMultipleSlides = motos.length > 1;
 )}
 
 <script>
-  const viewport = document.getElementById('moto-slider-viewport');
-  const track = document.getElementById('moto-slider-track');
-  const previousButton = document.getElementById('moto-slider-prev');
-  const nextButton = document.getElementById('moto-slider-next');
+  const track = document.getElementById('moto-slider-track') as HTMLElement | null;
+  const prevBtn = document.getElementById('moto-slider-prev') as HTMLButtonElement | null;
+  const nextBtn = document.getElementById('moto-slider-next') as HTMLButtonElement | null;
+  const dots = Array.from(document.querySelectorAll<HTMLButtonElement>('[data-slider-dot]'));
+  const slides = Array.from(document.querySelectorAll<HTMLElement>('.moto-slider__slide'));
 
-  // Dot navigation (mobile)
-  const sliderDots = Array.from(document.querySelectorAll('[data-slider-dot]'));
-  const sliderSlides = Array.from(document.querySelectorAll('.moto-slider__slide'));
+  if (track && slides.length > 0) {
+    let currentIndex = 0;
 
-  let currentIndex = 0;
+    function getSlidesPerView(): number {
+      return window.innerWidth >= 992 ? 2 : 1;
+    }
 
-  function scrollToSlide(index: number) {
-    if (!viewport) return;
-    const targetSlide = sliderSlides[index] as HTMLElement;
-    if (!targetSlide) return;
-    const slideRect = targetSlide.getBoundingClientRect();
-    const viewportRect = viewport.getBoundingClientRect();
-    viewport.scrollTo({
-      left: viewport.scrollLeft + slideRect.left - viewportRect.left,
-      behavior: 'smooth',
-    });
-  }
+    function getMaxIndex(): number {
+      return Math.max(0, slides.length - getSlidesPerView());
+    }
 
-  function scrollSlider(direction: number) {
-    const nextIndex = Math.max(0, Math.min(sliderSlides.length - 1, currentIndex + direction));
-    scrollToSlide(nextIndex);
-  }
+    function getOffset(index: number): number {
+      const gap = parseFloat(getComputedStyle(track!).gap) || 0;
+      const slideWidth = slides[0]?.offsetWidth ?? 0;
+      return index * (slideWidth + gap);
+    }
 
-  previousButton?.addEventListener('click', () => scrollSlider(-1));
-  nextButton?.addEventListener('click', () => scrollSlider(1));
+    function goTo(index: number): void {
+      const clamped = Math.max(0, Math.min(getMaxIndex(), index));
+      currentIndex = clamped;
+      track!.style.transform = `translateX(-${getOffset(clamped)}px)`;
+      updateDots();
+      updateButtons();
+    }
 
-  function setActiveSliderDot(activeIndex: number) {
-    sliderDots.forEach((dot, index) => {
-      const isActive = index === activeIndex;
-      dot.classList.toggle('is-active', isActive);
-      dot.setAttribute('aria-pressed', String(isActive));
-    });
-  }
-
-  sliderDots.forEach((dot, index) => {
-    dot.addEventListener('click', () => {
-      if (!viewport) return;
-      const targetSlide = sliderSlides[index] as HTMLElement;
-      if (!targetSlide) return;
-      const slideRect = targetSlide.getBoundingClientRect();
-      const viewportRect = viewport.getBoundingClientRect();
-      viewport.scrollTo({
-        left: viewport.scrollLeft + slideRect.left - viewportRect.left,
-        behavior: 'smooth',
+    function updateDots(): void {
+      dots.forEach((dot, i) => {
+        const active = i === currentIndex;
+        dot.classList.toggle('is-active', active);
+        dot.setAttribute('aria-pressed', String(active));
       });
-    });
-  });
+    }
 
-  if (viewport && sliderSlides.length > 0) {
-    const dotObserver = new IntersectionObserver(
-      (entries) => {
-        const visibleEntry = entries
-          .filter((entry) => entry.isIntersecting)
-          .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+    function updateButtons(): void {
+      if (prevBtn) prevBtn.disabled = currentIndex === 0;
+      if (nextBtn) nextBtn.disabled = currentIndex >= getMaxIndex();
+    }
 
-        if (!visibleEntry) return;
+    prevBtn?.addEventListener('click', () => goTo(currentIndex - 1));
+    nextBtn?.addEventListener('click', () => goTo(currentIndex + 1));
 
-        const activeIndex = sliderSlides.indexOf(visibleEntry.target as HTMLElement);
-        if (activeIndex >= 0) {
-          currentIndex = activeIndex;
-          setActiveSliderDot(activeIndex);
+    dots.forEach((dot, i) => dot.addEventListener('click', () => goTo(i)));
+
+    // ── Touch / swipe support ────────────────────────────────
+    const viewport = document.getElementById('moto-slider-viewport');
+    if (viewport) {
+      let touchStartX = 0;
+      let touchStartY = 0;
+      let isDragging = false;
+      let lockedAxis: 'x' | 'y' | null = null;
+
+      viewport.addEventListener('touchstart', (e: TouchEvent) => {
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
+        isDragging = false;
+        lockedAxis = null;
+        // Remove transition so drag feels immediate
+        track!.style.transition = 'none';
+      }, { passive: true });
+
+      viewport.addEventListener('touchmove', (e: TouchEvent) => {
+        const dx = e.touches[0].clientX - touchStartX;
+        const dy = e.touches[0].clientY - touchStartY;
+
+        // Lock axis on first meaningful movement
+        if (!lockedAxis) {
+          if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 4) {
+            lockedAxis = 'x';
+          } else if (Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 4) {
+            lockedAxis = 'y';
+          } else {
+            return;
+          }
         }
-      },
-      {
-        root: viewport,
-        threshold: [0.6, 0.75, 0.9],
-      }
-    );
 
-    sliderSlides.forEach((slide) => dotObserver.observe(slide));
+        if (lockedAxis !== 'x') return;
+
+        isDragging = true;
+        e.preventDefault();
+
+        const baseOffset = getOffset(currentIndex);
+        // Add slight resistance at the edges
+        let drag = dx;
+        if ((currentIndex === 0 && dx > 0) || (currentIndex >= getMaxIndex() && dx < 0)) {
+          drag = dx * 0.25;
+        }
+        track!.style.transform = `translateX(${-baseOffset + drag}px)`;
+      }, { passive: false });
+
+      viewport.addEventListener('touchend', (e: TouchEvent) => {
+        if (!isDragging) {
+          // Restore transition in case axis was never locked
+          track!.style.transition = '';
+          return;
+        }
+
+        const dx = e.changedTouches[0].clientX - touchStartX;
+        const slideWidth = slides[0]?.offsetWidth ?? 0;
+        const threshold = slideWidth * 0.25; // 25% of slide width to commit
+
+        // Restore transition before snapping
+        track!.style.transition = '';
+
+        if (dx < -threshold) {
+          goTo(currentIndex + 1);
+        } else if (dx > threshold) {
+          goTo(currentIndex - 1);
+        } else {
+          // Snap back to current
+          goTo(currentIndex);
+        }
+      }, { passive: true });
+    }
+
+    // Recalculate position on resize
+    let resizeTimer: ReturnType<typeof setTimeout>;
+    window.addEventListener('resize', () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => {
+        const maxIdx = getMaxIndex();
+        if (currentIndex > maxIdx) currentIndex = maxIdx;
+        track!.style.transition = 'none';
+        track!.style.transform = `translateX(-${getOffset(currentIndex)}px)`;
+        requestAnimationFrame(() => {
+          track!.style.transition = '';
+        });
+        updateButtons();
+        updateDots();
+      }, 150);
+    });
+
+    updateButtons();
+    updateDots();
   }
 </script>
 
@@ -206,7 +271,7 @@ const hasMultipleSlides = motos.length > 1;
       #79b6c9 82%,
       #90c1d5 100%
     );
-    padding: 5rem 0 10rem 0;
+    padding: 5rem 0 5rem 0;
     background-color: #ffffff;
     background-image:
       linear-gradient(
@@ -268,9 +333,11 @@ const hasMultipleSlides = motos.length > 1;
     border-color: var(--color-primary);
   }
 
-  .moto-slider__control:disabled {
+  .moto-slider__control:disabled,
+  .moto-slider__control[disabled] {
     opacity: 0.35;
     cursor: not-allowed;
+    pointer-events: none;
   }
 
   .moto-slider__control--primary {
@@ -298,29 +365,21 @@ const hasMultipleSlides = motos.length > 1;
   }
 
   .moto-slider__viewport {
-    --moto-slider-gap: 1rem;
-    --moto-slider-card-width: calc(100% - var(--moto-slider-gap));
     overflow: hidden;
-    overflow-x: auto;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-    scroll-snap-type: x mandatory;
-    padding-bottom: 0.5rem;
-    padding-right: 1rem;
-  }
-
-  .moto-slider__viewport::-webkit-scrollbar {
-    display: none;
   }
 
   .moto-slider__track {
     @apply flex;
-    gap: var(--moto-slider-gap);
+    gap: 1rem;
+    transition: transform 0.42s cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: transform;
   }
 
   .moto-slider__slide {
-    flex: 0 0 var(--moto-slider-card-width);
-    scroll-snap-align: start;
+    flex-shrink: 0;
+    flex-grow: 0;
+    width: 100%;
+    min-width: 0;
   }
 
   .moto-slider__card {
@@ -422,10 +481,6 @@ const hasMultipleSlides = motos.length > 1;
       );
     }
 
-    .moto-slider__track {
-      gap: var(--moto-slider-gap);
-    }
-
     .moto-slider__card {
       min-height: 28rem;
       aspect-ratio: 5 / 4;
@@ -442,14 +497,16 @@ const hasMultipleSlides = motos.length > 1;
   }
 
   @media (min-width: 992px) {
-    .moto-slider__viewport {
-      --moto-slider-gap: 1.5rem;
-      --moto-slider-card-width: calc((100% - var(--moto-slider-gap)) / 2);
-      padding-right: 0;
+    .moto-slider__track {
+      gap: 1.5rem;
     }
 
-    .moto-slider__track {
-      gap: var(--moto-slider-gap);
+    .moto-slider__slide {
+      width: calc(50% - 0.75rem);
+    }
+
+    .moto-slider__dots {
+      display: none;
     }
 
     .moto-slider__card {
@@ -478,11 +535,15 @@ const hasMultipleSlides = motos.length > 1;
       );
     }
 
-    .moto-slider__viewport {
-      --moto-slider-gap: 2rem;
-      --moto-slider-card-width: calc((100% - var(--moto-slider-gap)) / 2);
+    .moto-slider__track {
+      gap: 2rem;
+    }
+
+    .moto-slider__slide {
+      width: calc(50% - 1rem);
     }
   }
+
   @media (min-width: 1536px) {
     .moto-slider {
       --moto-slider-band-gradient: linear-gradient(

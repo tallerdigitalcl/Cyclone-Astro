@@ -14,17 +14,18 @@ const hasMultipleOffers = ofertas.length > 1;
 {ofertas.length > 0 && (
   <section class="motos-oferta" aria-labelledby="motos-oferta-title">
     <div class="motos-oferta__container">
+
       <div class="motos-oferta__intro">
-        <FadeIn type="left"> 
-          <h2 id="motos-oferta-title" class="motos-oferta__title">Nuestras últimas ofertas</h2>
+        <FadeIn type="left">
+          <h2 id="motos-oferta-title" class="motos-oferta__title">Nuestras ultimas ofertas</h2>
         </FadeIn>
         <FadeIn type="zoom-in">
           <a href="/motos" class="motos-oferta__all-link">Ver todas las ofertas</a>
         </FadeIn>
-        
       </div>
 
-      <div class="motos-oferta__cards" aria-label="Listado de ofertas destacadas">
+      <!-- MOBILE: scroll nativo -->
+      <div class="motos-oferta__mobile-slider" id="motos-oferta-mobile" aria-label="Listado de ofertas destacadas">
         {ofertas.map((oferta, index) => {
           const desktopUrl = urlFor(oferta.imagenFondo).width(960).quality(86).auto('format').url();
           const desktopUrl2x = urlFor(oferta.imagenFondo).width(1440).quality(82).auto('format').url();
@@ -39,53 +40,25 @@ const hasMultipleOffers = ofertas.length > 1;
           const offerHref = oferta.slug ? `/motos/${oferta.slug}` : '/motos';
 
           return (
-            <FadeIn type="up" class="motos-oferta__slide">
-            <a
-              href={offerHref}
-              class="motos-oferta__card"
-              aria-label={`Ver oferta de ${oferta.displayName}`}
-            >
+            <a href={offerHref} class="motos-oferta__mobile-card" aria-label={`Ver oferta de ${oferta.displayName}`}>
               <div class="motos-oferta__media">
                 <picture>
-                  <source
-                    media="(max-width: 767px)"
-                    srcset={`${mobileUrl} 720w, ${mobileUrl2x} 1080w`}
-                    sizes="84vw"
-                  />
-                  <img
-                    class="motos-oferta__image"
-                    src={desktopUrl}
-                    srcset={`${desktopUrl} 960w, ${desktopUrl2x} 1440w`}
-                    sizes="(min-width: 1280px) 26vw, (min-width: 1024px) 29vw, 84vw"
-                    alt={imageAlt}
-                    width="960"
-                    height="1200"
-                    loading={index === 0 ? 'eager' : 'lazy'}
-                    fetchpriority={index === 0 ? 'low' : 'auto'}
-                    decoding="async"
-                  />
+                  <source media="(max-width: 767px)" srcset={`${mobileUrl} 720w, ${mobileUrl2x} 1080w`} sizes="100vw" />
+                  <img class="motos-oferta__image" src={desktopUrl} srcset={`${desktopUrl} 960w, ${desktopUrl2x} 1440w`} sizes="100vw" alt={imageAlt} width="960" height="1200" loading={index === 0 ? 'eager' : 'lazy'} fetchpriority={index === 0 ? 'low' : 'auto'} decoding="async" />
                 </picture>
                 <div class="motos-oferta__overlay" aria-hidden="true"></div>
               </div>
-
               <div class="motos-oferta__content">
-                <div class="motos-oferta__top fade-child fade-child--left fade-delay-2">
+                <div class="motos-oferta__top">
                   <h3 class="motos-oferta__name">{oferta.displayName}</h3>
-                  <span class="motos-oferta__cta">
-                    Ver oferta
-                    <span aria-hidden="true" class="motos-oferta__cta-arrow">→</span>
-                  </span>
+                  <span class="motos-oferta__cta">Ver oferta <span aria-hidden="true">&#x2192;</span></span>
                 </div>
-
-                <div class="motos-oferta__pricing fade-child fade-child--left fade-delay-3">
-                  {oferta.displayListPrice && (
-                    <p class="motos-oferta__list-price">Precio Lista Desde: ${oferta.displayListPrice}</p>
-                  )}
+                <div class="motos-oferta__pricing">
+                  {oferta.displayListPrice && <p class="motos-oferta__list-price">Precio Lista Desde: ${oferta.displayListPrice}</p>}
                   {oferta.displayBonus && <p class="motos-oferta__bonus">Bono ${oferta.displayBonus}</p>}
                 </div>
               </div>
             </a>
-            </FadeIn>
           );
         })}
       </div>
@@ -93,69 +66,80 @@ const hasMultipleOffers = ofertas.length > 1;
       {hasMultipleOffers && (
         <div class="motos-oferta__dots" id="motos-oferta-dots" aria-label="Paginacion de ofertas">
           {ofertas.map((oferta, index) => (
-            <button
-              type="button"
-              class:list={['motos-oferta__dot', index === 0 && 'is-active']}
-              data-offer-dot
-              data-offer-index={index}
-              aria-label={`Ir a la oferta ${index + 1}: ${oferta.displayName}`}
-              aria-pressed={index === 0 ? 'true' : 'false'}
-            ></button>
+            <button type="button" class:list={['motos-oferta__dot', index === 0 && 'is-active']} data-offer-dot data-offer-index={index} aria-label={`Ir a la oferta ${index + 1}: ${oferta.displayName}`} aria-pressed={index === 0 ? 'true' : 'false'}></button>
           ))}
         </div>
       )}
+
+      <!-- DESKTOP: grid estatico -->
+      <div class="motos-oferta__desktop-grid" aria-label="Listado de ofertas destacadas">
+        {ofertas.map((oferta, index) => {
+          const desktopUrl = urlFor(oferta.imagenFondo).width(960).quality(86).auto('format').url();
+          const desktopUrl2x = urlFor(oferta.imagenFondo).width(1440).quality(82).auto('format').url();
+          const imageAlt = oferta.imagenFondo.alt || `${oferta.displayName} en oferta`;
+          const offerHref = oferta.slug ? `/motos/${oferta.slug}` : '/motos';
+
+          return (
+            <FadeIn type="up">
+              <a href={offerHref} class="motos-oferta__desktop-card" aria-label={`Ver oferta de ${oferta.displayName}`}>
+                <div class="motos-oferta__media">
+                  <img class="motos-oferta__image" src={desktopUrl} srcset={`${desktopUrl} 960w, ${desktopUrl2x} 1440w`} sizes="(min-width: 1280px) 26vw, 29vw" alt={imageAlt} width="960" height="1200" loading={index === 0 ? 'eager' : 'lazy'} fetchpriority={index === 0 ? 'low' : 'auto'} decoding="async" />
+                  <div class="motos-oferta__overlay" aria-hidden="true"></div>
+                </div>
+                <div class="motos-oferta__content">
+                  <div class="motos-oferta__top fade-child fade-child--left fade-delay-2">
+                    <h3 class="motos-oferta__name">{oferta.displayName}</h3>
+                    <span class="motos-oferta__cta">Ver oferta <span aria-hidden="true">&#x2192;</span></span>
+                  </div>
+                  <div class="motos-oferta__pricing fade-child fade-child--left fade-delay-3">
+                    {oferta.displayListPrice && <p class="motos-oferta__list-price">Precio Lista Desde: ${oferta.displayListPrice}</p>}
+                    {oferta.displayBonus && <p class="motos-oferta__bonus">Bono ${oferta.displayBonus}</p>}
+                  </div>
+                </div>
+              </a>
+            </FadeIn>
+          );
+        })}
+      </div>
+
     </div>
   </section>
 )}
 
 {hasMultipleOffers && (
   <script>
-    const offersViewport = document.querySelector('.motos-oferta__cards');
-    const offerDots = Array.from(document.querySelectorAll('[data-offer-dot]'));
-    const offerCards = Array.from(document.querySelectorAll('.motos-oferta__slide'));
+    const slider = document.getElementById('motos-oferta-mobile') as HTMLElement | null;
+    const dots = Array.from(document.querySelectorAll<HTMLButtonElement>('[data-offer-dot]'));
 
-    function setActiveOfferDot(activeIndex) {
-      offerDots.forEach((dot, index) => {
-        const isActive = index === activeIndex;
-        dot.classList.toggle('is-active', isActive);
-        dot.setAttribute('aria-pressed', String(isActive));
-      });
-    }
-
-    offerDots.forEach((dot, index) => {
-      dot.addEventListener('click', () => {
-        const targetCard = offerCards[index];
-        if (!targetCard) return;
-
-        targetCard.scrollIntoView({
-          block: 'nearest',
-          inline: 'start',
-          behavior: 'smooth',
+    if (slider && dots.length > 0) {
+      dots.forEach((dot, i) => {
+        dot.addEventListener('click', () => {
+          const cards = Array.from(slider.children) as HTMLElement[];
+          const card = cards[i];
+          if (!card) return;
+          slider.scrollTo({ left: card.offsetLeft, behavior: 'smooth' });
         });
       });
-    });
 
-    if (offersViewport && offerCards.length > 0) {
-      const observer = new IntersectionObserver(
-        (entries) => {
-          const visibleEntry = entries
-            .filter((entry) => entry.isIntersecting)
-            .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
-
-          if (!visibleEntry) return;
-
-          const activeIndex = offerCards.indexOf(visibleEntry.target);
-          if (activeIndex >= 0) {
-            setActiveOfferDot(activeIndex);
-          }
-        },
-        {
-          root: offersViewport,
-          threshold: [0.6, 0.75, 0.9],
-        }
-      );
-
-      offerCards.forEach((card) => observer.observe(card));
+      let t: ReturnType<typeof setTimeout>;
+      slider.addEventListener('scroll', () => {
+        clearTimeout(t);
+        t = setTimeout(() => {
+          const cards = Array.from(slider.children) as HTMLElement[];
+          const mid = slider.scrollLeft + slider.offsetWidth / 2;
+          let closest = 0;
+          let dist = Infinity;
+          cards.forEach((card, i) => {
+            const d = Math.abs(card.offsetLeft + card.offsetWidth / 2 - mid);
+            if (d < dist) { dist = d; closest = i; }
+          });
+          dots.forEach((dot, i) => {
+            const active = i === closest;
+            dot.classList.toggle('is-active', active);
+            dot.setAttribute('aria-pressed', String(active));
+          });
+        }, 50);
+      }, { passive: true });
     }
   </script>
 )}
@@ -166,12 +150,10 @@ const hasMultipleOffers = ofertas.length > 1;
     padding: var(--section-spacing) 0;
   }
 
- .motos-oferta::after  .motos-oferta::after {
+  .motos-oferta::after {
     content: '';
     position: absolute;
-    left: 0;
-    right: 0;
-    bottom: -1px;
+    left: 0; right: 0; bottom: -1px;
     height: 3px;
     background: var(--color-secondary-dark);
     pointer-events: none;
@@ -208,10 +190,7 @@ const hasMultipleOffers = ofertas.length > 1;
     font-size: var(--text-button);
     font-weight: 700;
     letter-spacing: 0.08em;
-    transition:
-      background-size 360ms ease-in-out,
-      border-color var(--transition-base),
-      color var(--transition-base);
+    transition: background-size 360ms ease-in-out, border-color var(--transition-base), color var(--transition-base);
   }
 
   .motos-oferta__all-link:hover {
@@ -221,20 +200,38 @@ const hasMultipleOffers = ofertas.length > 1;
     text-decoration: none;
   }
 
-  .motos-oferta__cards {
-    @apply flex;
-    gap: 1rem;
-    overflow-x: auto;
-    padding-bottom: 0.5rem;
+  /* --- MOBILE SLIDER --------------------------------------- */
+  .motos-oferta__mobile-slider {
+    display: flex;
+    overflow-x: scroll;
     scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
     -ms-overflow-style: none;
   }
 
-  .motos-oferta__cards::-webkit-scrollbar {
+  .motos-oferta__mobile-slider::-webkit-scrollbar {
     display: none;
   }
 
+  .motos-oferta__mobile-card {
+    @apply relative overflow-hidden no-underline flex flex-col;
+    flex-shrink: 0;
+    width: 100%;
+    min-height: 25rem;
+    scroll-snap-align: start;
+    background: var(--color-secondary-dark);
+    color: var(--color-text-light);
+  }
+
+  .motos-oferta__mobile-card:hover { text-decoration: none; }
+
+  /* --- DESKTOP GRID: hidden on mobile ---------------------- */
+  .motos-oferta__desktop-grid {
+    display: none;
+  }
+
+  /* --- DOTS ------------------------------------------------- */
   .motos-oferta__dots {
     @apply flex items-center justify-center;
     gap: 0.25rem;
@@ -242,7 +239,7 @@ const hasMultipleOffers = ofertas.length > 1;
   }
 
   .motos-oferta__dot {
-    @apply relative inline-flex items-center justify-center rounded-full border-0 p-0 transition-opacity duration-200;
+    @apply relative inline-flex items-center justify-center rounded-full border-0 p-0;
     width: 2.75rem;
     height: 2.75rem;
     background: transparent;
@@ -262,23 +259,7 @@ const hasMultipleOffers = ofertas.length > 1;
     transform: scale(1.05);
   }
 
-  .motos-oferta__slide {
-    flex: 0 0 min(84vw, 24rem);
-    scroll-snap-align: start;
-  }
-
-  .motos-oferta__card {
-    @apply relative overflow-hidden no-underline block;
-    min-height: 25rem;
-    aspect-ratio: 5 / 5;
-    background: var(--color-secondary-dark);
-    color: var(--color-text-light);
-  }
-
-  .motos-oferta__card:hover {
-    text-decoration: none;
-  }
-
+  /* --- SHARED CARD INTERNALS -------------------------------- */
   .motos-oferta__media {
     @apply absolute inset-0;
   }
@@ -291,12 +272,13 @@ const hasMultipleOffers = ofertas.length > 1;
   .motos-oferta__overlay {
     @apply absolute inset-0;
     background:
-      linear-gradient(180deg, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0.18) 34%, rgba(0, 0, 0, 0.62) 100%),
-      linear-gradient(0deg, rgba(0, 0, 0, 0.32) 0%, rgba(0, 0, 0, 0) 38%);
+      linear-gradient(180deg, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.18) 34%, rgba(0,0,0,0.62) 100%),
+      linear-gradient(0deg, rgba(0,0,0,0.32) 0%, rgba(0,0,0,0) 38%);
   }
 
   .motos-oferta__content {
-    @apply relative z-10 h-full flex flex-col justify-between;
+    @apply relative z-10 flex flex-col justify-between;
+    flex: 1;
     padding: 1.5rem;
   }
 
@@ -323,9 +305,7 @@ const hasMultipleOffers = ofertas.length > 1;
   .motos-oferta__cta::after {
     content: '';
     position: absolute;
-    left: 0;
-    right: 0;
-    bottom: -0.18rem;
+    left: 0; right: 0; bottom: -0.18rem;
     height: 1px;
     background: currentColor;
     transform: scaleX(0);
@@ -333,23 +313,22 @@ const hasMultipleOffers = ofertas.length > 1;
     transition: transform 320ms cubic-bezier(0.16, 1, 0.3, 1);
   }
 
-  .motos-oferta__card:hover .motos-oferta__cta::after {
+  .motos-oferta__mobile-card:hover .motos-oferta__cta::after,
+  .motos-oferta__desktop-card:hover .motos-oferta__cta::after {
     transform: scaleX(1);
-  }
-
-  .motos-oferta__cta-arrow {
-    font-size: 1rem;
   }
 
   .motos-oferta__pricing {
     @apply flex flex-col items-end;
     gap: 0.35rem;
     text-align: right;
+    overflow: hidden;
   }
 
   .motos-oferta__list-price {
     @apply font-body text-body-lg;
     color: rgba(255, 255, 255, 0.92);
+    white-space: nowrap;
   }
 
   .motos-oferta__bonus {
@@ -357,6 +336,7 @@ const hasMultipleOffers = ofertas.length > 1;
     font-weight: 700;
   }
 
+  /* --- DESKTOP =1024px -------------------------------------- */
   @media (min-width: 1024px) {
     .motos-oferta__container {
       display: grid;
@@ -370,39 +350,30 @@ const hasMultipleOffers = ofertas.length > 1;
       padding-top: 0.5rem;
     }
 
-    .motos-oferta__cards {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 1rem;
-      overflow: visible;
-      padding-bottom: 0;
-      scroll-snap-type: none;
-    }
-
-    .motos-oferta__slide {
-      flex-basis: auto;
-    }
-
-    .motos-oferta__card {
-      min-height: 21rem;
-    }
-
+    .motos-oferta__mobile-slider,
     .motos-oferta__dots {
       display: none;
     }
+
+    .motos-oferta__desktop-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 1rem;
+    }
+
+    .motos-oferta__desktop-card {
+      @apply relative overflow-hidden no-underline flex flex-col;
+      min-height: 21rem;
+      background: var(--color-secondary-dark);
+      color: var(--color-text-light);
+    }
+
+    .motos-oferta__desktop-card:hover { text-decoration: none; }
   }
 
   @media (min-width: 1280px) {
-    .motos-oferta__container {
-      gap: 2.75rem;
-    }
-
-    .motos-oferta__cards {
-      gap: 1.25rem;
-    }
-
-    .motos-oferta__content {
-      padding: 1.7rem;
-    }
+    .motos-oferta__container { gap: 2.75rem; }
+    .motos-oferta__desktop-grid { gap: 1.25rem; }
+    .motos-oferta__content { padding: 1.7rem; }
   }
 </style>
