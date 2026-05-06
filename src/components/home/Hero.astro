@@ -293,9 +293,20 @@ const isSlider = slides.length > 1;
 
   .hero__stat {
     @apply flex flex-col gap-1;
+    position: relative;
     min-height: 5.5rem;
     padding: 1.5rem 1.25rem;
     background: transparent;
+  }
+
+  .hero__stat + .hero__stat::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 1.25rem;
+    right: 1.25rem;
+    height: 1px;
+    background: rgba(255, 255, 255, 0.18);
   }
 
   .hero__stat-label {

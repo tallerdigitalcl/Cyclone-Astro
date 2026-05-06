@@ -520,7 +520,6 @@ function formatStatValue(value?: string | null, suffix?: string) {
     justify-content: flex-end;
     gap: 1rem;
     opacity: calc(1 - (var(--sequence-progress) * 1.8));
-    pointer-events: none;
   }
 
   .moto-sequence__icons img {
@@ -557,7 +556,7 @@ function formatStatValue(value?: string | null, suffix?: string) {
   .moto-sequence__final {
     position: absolute;
     inset: 0;
-    z-index: 7;
+    z-index: 4;
     opacity: calc((var(--sequence-progress) - 0.44) * 1.8);
     pointer-events: none;
   }
@@ -783,7 +782,7 @@ function formatStatValue(value?: string | null, suffix?: string) {
   }
 
   .moto-info__container {
-    @apply relative z-10 mx-auto flex min-h-[34rem] items-center;
+    @apply relative z-10 mx-auto flex min-h-[50rem] items-center;
     max-width: var(--container-max);
     padding: 0 var(--container-padding);
   }
@@ -971,11 +970,11 @@ function formatStatValue(value?: string | null, suffix?: string) {
     }
 
     .moto-sequence__colors {
-      left: 50%;
-      right: auto;
+      left: var(--container-padding);
+      right: var(--container-padding);
       top: auto;
-      bottom: 38%;
-      transform: translateX(-50%);
+      bottom: 22%;
+      transform: none;
       width: auto;
       height: auto;
       display: flex;
@@ -1002,11 +1001,10 @@ function formatStatValue(value?: string | null, suffix?: string) {
     .moto-sequence__color-select {
       display: block;
       position: absolute;
-      left: 50%;
-      bottom: 29%;
-      transform: translateX(-50%);
-      width: auto;
-      min-width: 14rem;
+      left: var(--container-padding);
+      right: var(--container-padding);
+      bottom: 14%;
+      width: calc(100% - (var(--container-padding) * 2));
       padding: 0.6rem 1rem;
       background: rgba(255, 255, 255, 0.92);
       border: 1px solid rgba(26, 28, 28, 0.18);
