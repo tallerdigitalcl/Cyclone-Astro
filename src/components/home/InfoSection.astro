@@ -100,6 +100,7 @@ const imageAlt =
     const reset = () => {
       image.style.transform = '';
       content.style.setProperty('--info-content-parallax-y', '0px');
+      content.style.opacity = '';
     };
 
     const update = () => {
@@ -126,10 +127,11 @@ const imageAlt =
         image.style.transform = '';
       }
 
-      // Content exit: slides up as section bottom leaves viewport
+      // Content exit: slides down and fades as section bottom leaves viewport
       const exitProgress = Math.min(Math.max(scrolledPastTrigger / (vh * 0.75), 0), 1);
-      const contentOffset = exitProgress * Math.min(vh * 0.84, 390);
+      const contentOffset = exitProgress * vh * 0.7;
       content.style.setProperty('--info-content-parallax-y', `${contentOffset}px`);
+      content.style.opacity = String(1 - exitProgress);
 
       ticking = false;
     };
@@ -196,7 +198,7 @@ const imageAlt =
   .info-section__content {
     @apply sticky z-10 flex flex-col justify-start;
     gap: 1.25rem;
-    padding: 3rem 0;
+    padding: 8rem 0;
     top: var(--header-height);
     transform: translate3d(0, var(--info-content-parallax-y, 0), 0);
     will-change: transform;
@@ -235,7 +237,7 @@ const imageAlt =
       top: auto;
       justify-content: center;
       max-width: 100%;
-      min-height: 28rem;
+      min-height: 30rem;
       padding: 1.5rem;
       transform: none;
       will-change: auto;
