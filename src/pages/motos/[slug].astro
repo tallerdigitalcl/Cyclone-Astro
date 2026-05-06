@@ -146,6 +146,14 @@ function formatStatValue(value?: string | null, suffix?: string) {
             </ul>
           )}
 
+          {apiModel?.colors && apiModel.colors.length > 0 && (
+            <select class="moto-sequence__color-select" aria-label="Seleccionar color">
+              {apiModel.colors.slice(0, 6).map((color, index) => (
+                <option value={index}>{color.name}</option>
+              ))}
+            </select>
+          )}
+
           {finalStats.length > 0 && (
             <div class="moto-sequence__specs" aria-label="Datos técnicos principales">
               {finalStats.map((stat, index) => (
@@ -352,13 +360,28 @@ function formatStatValue(value?: string | null, suffix?: string) {
 
   // Color selection
   document.querySelectorAll<HTMLElement>('.moto-sequence__colors').forEach((colorsList) => {
+    const select = colorsList.closest('.moto-sequence__final')?.querySelector<HTMLSelectElement>('.moto-sequence__color-select');
+
+    const setActive = (index: number) => {
+      colorsList.querySelectorAll('.moto-sequence__color').forEach((el, i) => {
+        el.classList.toggle('is-active', i === index);
+      });
+    };
+
     colorsList.addEventListener('click', (e) => {
       const item = (e.target as Element).closest<HTMLElement>('[data-color-name]');
       if (!item) return;
-
-      colorsList.querySelectorAll('.moto-sequence__color').forEach((el) => el.classList.remove('is-active'));
-      item.querySelector('.moto-sequence__color')?.classList.add('is-active');
+      const items = Array.from(colorsList.querySelectorAll<HTMLElement>('[data-color-name]'));
+      const index = items.indexOf(item);
+      setActive(index);
+      if (select) select.value = String(index);
     });
+
+    if (select) {
+      select.addEventListener('change', () => {
+        setActive(Number(select.value));
+      });
+    }
   });
 </script>
 
@@ -497,6 +520,7 @@ function formatStatValue(value?: string | null, suffix?: string) {
     justify-content: flex-end;
     gap: 1rem;
     opacity: calc(1 - (var(--sequence-progress) * 1.8));
+    pointer-events: none;
   }
 
   .moto-sequence__icons img {
@@ -533,7 +557,7 @@ function formatStatValue(value?: string | null, suffix?: string) {
   .moto-sequence__final {
     position: absolute;
     inset: 0;
-    z-index: 4;
+    z-index: 7;
     opacity: calc((var(--sequence-progress) - 0.44) * 1.8);
     pointer-events: none;
   }
@@ -605,6 +629,10 @@ function formatStatValue(value?: string | null, suffix?: string) {
 
   .moto-sequence__color:hover {
     transform: scale(1.2);
+  }
+
+  .moto-sequence__color-select {
+    display: none;
   }
 
   .moto-sequence__color.is-active {
@@ -943,51 +971,100 @@ function formatStatValue(value?: string | null, suffix?: string) {
     }
 
     .moto-sequence__colors {
-      left: var(--container-padding);
-      top: 50%;
-      transform: translateY(-50%);
-      gap: 0.75rem;
+      left: 50%;
+      right: auto;
+      top: auto;
+      bottom: 38%;
+      transform: translateX(-50%);
+      width: auto;
+      height: auto;
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: 0.85rem;
     }
 
-    .moto-sequence__color {
-      width: 1rem;
-      height: 1rem;
+    .moto-sequence__colors li {
+      position: static;
+      transform: none;
+    }
+
+    .moto-sequence__colors li:nth-child(1),
+    .moto-sequence__colors li:nth-child(2),
+    .moto-sequence__colors li:nth-child(3),
+    .moto-sequence__colors li:nth-child(4),
+    .moto-sequence__colors li:nth-child(5),
+    .moto-sequence__colors li:nth-child(6) {
+      top: auto;
+      left: auto;
+    }
+
+    .moto-sequence__color-select {
+      display: block;
+      position: absolute;
+      left: 50%;
+      bottom: 29%;
+      transform: translateX(-50%);
+      width: auto;
+      min-width: 14rem;
+      padding: 0.6rem 1rem;
+      background: rgba(255, 255, 255, 0.92);
+      border: 1px solid rgba(26, 28, 28, 0.18);
+      border-radius: 0.25rem;
+      color: var(--color-text);
+      font-family: var(--font-body);
+      font-size: var(--text-body);
+      font-weight: 600;
+      pointer-events: auto;
+      -webkit-appearance: auto;
+      appearance: auto;
     }
 
     .moto-sequence__specs {
+      left: var(--container-padding);
       right: var(--container-padding);
-      top: 50%;
-      transform: translateY(-50%);
-      width: 12rem;
-      height: 14rem;
+      right: auto;
+      top: 12%;
+      bottom: auto;
+      transform: none;
+      width: calc(100% - (var(--container-padding) * 2));
+      height: auto;
+      display: flex;
+      flex-direction: row;
+      justify-content: space-between;
       padding-left: 0;
     }
 
-    .moto-sequence__spec:nth-of-type(1) {
-      left: 0.45rem;
-    }
-
-    .moto-sequence__spec:nth-of-type(2),
-    .moto-sequence__spec:nth-of-type(3) {
-      left: 2rem;
-    }
-
-    .moto-sequence__spec:nth-of-type(4) {
-      left: 0.45rem;
-    }
-
     .moto-sequence__spec {
-      min-width: 8rem;
-      padding-left: 1.1rem;
+      position: static;
+      transform: none;
+      padding-left: 0;
+      min-width: 0;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      gap: 0.15rem;
+      border-left: 1px solid rgba(26, 28, 28, 0.1);
+      padding: 0 0.5rem;
+    }
+
+    .moto-sequence__spec:first-child {
+      border-left: none;
+      padding-left: 0;
     }
 
     .moto-sequence__spec::before {
-      left: 0;
-      top: 0.42rem;
+      display: none;
     }
 
-    .moto-sequence__spec strong {
-      font-size: var(--text-body-lg);
+    .moto-sequence__spec:nth-of-type(1),
+    .moto-sequence__spec:nth-of-type(2),
+    .moto-sequence__spec:nth-of-type(3),
+    .moto-sequence__spec:nth-of-type(4) {
+      top: auto;
+      left: auto;
     }
 
     .moto-sequence__final-bar {
