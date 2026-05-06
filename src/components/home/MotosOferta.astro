@@ -148,15 +148,7 @@ const hasMultipleOffers = ofertas.length > 1;
   .motos-oferta {
     @apply relative bg-secondary text-white;
     padding: var(--section-spacing) 0;
-  }
-
-  .motos-oferta::after {
-    content: '';
-    position: absolute;
-    left: 0; right: 0; bottom: -1px;
-    height: 3px;
-    background: var(--color-secondary-dark);
-    pointer-events: none;
+    margin-bottom: -1px;
   }
 
   .motos-oferta__container {
