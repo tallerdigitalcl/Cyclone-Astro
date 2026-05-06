@@ -406,7 +406,7 @@ function formatStatValue(value?: string | null, suffix?: string) {
     position: absolute;
     z-index: 2;
     left: calc(-4vw + (var(--sequence-progress) * 54vw));
-    top: calc(100% - (var(--sequence-progress) * 50%));
+    top: calc(100% - (var(--sequence-progress) * 56%));
     width: calc(clamp(42rem, 78vw, 74rem) - (var(--sequence-progress) * clamp(9rem, 24vw, 22rem)));
     max-width: 74rem;
     min-width: 0;
@@ -529,8 +529,9 @@ function formatStatValue(value?: string | null, suffix?: string) {
 
   .moto-sequence__colors {
     position: absolute;
-    left: clamp(5.5rem, 13vw, 14rem);
-    top: 23%;
+    left: max(var(--container-padding), calc((100% - var(--container-max)) / 2));
+    top: 50%;
+    transform: translateY(-50%);
     width: 8rem;
     height: 25rem;
     padding: 0;
@@ -602,10 +603,11 @@ function formatStatValue(value?: string | null, suffix?: string) {
 
   .moto-sequence__specs {
     position: absolute;
-    right: min(7vw, 5.25rem);
-    top: 15%;
-    width: 19rem;
-    height: 31rem;
+    right: max(var(--container-padding), calc((100% - var(--container-max)) / 2));
+    top: 50%;
+    transform: translateY(-50%);
+    width: 12rem;
+    height: 20rem;
     padding-left: 0;
   }
 
@@ -667,8 +669,8 @@ function formatStatValue(value?: string | null, suffix?: string) {
 
   .moto-sequence__final-bar {
     position: absolute;
-    left: min(7vw, 5rem);
-    right: min(7vw, 5rem);
+    left: max(var(--container-padding), calc((100% - var(--container-max)) / 2));
+    right: max(var(--container-padding), calc((100% - var(--container-max)) / 2));
     bottom: 4rem;
     display: flex;
     align-items: center;
@@ -852,7 +854,7 @@ function formatStatValue(value?: string | null, suffix?: string) {
     .moto-sequence__media {
       left: calc(-7vw + (var(--sequence-progress) * 57vw));
       width: calc(clamp(34rem, 72vw, 52rem) - (var(--sequence-progress) * clamp(6rem, 18vw, 13rem)));
-      top: calc(100% - (var(--sequence-progress) * 50%));
+      top: calc(100% - (var(--sequence-progress) * 56%));
     }
 
     .moto-sequence__initial {
@@ -884,7 +886,7 @@ function formatStatValue(value?: string | null, suffix?: string) {
 
     .moto-sequence__media {
       left: calc(-18vw + (var(--sequence-progress) * 68vw));
-      top: calc(62% - (var(--sequence-progress) * 12%));
+      top: calc(62% - (var(--sequence-progress) * 17%));
       width: calc(120vw - (var(--sequence-progress) * 18vw));
       min-width: 0;
     }
@@ -924,7 +926,8 @@ function formatStatValue(value?: string | null, suffix?: string) {
 
     .moto-sequence__colors {
       left: var(--container-padding);
-      top: 14%;
+      top: 50%;
+      transform: translateY(-50%);
       gap: 0.75rem;
     }
 
@@ -935,7 +938,8 @@ function formatStatValue(value?: string | null, suffix?: string) {
 
     .moto-sequence__specs {
       right: var(--container-padding);
-      top: 13%;
+      top: 50%;
+      transform: translateY(-50%);
       width: 12rem;
       height: 14rem;
       padding-left: 0;
