@@ -35,15 +35,46 @@ const imageAlt =
 
 {section && (
   <section class="info-section" aria-labelledby="info-section-title">
+
+    {/* MOBILE: texto arriba, foto abajo, flujo normal */}
+    <div class="info-section__mobile">
+      <div class="info-section__mobile-content">
+        <FadeIn type="up">
+          <h2 class="info-section__title">{section.titulo}</h2>
+        </FadeIn>
+        <FadeIn type="up">
+          <p class="info-section__description">{section.descripcion}</p>
+        </FadeIn>
+        {section.botonTexto && section.botonUrl && (
+          <FadeIn type="up">
+            <Button href={section.botonUrl} size="lg">
+              {section.botonTexto}
+            </Button>
+          </FadeIn>
+        )}
+      </div>
+      <div class="info-section__mobile-media">
+        {mobileUrl && (
+          <img
+            class="info-section__mobile-image"
+            src={mobileUrl}
+            srcset={mobileUrl2x ? `${mobileUrl} 900w, ${mobileUrl2x} 1400w` : undefined}
+            sizes="100vw"
+            alt={imageAlt}
+            width="900"
+            height="1000"
+            loading="lazy"
+            decoding="async"
+          />
+        )}
+      </div>
+    </div>
+
+    {/* DESKTOP: imagen de fondo + sticky content */}
     <article class="info-section__panel">
       <div class="info-section__media" data-info-media>
         {desktopUrl && (
           <picture>
-            <source
-              media="(max-width: 767px)"
-              srcset={mobileUrl2x ? `${mobileUrl} 900w, ${mobileUrl2x} 1400w` : mobileUrl || undefined}
-              sizes="100vw"
-            />
             <img
               class="info-section__image"
               data-info-image
@@ -80,6 +111,7 @@ const imageAlt =
         </div>
       </div>
     </article>
+
   </section>
 )}
 
@@ -185,7 +217,6 @@ const imageAlt =
 
   .info-section__overlay {
     @apply absolute inset-0 pointer-events-none;
-    background: linear-gradient(0deg, rgba(26, 28, 28, 1) 0%, rgba(0, 0, 0, 0.28) 20%, rgba(0, 0, 0, 0) 72%);
   }
 
   .info-section__container {
@@ -215,6 +246,11 @@ const imageAlt =
     max-width: 35rem;
     color: rgba(255, 255, 255, 0.82);
   }
+  @media (max-width:768px){
+    .info-section__description{
+      max-width:14rem;
+    }
+  }
 
   /* Desktop: image is taller than container to cover parallax travel.
      At PARALLAX_SPEED=0.35, the image moves (sectionHeight + vh) * 0.35 px total.
@@ -226,33 +262,99 @@ const imageAlt =
     }
   }
 
-  /* Mobile */
-  @media (max-width: 767px) {
-    .info-section__panel {
-      min-height: 28rem;
-    }
+/* ── Mobile block (visible only on mobile) ─────────────── */
+  .info-section__mobile {
+    display: flex;
+    flex-direction: column;
+  }
 
-    .info-section__content {
-      @apply relative;
-      top: auto;
-      justify-content: center;
-      max-width: 100%;
-      min-height: 30rem;
-      padding: 1.5rem;
-      transform: none;
-      will-change: auto;
-    }
-
-    .info-section__overlay {
-      background: linear-gradient(
+  .info-section__mobile-content {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    padding: 2rem 1.25rem;
+    /* ── COLORES DEL BOTTOM (base, visible al final) ── */
+    background: linear-gradient(
       90deg,
-        #05788f 0%,
-        #1b839c 24%,
-        #4d99b1 58%,
-        #79b6c9 82%,
-        #90c1d5 100%
-      );
-      opacity: 0.72;
+      #2e8ba0  0%,   /* bottom 0%   */
+      #4894ac 24%,   /* bottom 25%  */
+      #5ba1b9 58%,   /* bottom 50%  */
+      #6cafc4  82%,   /* bottom 75%  */
+      #78b5c8 100%   /* bottom 100% */
+    );
+  }
+
+  /* ── COLORES DEL TOP (overlay enmascarado, visible al inicio) ── */
+  .info-section__mobile-content::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(
+      90deg,
+      #05788f  0%,   /* bottom 0%   */
+      #1b849c 24%,   /* bottom 25%  */
+      #4d99b1 58%,   /* bottom 50%  */
+      #79b6c9 82%,   /* bottom 75%  */
+      #90c1d5 100%   /* bottom 100% */
+    );
+    /* Fade: 100% visible arriba → 0% visible abajo */
+    -webkit-mask-image: linear-gradient(to bottom, black 0%, transparent 100%);
+    mask-image: linear-gradient(to bottom, black 0%, transparent 100%);
+  }
+
+  .info-section__title--dark {
+    color: var(--color-text);
+  }
+
+  .info-section__description--dark {
+    color: rgba(26, 28, 28, 0.74);
+  }
+
+  .info-section__mobile-media {
+    position: relative;
+    width: 100%;
+    overflow: hidden;
+  }
+
+  .info-section__mobile-media::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(
+      to top,
+      rgba(26, 28, 28, 1) 0%,
+      rgba(0, 0, 0, 0.18) 40%,
+      rgba(0, 0, 0, 0) 72%
+    );
+  }
+
+  .info-section__mobile-image {
+    display: block;
+    width: 100%;
+    height: auto;
+    object-fit: cover;
+  }
+
+  /* Desktop panel hidden on mobile */
+  .info-section__panel {
+    display: none;
+  }
+
+  @media (min-width: 768px) {
+    .info-section__mobile {
+      display: none;
+    }
+
+    .info-section__panel {
+      display: block;
+    }
+
+    .info-section__image {
+      height: 140%;
+      margin-top: 0;
     }
   }
 </style>

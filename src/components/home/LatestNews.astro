@@ -145,6 +145,11 @@ const filterLabels = ['Todas', ...availableCategories.map((category) => category
     gap: 1.75rem;
   }
 
+  /* Mobile: ocultar noticias 3+ */
+  :global(.latest-news__slide:nth-child(n+3)) {
+    display: none;
+  }
+
   .latest-news__card {
     @apply bg-white text-text overflow-hidden;
   }
@@ -234,6 +239,10 @@ const filterLabels = ['Todas', ...availableCategories.map((category) => category
   }
 
   @media (min-width: 768px) {
+    :global(.latest-news__slide:nth-child(n+3)) {
+      display: block;
+    }
+
     .latest-news__grid {
       grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 1.1rem;
