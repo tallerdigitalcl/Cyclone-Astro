@@ -67,7 +67,7 @@ function formatStatValue(value?: string | null, suffix?: string) {
   image={moto.imagenPrincipal ? urlFor(moto.imagenPrincipal).width(1200).quality(86).auto('format').url() : undefined}
 >
   {hasSequenceHero && initialFrame && (
-    <section class="moto-sequence" data-moto-sequence aria-labelledby="moto-sequence-title">
+    <section class="moto-sequence" data-moto-sequence data-sequence-dwell="50" aria-labelledby="moto-sequence-title">
       <div class="moto-sequence__stage">
         <div class="moto-sequence__background" aria-hidden="true">
           <img class="moto-sequence__background-image" src="/moto/hero.webp" alt="" width="1600" height="950" loading="eager" decoding="async" />
@@ -318,8 +318,11 @@ function formatStatValue(value?: string | null, suffix?: string) {
 
     const updateSequence = () => {
       const rect = section.getBoundingClientRect();
-      const scrollableDistance = Math.max(1, section.offsetHeight - window.innerHeight);
-      const progress = Math.min(1, Math.max(0, -rect.top / scrollableDistance));
+      const totalScrollable = Math.max(1, section.offsetHeight - window.innerHeight);
+      // Reserve last N vh as "dwell" at final state — animation completes before end of scroll
+      const dwellVh = parseFloat(section.dataset.sequenceDwell || '0');
+      const animDistance = Math.max(1, totalScrollable - (dwellVh * window.innerHeight / 100));
+      const progress = Math.min(1, Math.max(0, -rect.top / animDistance));
       const frameIndex = Math.round((1 - progress) * (frameUrls.length - 1));
 
       section.style.setProperty('--sequence-progress', progress.toFixed(3));
@@ -353,7 +356,7 @@ function formatStatValue(value?: string | null, suffix?: string) {
   .moto-sequence {
     --sequence-progress: 0;
     position: relative;
-    height: 205vh;
+    height: 255vh; /* +50vh dwell at final state */
     background: #ffffff;
   }
 
@@ -860,7 +863,7 @@ function formatStatValue(value?: string | null, suffix?: string) {
 
   @media (max-width: 767px) {
     .moto-sequence {
-      height: 180vh;
+      height: 230vh; /* +50vh dwell at final state */
     }
 
     .moto-sequence__stage {
