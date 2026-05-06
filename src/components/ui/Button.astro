@@ -110,7 +110,7 @@ const Tag = href ? 'a' : 'button';
 
   .btn--md {
     min-height: 3.125rem;
-    padding: 0.875rem 1.65rem;
+    padding: 0.875rem 1.25rem;
   }
 
   .btn--lg {
@@ -121,5 +121,10 @@ const Tag = href ? 'a' : 'button';
   .btn--wide {
     min-height: 3.125rem;
     padding: 0.875rem 3.5rem;
+  }
+  @media (min-width: 768px) {
+    .btn--md {
+      padding: 0.875rem 1.65rem;
+    }
   }
 </style>

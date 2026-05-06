@@ -55,7 +55,8 @@ const hasMultipleSlides = motos.length > 1;
             const imageAlt = moto.imagenSliderHome?.alt || `${moto.displayName} de Cyclone Motos`;
 
             return (
-              <FadeIn type="up" class="moto-slider__slide">
+              <div class="moto-slider__slide">
+                <FadeIn type="up">
                 <article class="moto-slider__card" aria-labelledby={`moto-slider-card-${moto._id}`}>
                   <div class="moto-slider__media">
                     <img
@@ -93,7 +94,8 @@ const hasMultipleSlides = motos.length > 1;
                     </div>
                   </div>
                 </article>
-              </FadeIn>
+                </FadeIn>
+              </div>
             );
           })}
         </div>
@@ -384,7 +386,7 @@ const hasMultipleSlides = motos.length > 1;
 
   .moto-slider__card {
     @apply relative overflow-hidden;
-    min-height: 24rem;
+    /* min-height: 24rem; */
     aspect-ratio: 4 / 4;
     background: var(--color-secondary-dark);
   }
@@ -482,7 +484,7 @@ const hasMultipleSlides = motos.length > 1;
     }
 
     .moto-slider__card {
-      min-height: 28rem;
+      /* min-height: 28rem; */
       aspect-ratio: 5 / 4;
     }
 
@@ -502,7 +504,7 @@ const hasMultipleSlides = motos.length > 1;
     }
 
     .moto-slider__slide {
-      width: calc(50% - 0.75rem);
+      width: calc(44% - 0.75rem);
     }
 
     .moto-slider__dots {
@@ -510,7 +512,7 @@ const hasMultipleSlides = motos.length > 1;
     }
 
     .moto-slider__card {
-      min-height: 30rem;
+      /* min-height: 30rem; */
       aspect-ratio: 5 / 4;
     }
 
@@ -540,7 +542,7 @@ const hasMultipleSlides = motos.length > 1;
     }
 
     .moto-slider__slide {
-      width: calc(50% - 1rem);
+      width: calc(44% - 1rem);
     }
   }
 
