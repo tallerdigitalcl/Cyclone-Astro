@@ -189,16 +189,13 @@ const imageAlt =
 <style>
   .info-section {
     @apply relative;
-    margin-bottom: -1px;
+    margin-top: -3px;
   }
 
   .info-section__panel {
     @apply relative;
-    /* clip-path clips the parallax image overflow WITHOUT breaking position:sticky on children
-       (overflow:hidden would break sticky — this is the correct approach) */
     clip-path: inset(0);
     min-height: 77rem;
-    background: var(--color-secondary-dark);
   }
 
   .info-section__media {
