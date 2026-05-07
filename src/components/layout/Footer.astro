@@ -111,8 +111,6 @@ const currentYear = new Date().getFullYear();
 <style>
   .footer {
     @apply bg-white text-text;
-    margin-top: clamp(4rem, 6vw, 4rem);
-    border-top: 1px solid var(--color-border);
   }
 
   .footer__container {
@@ -127,7 +125,7 @@ const currentYear = new Date().getFullYear();
   }
 
   .footer__social-bar {
-    @apply flex flex-row justify-between gap-24;
+    @apply flex flex-row justify-between gap-24 mt-6;
     padding-bottom: 1rem;
     border-bottom: 1px solid var(--color-border);
   }
