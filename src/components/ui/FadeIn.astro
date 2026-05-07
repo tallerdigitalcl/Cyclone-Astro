@@ -32,10 +32,15 @@ const {
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
+          const el = entry.target as HTMLElement;
           if (entry.isIntersecting) {
-            entry.target.classList.add("fade-in--visible");
+            el.classList.add("fade-in--visible");
+            el.setAttribute("data-fade-animating", "");
+            setTimeout(() => el.removeAttribute("data-fade-animating"), 700);
           } else {
-            entry.target.classList.remove("fade-in--visible");
+            if (!el.hasAttribute("data-fade-animating")) {
+              el.classList.remove("fade-in--visible");
+            }
           }
         });
       },
