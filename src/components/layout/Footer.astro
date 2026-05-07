@@ -1,14 +1,12 @@
 ---
-const inventoryLinks = [
-  { label: 'Aventura', href: '/motos' },
-  { label: 'Ruta', href: '/motos' },
-  { label: 'Calle', href: '/motos' },
-];
+import { sanityClient } from '../../lib/sanity';
+
+const modelosQuery = `*[_type == "moto" && defined(slug.current)] | order(_createdAt asc) { "label": nombre, "href": "/motos/" + slug.current }`;
+const modeloLinks: { label: string; href: string }[] = await sanityClient.fetch(modelosQuery);
 
 const worldLinks = [
-  { label: 'Nuestra historia' },
+  { label: 'Descubre más' },
   { label: 'Concesionarios' },
-  { label: 'Garantía' },
   { label: 'Protección de datos' },
 ];
 
@@ -50,10 +48,10 @@ const currentYear = new Date().getFullYear();
         </a>
       </section>
 
-      <nav class="footer__nav" aria-labelledby="footer-inventory-title">
-        <h3 id="footer-inventory-title" class="footer__title">Inventario</h3>
+      <nav class="footer__nav" aria-labelledby="footer-modelos-title">
+        <h3 id="footer-modelos-title" class="footer__title">Modelos</h3>
         <ul class="footer__link-list">
-          {inventoryLinks.map((link) => (
+          {modeloLinks.map((link) => (
             <li>
               <a href={link.href} class="footer__link">{link.label}</a>
             </li>
@@ -76,7 +74,7 @@ const currentYear = new Date().getFullYear();
         </ul>
       </nav>
 
-      <section class="footer__newsletter" aria-labelledby="footer-newsletter-title">
+      <!-- <section class="footer__newsletter" aria-labelledby="footer-newsletter-title">
         <h3 id="footer-newsletter-title" class="footer__title">Newsletter</h3>
         <p class="footer__newsletter-copy">
           Suscríbete para recibir lanzamientos exclusivos.
@@ -99,7 +97,7 @@ const currentYear = new Date().getFullYear();
             </svg>
           </button>
         </form>
-      </section>
+      </section> -->
     </div>
 
     <div class="footer__bottom">
@@ -336,7 +334,7 @@ const currentYear = new Date().getFullYear();
 
   @media (min-width: 1024px) {
     .footer__main {
-      grid-template-columns: minmax(13rem, 1.2fr) minmax(10rem, 0.9fr) minmax(10rem, 0.9fr) minmax(15rem, 1.1fr);
+      grid-template-columns: minmax(13rem, 1.2fr) minmax(10rem, 0.9fr) minmax(10rem, 0.9fr);
       gap: 2.5rem;
       align-items: start;
     }
