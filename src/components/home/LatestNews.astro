@@ -98,8 +98,10 @@ const filterLabels = ['Todas', ...availableCategories.map((category) => category
 
 <style>
   .latest-news {
-    @apply bg-secondary text-white;
+    @apply relative bg-secondary text-white;
     padding: var(--section-spacing) 0;
+    margin-top: -2px;
+    z-index: 1;
   }
 
   .latest-news__container {
