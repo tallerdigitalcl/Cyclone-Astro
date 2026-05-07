@@ -33,6 +33,11 @@ if (moto.apiMotoId) {
 
 const additionalFeatures = moto.caracteristicasAdicionales ?? [];
 const infoSection = moto.zonaInformativa;
+const ctaFinal = moto.ctaFinal;
+const galleryImages = (moto.galeriaFotos ?? []).map((img) => ({
+  url: urlFor(img).width(1920).quality(88).auto('format').url(),
+  alt: img.alt || moto.nombre,
+}));
 const technicalSheetUrl = moto.fichaTecnica?.asset?.url;
 const sequenceFrames = (moto.scrollSequenceFrames ?? [])
   .filter((frame) => frame.asset?._ref)
@@ -287,6 +292,117 @@ function formatStatValue(value?: string | null, suffix?: string) {
       </div>
     </section>
   )}
+
+  {ctaFinal?.imagenFondo && (
+    <section class="moto-cta" aria-labelledby="moto-cta-title">
+      <picture class="moto-cta__media">
+        {(() => {
+          const desktopImage = urlFor(ctaFinal.imagenFondo).width(1800).quality(84).auto('format').url();
+          const desktopImage2x = urlFor(ctaFinal.imagenFondo).width(2600).quality(76).auto('format').url();
+          const mobileSource = ctaFinal.imagenFondo.mobileImage?.asset?._ref
+            ? ctaFinal.imagenFondo.mobileImage
+            : ctaFinal.imagenFondo;
+          const mobileImage = urlFor(mobileSource).width(820).quality(82).auto('format').url();
+          const mobileImage2x = urlFor(mobileSource).width(1200).quality(76).auto('format').url();
+          const imageAlt = ctaFinal.imagenFondo.mobileImage?.alt || ctaFinal.imagenFondo.alt || ctaFinal.titulo;
+
+          return (
+            <>
+              <source
+                media="(max-width: 767px)"
+                srcset={`${mobileImage} 820w, ${mobileImage2x} 1200w`}
+                sizes="100vw"
+              />
+              <img
+                class="moto-cta__image"
+                src={desktopImage}
+                srcset={`${desktopImage} 1800w, ${desktopImage2x} 2600w`}
+                sizes="100vw"
+                alt={imageAlt}
+                width="1800"
+                height="980"
+                loading="lazy"
+                decoding="async"
+              />
+            </>
+          );
+        })()}
+      </picture>
+
+      <div class="moto-cta__overlay" aria-hidden="true"></div>
+
+      <div class="moto-cta__container">
+        <h2 id="moto-cta-title" class="moto-cta__title">{ctaFinal.titulo}</h2>
+        <div class="moto-cta__actions">
+          <Button type="button" class="js-open-gallery" size="lg">
+            Ver galería
+          </Button>
+        </div>
+      </div>
+    </section>
+  )}
+
+  {galleryImages.length > 0 && (
+    <dialog id="moto-gallery-dialog" class="moto-gallery" aria-label={`Galería de fotos de ${moto.nombre}`}>
+      <div class="moto-gallery__header">
+        <div class="moto-gallery__meta">
+          <strong class="moto-gallery__moto-name">{moto.nombre}</strong>
+          <span class="moto-gallery__label">Galería</span>
+        </div>
+        <button class="moto-gallery__close" aria-label="Cerrar galería">
+          <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+            <line x1="17" y1="5" x2="5" y2="17" />
+            <line x1="5" y1="5" x2="17" y2="17" />
+          </svg>
+        </button>
+      </div>
+
+      <div class="moto-gallery__stage">
+        <button class="moto-gallery__arrow moto-gallery__arrow--prev" aria-label="Foto anterior">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="12 3 6 9 12 15" />
+          </svg>
+        </button>
+
+        <div class="moto-gallery__track">
+          {galleryImages.map((img, i) => (
+            <figure
+              class:list={['moto-gallery__slide', { 'is-active': i === 0 }]}
+              aria-hidden={i !== 0 ? 'true' : undefined}
+            >
+              <img
+                class="moto-gallery__img"
+                src={img.url}
+                alt={img.alt}
+                loading={i === 0 ? 'eager' : 'lazy'}
+                decoding="async"
+              />
+            </figure>
+          ))}
+        </div>
+
+        <button class="moto-gallery__arrow moto-gallery__arrow--next" aria-label="Siguiente foto">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="6 3 12 9 6 15" />
+          </svg>
+        </button>
+      </div>
+
+      {galleryImages.length > 1 && (
+        <div class="moto-gallery__dots" role="tablist" aria-label="Navegación de galería">
+          {galleryImages.map((_, i) => (
+            <button
+              class:list={['moto-gallery__dot', { 'is-active': i === 0 }]}
+              data-gallery-index={i}
+              role="tab"
+              aria-label={`Foto ${i + 1}`}
+              aria-selected={i === 0 ? 'true' : 'false'}
+            ></button>
+          ))}
+        </div>
+      )}
+    </dialog>
+  )}
 </BaseLayout>
 
 <script>
@@ -383,6 +499,61 @@ function formatStatValue(value?: string | null, suffix?: string) {
       });
     }
   });
+
+  // ── Gallery lightbox ──────────────────────────────────────
+  const galleryDialog = document.getElementById('moto-gallery-dialog') as HTMLDialogElement | null;
+  const openBtn = document.querySelector<HTMLElement>('.js-open-gallery');
+
+  if (galleryDialog && openBtn) {
+    const slides = Array.from(galleryDialog.querySelectorAll<HTMLElement>('.moto-gallery__slide'));
+    const dots = Array.from(galleryDialog.querySelectorAll<HTMLButtonElement>('.moto-gallery__dot'));
+    let current = 0;
+
+    const goTo = (index: number) => {
+      if (!slides.length) return;
+      slides[current]?.classList.remove('is-active');
+      slides[current]?.setAttribute('aria-hidden', 'true');
+      dots[current]?.classList.remove('is-active');
+      dots[current]?.setAttribute('aria-selected', 'false');
+      current = ((index % slides.length) + slides.length) % slides.length;
+      slides[current]?.classList.add('is-active');
+      slides[current]?.removeAttribute('aria-hidden');
+      dots[current]?.classList.add('is-active');
+      dots[current]?.setAttribute('aria-selected', 'true');
+    };
+
+    openBtn.addEventListener('click', () => {
+      goTo(0);
+      galleryDialog.showModal();
+      document.documentElement.style.setProperty('overflow', 'hidden');
+    });
+
+    galleryDialog.querySelector('.moto-gallery__close')?.addEventListener('click', () => galleryDialog.close());
+    galleryDialog.querySelector('.moto-gallery__arrow--prev')?.addEventListener('click', () => goTo(current - 1));
+    galleryDialog.querySelector('.moto-gallery__arrow--next')?.addEventListener('click', () => goTo(current + 1));
+
+    dots.forEach((dot, i) => dot.addEventListener('click', () => goTo(i)));
+
+    galleryDialog.addEventListener('close', () => {
+      document.documentElement.style.removeProperty('overflow');
+    });
+
+    galleryDialog.addEventListener('click', (e) => {
+      if (e.target === galleryDialog) galleryDialog.close();
+    });
+
+    galleryDialog.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowLeft') goTo(current - 1);
+      if (e.key === 'ArrowRight') goTo(current + 1);
+    });
+
+    let touchStartX = 0;
+    galleryDialog.addEventListener('touchstart', (e) => { touchStartX = e.touches[0].clientX; }, { passive: true });
+    galleryDialog.addEventListener('touchend', (e) => {
+      const delta = touchStartX - e.changedTouches[0].clientX;
+      if (Math.abs(delta) > 50) goTo(delta > 0 ? current + 1 : current - 1);
+    }, { passive: true });
+  }
 </script>
 
 <style>
@@ -1110,6 +1281,239 @@ function formatStatValue(value?: string | null, suffix?: string) {
     .moto-features__content {
       opacity: 1;
       transform: none;
+    }
+  }
+
+  /* ── CTA Final ─────────────────────────────────────────── */
+  .moto-cta {
+    @apply relative overflow-hidden;
+    min-height: 80dvh;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+  }
+
+  .moto-cta__media {
+    @apply absolute inset-0;
+  }
+
+  .moto-cta__image {
+    @apply block w-full h-full;
+    object-fit: cover;
+    object-position: center;
+  }
+
+  .moto-cta__overlay {
+    @apply absolute inset-0;
+    background: linear-gradient(180deg, rgba(26, 28, 28, 0.18) 0%, rgba(26, 28, 28, 0.72) 100%);
+  }
+
+  .moto-cta__container {
+    @apply relative z-10 flex flex-col items-center;
+    max-width: var(--container-max);
+    padding: 10rem var(--container-padding) 4rem;
+    width: 100%;
+    gap: 2rem;
+  }
+
+  .moto-cta__title {
+    @apply font-heading uppercase text-white text-center;
+    font-size: clamp(2rem, 4vw + 1rem, 4.5rem);
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: -0.03em;
+    text-shadow: 0 0.25rem 2rem rgba(0, 0, 0, 0.5);
+    max-width: 20ch;
+  }
+
+  @media (min-width: 768px) {
+    .moto-cta {
+      min-height: 90dvh;
+    }
+  }
+
+  /* ── Gallery lightbox ──────────────────────────────────── */
+  .moto-gallery {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    max-width: 100%;
+    max-height: 100%;
+    margin: 0;
+    padding: 0;
+    background: rgba(10, 10, 10, 0.65);
+    border: none;
+    backdrop-filter: blur(24px) saturate(0.6);
+    -webkit-backdrop-filter: blur(24px) saturate(0.6);
+    display: none;
+    flex-direction: column;
+  }
+
+  .moto-gallery[open] {
+    display: flex;
+  }
+
+  .moto-gallery::backdrop {
+    background: rgba(0, 0, 0, 0.14);
+  }
+
+  .moto-gallery__header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    padding: 1.25rem 1.5rem 1rem;
+    flex-shrink: 0;
+  }
+
+  .moto-gallery__meta {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+  }
+
+  .moto-gallery__moto-name {
+    font-family: var(--font-heading);
+    font-size: clamp(1.75rem, 4vw, 2.75rem);
+    font-weight: 900;
+    color: white;
+    text-transform: uppercase;
+    letter-spacing: -0.04em;
+    line-height: 1;
+  }
+
+  .moto-gallery__label {
+    font-family: var(--font-body);
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.45);
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+  }
+
+  .moto-gallery__close {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 9999px;
+    color: white;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background 200ms;
+  }
+
+  .moto-gallery__close:hover {
+    background: rgba(255, 255, 255, 0.18);
+  }
+
+  .moto-gallery__stage {
+    flex: 1;
+    position: relative;
+    display: flex;
+    align-items: center;
+    min-height: 0;
+  }
+
+  .moto-gallery__track {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .moto-gallery__slide {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0;
+    padding: 1rem 3.75rem 1.5rem;
+    opacity: 0;
+    transition: opacity 280ms ease;
+    pointer-events: none;
+  }
+
+  .moto-gallery__slide.is-active {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .moto-gallery__img {
+    max-width: 100%;
+    max-height: 100%;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    display: block;
+    user-select: none;
+    -webkit-user-drag: none;
+  }
+
+  .moto-gallery__arrow {
+    position: absolute;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 9999px;
+    color: white;
+    cursor: pointer;
+    transition: background 200ms;
+  }
+
+  .moto-gallery__arrow:hover {
+    background: rgba(255, 255, 255, 0.22);
+  }
+
+  .moto-gallery__arrow--prev { left: 0.75rem; }
+  .moto-gallery__arrow--next { right: 0.75rem; }
+
+  .moto-gallery__dots {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 1rem 1.5rem 1.5rem;
+    flex-shrink: 0;
+  }
+
+  .moto-gallery__dot {
+    width: 0.45rem;
+    height: 0.45rem;
+    border-radius: 9999px;
+    background: rgba(255, 255, 255, 0.3);
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    transition: background 220ms, transform 220ms;
+  }
+
+  .moto-gallery__dot.is-active {
+    background: white;
+    transform: scale(1.3);
+  }
+
+  @media (min-width: 768px) {
+    .moto-gallery__header {
+      padding: 1.75rem 2.5rem 1rem;
+    }
+
+    .moto-gallery__arrow--prev { left: 1.5rem; }
+    .moto-gallery__arrow--next { right: 1.5rem; }
+
+    .moto-gallery__slide {
+      padding: 1rem 5.5rem 1.5rem;
     }
   }
 </style>

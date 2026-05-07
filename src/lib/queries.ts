@@ -184,6 +184,17 @@ export const motoBySlugQuery = `
         alt
       }
     },
+    ctaFinal {
+      titulo,
+      imagenFondo {
+        ...,
+        alt,
+        mobileImage {
+          ...,
+          alt
+        }
+      }
+    },
     descripcion,
     body,
     specs

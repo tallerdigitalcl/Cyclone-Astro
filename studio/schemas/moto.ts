@@ -13,6 +13,7 @@ export default defineType({
     { name: 'colors', title: 'Colores' },
     { name: 'features', title: 'Caracteristicas' },
     { name: 'gallery', title: 'Galeria' },
+    { name: 'cta', title: 'CTA final' },
     { name: 'files', title: 'Archivos' },
   ],
   fields: [
@@ -272,6 +273,37 @@ export default defineType({
       options: {
         accept: 'application/pdf',
       },
+    }),
+    defineField({
+      name: 'ctaFinal',
+      title: 'CTA final',
+      type: 'object',
+      group: 'cta',
+      description: 'Seccion al final de la pagina con titulo e imagen de fondo.',
+      fields: [
+        defineField({
+          name: 'titulo',
+          title: 'Titulo',
+          type: 'string',
+          validation: (Rule) => Rule.required(),
+        }),
+        defineField({
+          name: 'imagenFondo',
+          title: 'Imagen de fondo Desktop',
+          type: 'image',
+          options: {
+            hotspot: true,
+            accept: 'image/webp,image/avif',
+          },
+          fields: [
+            createRequiredAltField({
+              title: 'Texto alternativo Desktop',
+            }),
+            createMobileImageField(),
+          ],
+          validation: (Rule) => Rule.required(),
+        }),
+      ],
     }),
     defineField({
       name: 'tituloGaleria',
