@@ -138,6 +138,7 @@ export interface Moto {
   fichaTecnica?: SanityFile;
   galeria?: SanityImage[];
   galeriaFotos?: SanityImage[];
+  colores?: { nombre: string; codigoHex?: string; imagen: SanityImage }[];
   ctaFinal?: { titulo: string; imagenFondo: SanityImage };
   descripcion?: string;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

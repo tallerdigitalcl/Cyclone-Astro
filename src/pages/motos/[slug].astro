@@ -38,6 +38,14 @@ const galleryImages = (moto.galeriaFotos ?? []).map((img) => ({
   url: urlFor(img).width(1920).quality(88).auto('format').url(),
   alt: img.alt || moto.nombre,
 }));
+// Color images: map by nombre (matches API color.name) → desktop + mobile URL
+const colorImagesForClient = (moto.colores ?? [])
+  .filter((c) => c.imagen?.asset?._ref)
+  .map((c) => ({
+    nombre: c.nombre,
+    desktop: urlFor(c.imagen).width(1500).quality(86).auto('format').url(),
+    mobile: urlFor(c.imagen.mobileImage?.asset?._ref ? c.imagen.mobileImage : c.imagen).width(920).quality(82).auto('format').url(),
+  }));
 const technicalSheetUrl = moto.fichaTecnica?.asset?.url;
 const sequenceFrames = (moto.scrollSequenceFrames ?? [])
   .filter((frame) => frame.asset?._ref)
@@ -136,7 +144,7 @@ function formatStatValue(value?: string | null, suffix?: string) {
 
         <div class="moto-sequence__final">
           {apiModel?.colors && apiModel.colors.length > 0 && (
-            <ul class="moto-sequence__colors" aria-label="Colores disponibles">
+            <ul class="moto-sequence__colors is-locked" aria-label="Colores disponibles">
               {apiModel.colors.slice(0, 6).map((color, index) => (
                 <li data-color-name={color.name} style={`--item-index: ${index}; --item-total: ${Math.min(apiModel?.colors?.length ?? 1, 6) - 1}`}>
                   <span
@@ -146,6 +154,7 @@ function formatStatValue(value?: string | null, suffix?: string) {
                     ]}
                     style={`--color-swatch: ${color.color || '#d8d8d8'}`}
                   ></span>
+                  <span class="moto-sequence__color-name">{color.name}</span>
                 </li>
               ))}
             </ul>
@@ -185,6 +194,9 @@ function formatStatValue(value?: string | null, suffix?: string) {
         </div>
 
         <script type="application/json" class="moto-sequence__frames" set:html={JSON.stringify(sequenceFramesForClient)} />
+        {colorImagesForClient.length > 0 && (
+          <script type="application/json" class="moto-sequence__color-images" set:html={JSON.stringify(colorImagesForClient)} />
+        )}
       </div>
     </section>
   )}
@@ -468,6 +480,7 @@ function formatStatValue(value?: string | null, suffix?: string) {
     if (prefersReducedMotion) {
       image.src = frameUrls[0];
       section.style.setProperty('--sequence-progress', '1');
+      section.querySelector<HTMLElement>('.moto-sequence__colors')?.classList.remove('is-locked');
       return;
     }
 
@@ -493,6 +506,9 @@ function formatStatValue(value?: string | null, suffix?: string) {
         if (nextFrame) {
           preloadFrame(nextFrame);
         }
+
+        const colorsList = section.querySelector<HTMLElement>('.moto-sequence__colors');
+        colorsList?.classList.toggle('is-locked', frameIndex !== 0);
       }
 
       ticking = false;
@@ -511,12 +527,29 @@ function formatStatValue(value?: string | null, suffix?: string) {
 
   // Color selection
   document.querySelectorAll<HTMLElement>('.moto-sequence__colors').forEach((colorsList) => {
+    const section = colorsList.closest<HTMLElement>('[data-moto-sequence]');
     const select = colorsList.closest('.moto-sequence__final')?.querySelector<HTMLSelectElement>('.moto-sequence__color-select');
+    const seqImage = section?.querySelector<HTMLImageElement>('.moto-sequence__image');
+    const colorImagesNode = section?.querySelector<HTMLScriptElement>('.moto-sequence__color-images');
+    const colorImages: { nombre: string; desktop: string; mobile: string }[] =
+      colorImagesNode?.textContent ? JSON.parse(colorImagesNode.textContent) : [];
+    const useMobile = window.matchMedia('(max-width: 767px)').matches;
+
+    const swapColorImage = (colorName: string) => {
+      if (!seqImage || !colorImages.length) return;
+      const match = colorImages.find((c) => c.nombre.trim().toLowerCase() === colorName.trim().toLowerCase());
+      if (match) {
+        seqImage.src = useMobile ? match.mobile : match.desktop;
+      }
+    };
 
     const setActive = (index: number) => {
+      const items = Array.from(colorsList.querySelectorAll<HTMLElement>('[data-color-name]'));
       colorsList.querySelectorAll('.moto-sequence__color').forEach((el, i) => {
         el.classList.toggle('is-active', i === index);
       });
+      const colorName = items[index]?.dataset.colorName ?? '';
+      swapColorImage(colorName);
     };
 
     colorsList.addEventListener('click', (e) => {
@@ -773,11 +806,17 @@ function formatStatValue(value?: string | null, suffix?: string) {
     top: 50%;
     transform: translateY(-50%);
     width: 8rem;
-    height: 25rem;
+    height: 20rem;
     padding: 0;
     margin: 0;
     list-style: none;
     pointer-events: auto;
+    transition: opacity 400ms ease;
+  }
+
+  .moto-sequence__colors.is-locked {
+    opacity: 0.25;
+    pointer-events: none;
   }
 
   .moto-sequence__colors li {
@@ -846,10 +885,16 @@ function formatStatValue(value?: string | null, suffix?: string) {
   }
 
   .moto-sequence__color-name {
-    @apply font-body uppercase;
+    @apply font-body uppercase font-semibold;
+    display: none;
     color: var(--color-text);
     font-size: 0.62rem;
     letter-spacing: 0.08em;
+    white-space: nowrap;
+  }
+
+  .moto-sequence__color.is-active + .moto-sequence__color-name {
+    display: block;
   }
 
   .moto-sequence__specs {
@@ -1187,6 +1232,10 @@ function formatStatValue(value?: string | null, suffix?: string) {
       flex-direction: row;
       align-items: center;
       gap: 0.85rem;
+    }
+
+    .moto-sequence__color-name {
+      display: none !important;
     }
 
     .moto-sequence__colors li {

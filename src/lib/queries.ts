@@ -184,6 +184,18 @@ export const motoBySlugQuery = `
         alt
       }
     },
+    colores[]{
+      nombre,
+      codigoHex,
+      imagen {
+        ...,
+        alt,
+        mobileImage {
+          ...,
+          alt
+        }
+      }
+    },
     ctaFinal {
       titulo,
       imagenFondo {
