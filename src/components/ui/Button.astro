@@ -1,7 +1,7 @@
 ---
 interface Props {
   href?: string;
-  variant?: 'primary' | 'secondary' | 'outline' | 'ghost';
+  variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'white';
   size?: 'sm' | 'md' | 'lg' | 'wide';
   target?: '_blank' | '_self';
   type?: 'button' | 'submit';
@@ -101,6 +101,22 @@ const Tag = href ? 'a' : 'button';
     border-color: transparent;
     background: transparent;
     color: currentColor;
+  }
+
+  .btn--white {
+    border-color: #ffffff;
+    background: #ffffff;
+    background-image: radial-gradient(circle at center, var(--color-primary) 0%, var(--color-primary) 54%, transparent 55%);
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: 0% 0%;
+    color: #0a0a0a;
+  }
+
+  .btn--white:hover {
+    background-size: 260% 260%;
+    border-color: var(--color-primary);
+    color: #ffffff;
   }
 
   .btn--sm {
