@@ -637,7 +637,7 @@ function formatStatValue(value?: string | null, suffix?: string) {
     top: 0;
     min-height: 100vh;
     overflow: hidden;
-    background: #ffffff;
+    background: #EAEAEA;
   }
 
   .moto-sequence__background {
@@ -667,8 +667,8 @@ function formatStatValue(value?: string | null, suffix?: string) {
     font-size: 80dvh;
     font-weight: 900;
     line-height: 0.82;
-    letter-spacing: -0.08em;
-    color: rgba(26, 28, 28, calc(0.045 * (1 - var(--sequence-progress))));
+    letter-spacing: 0.02em;
+    color: rgba(255, 255, 255, calc(0.195 * (1 - var(--sequence-progress))));
     text-transform: uppercase;
     transform: translateY(-50%);
     transition: opacity 120ms linear;
