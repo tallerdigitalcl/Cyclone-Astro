@@ -1146,6 +1146,14 @@ function formatStatValue(value?: string | null, suffix?: string) {
     }
   }
 
+  @media (min-width: 1181px) and (max-width: 1600px) {
+    .moto-sequence__media {
+      left: calc(-3vw + (var(--sequence-progress) * 52vw));
+      width: calc(clamp(36rem, 72vw, 72rem) - (var(--sequence-progress) * clamp(7rem, 18vw, 16rem)));
+      top: calc(100% - (var(--sequence-progress) * 56%));
+    }
+  }
+
   @media (min-width: 768px) and (max-width: 1180px) {
     .moto-sequence__media {
       left: calc(-7vw + (var(--sequence-progress) * 57vw));
