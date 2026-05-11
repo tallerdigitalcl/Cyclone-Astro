@@ -7,6 +7,7 @@ interface Props {
   type?: 'button' | 'submit';
   class?: string;
   paddingX?: string;
+  paddingXMobile?: string;
 }
 
 const {
@@ -17,6 +18,7 @@ const {
   type = 'button',
   class: className,
   paddingX,
+  paddingXMobile,
 } = Astro.props;
 
 const Tag = href ? 'a' : 'button';
@@ -28,7 +30,7 @@ const Tag = href ? 'a' : 'button';
   rel={href && target === '_blank' ? 'noopener noreferrer' : undefined}
   type={!href ? type : undefined}
   class:list={['btn', `btn--${variant}`, `btn--${size}`, className]}
-  style={paddingX ? `--btn-px: ${paddingX}` : undefined}
+  style={[paddingX ? `--btn-px: ${paddingX}` : '', paddingXMobile ? `--btn-px-mobile: ${paddingXMobile}` : ''].filter(Boolean).join('; ') || undefined}
 >
   <slot />
 </Tag>
@@ -141,6 +143,24 @@ const Tag = href ? 'a' : 'button';
     min-height: 3.125rem;
     padding: 0.875rem var(--btn-px, 3.5rem);
   }
+  @media (max-width: 767px) {
+    .btn--sm {
+      padding: 0.75rem var(--btn-px-mobile, var(--btn-px, 1.25rem));
+    }
+
+    .btn--md {
+      padding: 0.875rem var(--btn-px-mobile, var(--btn-px, 1.25rem));
+    }
+
+    .btn--lg {
+      padding: 0.95rem var(--btn-px-mobile, var(--btn-px, 2rem));
+    }
+
+    .btn--wide {
+      padding: 0.875rem var(--btn-px-mobile, var(--btn-px, 3.5rem));
+    }
+  }
+
   @media (min-width: 768px) {
     .btn--md {
       padding: 0.875rem var(--btn-px, 1.65rem);
