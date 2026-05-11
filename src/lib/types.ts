@@ -121,7 +121,6 @@ export interface Moto {
   nombre: string;
   slug: string;
   apiMotoId?: string;
-  tituloDescriptivo?: string;
   marca?: string;
   modelo?: string;
   anio?: number;
