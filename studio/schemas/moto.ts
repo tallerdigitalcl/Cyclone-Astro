@@ -57,6 +57,14 @@ export default defineType({
       validation: (Rule) => Rule.required(),
     }),
     defineField({
+      name: 'mostrarNombreGigante',
+      title: 'Mostrar nombre gigante en el hero?',
+      type: 'boolean',
+      description: 'Activa el texto decorativo grande con el nombre de la moto en el fondo del hero.',
+      group: 'scrollSequence',
+      initialValue: true,
+    }),
+    defineField({
       name: 'scrollSequenceFrames',
       title: 'Secuencia de scroll 0 a 30 grados',
       type: 'array',
