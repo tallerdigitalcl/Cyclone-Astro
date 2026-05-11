@@ -405,6 +405,7 @@ function formatStatValue(value?: string | null, suffix?: string) {
     if (prefersReducedMotion) {
       image.src = frameUrls[0];
       section.style.setProperty('--sequence-progress', '1');
+      section.classList.add('is-done');
       section.querySelector<HTMLElement>('.moto-sequence__colors')?.classList.remove('is-locked');
       return;
     }
@@ -422,6 +423,7 @@ function formatStatValue(value?: string | null, suffix?: string) {
       const frameIndex = Math.round((1 - progress) * (frameUrls.length - 1));
 
       section.style.setProperty('--sequence-progress', progress.toFixed(3));
+      section.classList.toggle('is-done', progress >= 0.6);
 
       if (frameIndex !== activeFrame) {
         activeFrame = frameIndex;
@@ -617,6 +619,9 @@ function formatStatValue(value?: string | null, suffix?: string) {
     display: block;
     width: 100%;
     height: auto;
+    aspect-ratio: 1500 / 950;
+    object-fit: contain;
+    object-position: center;
     user-select: none;
     pointer-events: none;
   }
@@ -634,6 +639,10 @@ function formatStatValue(value?: string | null, suffix?: string) {
     color: var(--color-text);
     opacity: calc(1 - (var(--sequence-progress) * 1.65));
     transform: translateX(calc(var(--sequence-progress) * 2rem));
+  }
+
+  .moto-sequence.is-done .moto-sequence__initial {
+    pointer-events: none;
   }
 
   .moto-sequence__initial-title {
@@ -1165,7 +1174,9 @@ function formatStatValue(value?: string | null, suffix?: string) {
       flex-direction: row;
       align-items: center;
       justify-content: center;
-      gap: 0.85rem;
+      gap: 1.5rem;
+      pointer-events: auto;
+      z-index: 10;
     }
 
     .moto-sequence__color-name {
