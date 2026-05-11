@@ -266,7 +266,7 @@ const imageAlt = imagenFondo.mobileImage?.alt || imagenFondo.alt || titulo;
      CSS SCROLL-DRIVEN ANIMATIONS (solo en navegadores con soporte nativo)
      Chrome ≥ 115, Edge ≥ 115, Safari ≥ 18, Firefox ≥ 110 con flag.
   ───────────────────────────────────────────────────────────────────── */
-  @supports (animation-timeline: scroll()) {
+  @supports (animation-timeline: scroll()) and (view-timeline: --t block) {
 
     /* ── IMAGEN ──────────────────────────────────────────────────────
        Toda la fase contain: scale 1 → 0.6.
@@ -360,7 +360,7 @@ const imageAlt = imagenFondo.mobileImage?.alt || imagenFondo.alt || titulo;
      Muestra una versión estática sin animación.
      No usa JavaScript ni IntersectionObserver.
   ───────────────────────────────────────────────────────────────────── */
-  @supports not (animation-timeline: scroll()) {
+  @supports not ((animation-timeline: scroll()) and (view-timeline: --t block)) {
     .moto-cta          { height: auto; }
     .moto-cta__stage   { position: relative; height: 80dvh; min-height: 28rem; }
     /* Paso 1 visible y clickeable, paso 2 oculto y sin pointer-events */
