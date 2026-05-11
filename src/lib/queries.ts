@@ -128,6 +128,7 @@ export const motoBySlugQuery = `
     enOferta,
     imagenPrincipal,
     apiMotoId,
+    mostrarNombreGigante,
     scrollSequenceFrames[] | order(grado asc) {
       ...,
       grado,

@@ -131,6 +131,7 @@ export interface Moto {
   destacada?: boolean;
   imagenPrincipal?: SanityImage;
   imagenSliderHome?: SanityImage;
+  mostrarNombreGigante?: boolean;
   scrollSequenceFrames?: MotoScrollSequenceFrame[];
   heroImagenes?: SanityImage[];
   zonaInformativa?: MotoInfoSection;
