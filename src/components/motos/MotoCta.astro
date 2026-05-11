@@ -1,0 +1,413 @@
+---
+/**
+ * MotoCta.astro
+ *
+ * Sección CTA con animación scroll-driven nativa (solo CSS, cero JS).
+ * Efecto "pin & scrub" estilo Rivian: la imagen se achica en perspectiva,
+ * el título aparece desde abajo, y luego emerge el botón CTA.
+ * Todo atado 1:1 a la posición del scroll. Rebobina al subir.
+ *
+ * ── Técnica ──────────────────────────────────────────────────────────
+ *
+ * 1. TRACK (.moto-cta)
+ *    height: 300vh  →  crea 200vh de "espacio de animación" (el viewport
+ *    mide 100vh, los 200vh restantes son el recorrido de scroll mientras
+ *    la escena está fija).
+ *    view-timeline: --cta-scene block
+ *    Registra un named timeline que mide cuánto ha scrolleado este
+ *    elemento a través del viewport (eje vertical = "block").
+ *
+ * 2. STAGE (.moto-cta__stage)
+ *    position: sticky + top: 0 + height: 100dvh
+ *    Se queda pegado al tope del viewport mientras el padre scrollea
+ *    los 200vh de animación, y se libera al llegar al límite.
+ *
+ * 3. CHILDREN (imagen, pasos)
+ *    animation-timeline: --cta-scene  →  usan el timeline del padre.
+ *    animation-range: contain 0% contain 100%
+ *    La fase "contain" de un elemento de 300vh = exactamente cuando
+ *    el elemento llena el viewport de arriba a abajo, que coincide
+ *    con los 200vh del sticky. Perfecto scrub.
+ *
+ * ── Compatibilidad ───────────────────────────────────────────────────
+ *    @supports (animation-timeline: scroll())  →  animación completa
+ *    @supports not (…)                          →  versión estática
+ *    @media (prefers-reduced-motion: reduce)    →  estado final, sin mov.
+ *
+ * ── Extender a más pasos ─────────────────────────────────────────────
+ *    Añade un nuevo <div class="moto-cta__step moto-cta__step--3"> y
+ *    crea una regla con animation-range: contain 80% contain 100%.
+ */
+
+import Button from '../ui/Button.astro';
+import { urlFor } from '../../lib/sanity';
+import type { SanityImage } from '../../lib/types';
+
+interface Props {
+  titulo: string;
+  imagenFondo: SanityImage;
+  /** Muestra el botón "Ver galería" en el paso 2 */
+  hasGallery?: boolean;
+}
+
+const { titulo, imagenFondo, hasGallery = false } = Astro.props;
+
+const desktopImage = urlFor(imagenFondo).width(1800).quality(84).auto('format').url();
+const desktopImage2x = urlFor(imagenFondo).width(2600).quality(76).auto('format').url();
+const mobileSource = imagenFondo.mobileImage?.asset?._ref ? imagenFondo.mobileImage : imagenFondo;
+const mobileImage = urlFor(mobileSource).width(820).quality(82).auto('format').url();
+const mobileImage2x = urlFor(mobileSource).width(1200).quality(76).auto('format').url();
+const imageAlt = imagenFondo.mobileImage?.alt || imagenFondo.alt || titulo;
+---
+
+<!--
+  TRACK CONTAINER (300vh)
+  ─────────────────────────────────────────────────────────────────────
+  Crea el espacio de scroll que la escena necesita.
+  height: 300vh = 100vh (viewport visible) + 200vh (animación mientras sticky).
+
+  view-timeline: --cta-scene block
+  Registra el timeline que los hijos usarán para animar.
+-->
+<section
+  class="moto-cta"
+  aria-labelledby="moto-cta-title"
+>
+  <!--
+    STICKY STAGE (100dvh)
+    ─────────────────────────────────────────────────────────────────────
+    position: sticky + top: 0 mantiene esta escena fija en el tope del
+    viewport mientras el contenedor padre (300vh) sigue scrolleando.
+    Se "despega" cuando el padre llega al final de sus 300vh.
+    overflow: hidden recorta la imagen cuando hace scale.
+  -->
+  <div class="moto-cta__stage">
+
+    <!--
+      IMAGEN DE FONDO
+      Animación: scale(1) → scale(0.6) durante toda la fase contain.
+      Solo se anima `transform` → cero layout reflow, todo en la GPU.
+    -->
+    <picture class="moto-cta__media">
+      <source
+        media="(max-width: 767px)"
+        srcset={`${mobileImage} 820w, ${mobileImage2x} 1200w`}
+        sizes="100vw"
+      />
+      <img
+        class="moto-cta__image"
+        src={desktopImage}
+        srcset={`${desktopImage} 1800w, ${desktopImage2x} 2600w`}
+        sizes="100vw"
+        alt={imageAlt}
+        width="1800"
+        height="980"
+        loading="lazy"
+        decoding="async"
+      />
+    </picture>
+
+    <!-- Overlay que se oscurece levemente conforme la imagen se achica -->
+    <div class="moto-cta__overlay" aria-hidden="true"></div>
+
+    <!--
+      PASO 1 — Título + botón galería (visible desde el inicio)
+      ─────────────────────────────────────────────────────────────────
+      Estado por defecto: opacity 1 (sin fade-in al entrar).
+      animation-range: contain 0% contain 100%
+      Keyframes: 0-45% visible e inmóvil → 55-70% fade-out hacia arriba.
+    -->
+    <div class="moto-cta__step moto-cta__step--1">
+      <h2 id="moto-cta-title" class="moto-cta__step-title">{titulo}</h2>
+      {hasGallery && (
+        <Button type="button" class="js-open-gallery" size="lg">
+          Ver galería
+        </Button>
+      )}
+    </div>
+
+    <!--
+      PASO 2 — Card "Conoce nuestros concesionarios"
+      ─────────────────────────────────────────────────────────────────
+      animation-range: contain 50% contain 100%
+      Empieza a animarse en la segunda mitad del recorrido sticky.
+      Keyframes: 0-45% fade-in desde abajo → 45-100% visible e inmóvil.
+
+      Para añadir un PASO 3: duplica con animation-range contain 80% contain 100%.
+    -->
+    <div class="moto-cta__step moto-cta__step--2" aria-label="Conoce nuestros concesionarios">
+      <div class="moto-cta__dealers-card">
+        <h3 class="moto-cta__dealers-title">Conoce nuestros concesionarios</h3>
+        <Button href="/concesionarios" variant="white" size="lg">Ver concesionarios</Button>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<style>
+  /* ─────────────────────────────────────────────────────────────────────
+     TRACK: el contenedor de 300vh que genera el espacio de scroll.
+
+     view-timeline: --cta-scene block
+     Crea el named scroll-driven timeline basado en la posición de ESTE
+     elemento dentro del viewport (eje vertical = block).
+
+     Fases del timeline para un elemento de 300vh:
+       · entry:   el elemento empieza a entrar al viewport desde abajo
+       · contain: el top toca el top del viewport → hasta que el bottom
+                  toca el bottom del viewport  (= los 200vh sticky)
+       · exit:    el elemento empieza a salir por arriba
+  ───────────────────────────────────────────────────────────────────── */
+  /*
+   * TRACK: 400vh = 100vh visible + 300vh de fase contain.
+   * Las animaciones terminan en contain 67% (~200vh de scroll),
+   * igual que antes. El 33% restante (~100vh) es dwell puro:
+   * el sticky permanece fijo con el estado final antes de liberarse.
+   * fill-mode: forwards mantiene el estado final durante el dwell.
+   */
+  .moto-cta {
+    position: relative;
+    height: 400vh;
+    view-timeline: --cta-scene block;
+  }
+
+  /* ─────────────────────────────────────────────────────────────────────
+     STAGE: el elemento sticky (fijo al viewport).
+
+     position: sticky + top: 0 → pegado al tope del viewport.
+     height: 100dvh              → ocupa exactamente la pantalla.
+     overflow: hidden             → recorta la imagen animada.
+  ───────────────────────────────────────────────────────────────────── */
+  .moto-cta__stage {
+    position: sticky;
+    top: 0;
+    height: 100dvh;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #0a0a0a;
+  }
+
+  /* Imagen: cubre todo el stage */
+  .moto-cta__media {
+    position: absolute;
+    inset: 0;
+  }
+
+  .moto-cta__image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    will-change: transform;
+  }
+
+  /* Capa oscura sobre la imagen */
+  .moto-cta__overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.38);
+    will-change: opacity;
+  }
+
+  /* Pasos: centrados sobre el stage */
+  .moto-cta__step {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2rem;
+    padding: 2rem var(--container-padding, 1.5rem);
+    text-align: center;
+  }
+
+  /* Paso 1: visible y recibe clicks por defecto */
+  .moto-cta__step--1 { opacity: 1; visibility: visible; }
+  /* Paso 2: oculto y NO recibe clicks (visibility: hidden deshabilita pointer-events) */
+  .moto-cta__step--2 { opacity: 0; visibility: hidden; }
+
+  /* Título: usa la variable h2 del sistema de diseño */
+  .moto-cta__step-title {
+    font-family: var(--font-heading);
+    font-size: var(--text-h2);
+    font-weight: 700;
+    color: white;
+    text-transform: uppercase;
+    line-height: 0.95;
+    letter-spacing: -0.04em;
+    text-shadow: 0 0.25rem 2rem rgba(0, 0, 0, 0.5);
+    max-width: 18ch;
+  }
+
+  /* Card de concesionarios */
+  .moto-cta__dealers-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2rem;
+    background: rgba(18, 18, 18, 1);
+    padding: 2.5rem var(--container-padding, 1.5rem) 3rem;
+    width: 100%;
+    max-width: var(--container-max, 80rem);
+  }
+
+  .moto-cta__dealers-title {
+    font-family: var(--font-heading);
+    font-size: clamp(1.5rem, 3vw + 0.5rem, 2.5rem);
+    font-weight: 700;
+    color: white;
+    text-transform: uppercase;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    max-width: 25rem;
+  }
+
+  /* ─────────────────────────────────────────────────────────────────────
+     CSS SCROLL-DRIVEN ANIMATIONS (solo en navegadores con soporte nativo)
+     Chrome ≥ 115, Edge ≥ 115, Safari ≥ 18, Firefox ≥ 110 con flag.
+  ───────────────────────────────────────────────────────────────────── */
+  @supports (animation-timeline: scroll()) {
+
+    /* ── IMAGEN ──────────────────────────────────────────────────────
+       Toda la fase contain: scale 1 → 0.6.
+    ─────────────────────────────────────────────────────────────────── */
+    .moto-cta__image {
+      animation: cta-image-shrink linear both;
+      animation-timeline: --cta-scene;
+      animation-range: contain 0% contain 67%;
+    }
+
+    /* ── OVERLAY ──────────────────────────────────────────────────────
+       Se oscurece a medida que la imagen se aleja.
+    ─────────────────────────────────────────────────────────────────── */
+    .moto-cta__overlay {
+      animation: cta-overlay-darken linear both;
+      animation-timeline: --cta-scene;
+      animation-range: contain 0% contain 67%;
+    }
+
+    /* ── PASO 1 (título + botón galería) ─────────────────────────────
+       animation-range: contain 0% contain 100%
+       El fill-mode backwards mantiene el estado 0% (opacity:1) antes
+       de que empiece la fase contain → visible desde el primer pixel.
+       Keyframes: 0-45% inmóvil → 55-70% fade-out hacia arriba.
+    ─────────────────────────────────────────────────────────────────── */
+    .moto-cta__step--1 {
+      animation: cta-step1-out linear both;
+      animation-timeline: --cta-scene;
+      animation-range: contain 0% contain 67%;
+    }
+
+    /* ── PASO 2 (card concesionarios) ────────────────────────────────
+       animation-range: contain 50% contain 100%
+       Solo el segundo 50% del recorrido sticky.
+       Fill-mode backwards mantiene opacity:0 antes de contain 50%.
+       Keyframes: 0-45% fade-in desde abajo → 45-100% inmóvil.
+    ─────────────────────────────────────────────────────────────────── */
+    .moto-cta__step--2 {
+      animation: cta-step2-in linear both;
+      animation-timeline: --cta-scene;
+      animation-range: contain 33% contain 67%;
+    }
+  }
+
+  /* ─────────────────────────────────────────────────────────────────────
+     KEYFRAMES
+     Solo `transform` y `opacity` → animaciones en la GPU, sin layout.
+  ───────────────────────────────────────────────────────────────────── */
+
+  /* Imagen: zoom-out suave mientras el usuario scrollea */
+  @keyframes cta-image-shrink {
+    from { transform: scale(1); }
+    to   { transform: scale(0.6); }
+  }
+
+  /* Overlay: se oscurece levemente para dar sensación de profundidad */
+  @keyframes cta-overlay-darken {
+    from { opacity: 0.38; }
+    to   { opacity: 0.62; }
+  }
+
+  /*
+   * Paso 1: visible → fade-out suave hacia arriba.
+   * visibility: visible durante toda la transición de opacity para que
+   * el difuminado sea visible. Se oculta solo al 71% (ya opacity: 0)
+   * para liberar el área de clicks sin cortar la animación visual.
+   */
+  @keyframes cta-step1-out {
+    0%   { opacity: 1; transform: translateY(0);       visibility: visible; }
+    45%  { opacity: 1; transform: translateY(0);       visibility: visible; }
+    70%  { opacity: 0; transform: translateY(-2.5rem); visibility: visible; }
+    71%  { opacity: 0; transform: translateY(-2.5rem); visibility: hidden; }
+    100% { opacity: 0; transform: translateY(-2.5rem); visibility: hidden; }
+  }
+
+  /*
+   * Paso 2 (dealers card): entra desde abajo → permanece visible.
+   * visibility: hidden en 0% → sin pointer-events antes de entrar.
+   * Al 1% cambia a visible → recibe clicks en cuanto empieza a aparecer.
+   * fill-mode backwards mantiene visibility: hidden antes de contain 50%.
+   */
+  @keyframes cta-step2-in {
+    0%   { opacity: 0; transform: translateY(3rem); visibility: hidden; }
+    1%   { opacity: 0; transform: translateY(3rem); visibility: visible; }
+    45%  { opacity: 1; transform: translateY(0);    visibility: visible; }
+    100% { opacity: 1; transform: translateY(0);    visibility: visible; }
+  }
+
+  /* ─────────────────────────────────────────────────────────────────────
+     FALLBACK: navegadores sin soporte (Safari < 18, Firefox sin flag)
+     Muestra una versión estática sin animación.
+     No usa JavaScript ni IntersectionObserver.
+  ───────────────────────────────────────────────────────────────────── */
+  @supports not (animation-timeline: scroll()) {
+    .moto-cta          { height: auto; }
+    .moto-cta__stage   { position: relative; height: 80dvh; min-height: 28rem; }
+    /* Paso 1 visible y clickeable, paso 2 oculto y sin pointer-events */
+    .moto-cta__step--1 { opacity: 1; visibility: visible; }
+    .moto-cta__step--2 { opacity: 0; visibility: hidden; }
+  }
+
+  /* ─────────────────────────────────────────────────────────────────────
+     ACCESIBILIDAD: prefers-reduced-motion
+     Desactiva toda animación y muestra el estado final estático.
+     Se aplica tanto en navegadores con soporte como sin él.
+  ───────────────────────────────────────────────────────────────────── */
+  @media (prefers-reduced-motion: reduce) {
+    .moto-cta__image,
+    .moto-cta__overlay,
+    .moto-cta__step--1,
+    .moto-cta__step--2 {
+      animation: none !important;
+    }
+
+    /* Estado estático: paso 1 visible, sin movimiento */
+    .moto-cta          { height: auto; }
+    .moto-cta__stage   { position: relative; height: 80dvh; min-height: 28rem; }
+    .moto-cta__step--1 { opacity: 1; visibility: visible; transform: none; }
+    .moto-cta__step--2 { opacity: 0; visibility: hidden; }
+  }
+
+  /* ─────────────────────────────────────────────────────────────────────
+     MOBILE (< 768px)
+     La animación funciona igual en móvil. Solo se ajusta el scale final
+     para que la imagen no se vea demasiado pequeña en pantallas angostas.
+  ───────────────────────────────────────────────────────────────────── */
+  @media (max-width: 767px) {
+    /* Scale menos agresivo en mobile */
+    @keyframes cta-image-shrink {
+      from { transform: scale(1); }
+      to   { transform: scale(0.78); }
+    }
+  }
+
+  @media (min-width: 768px) {
+    .moto-cta__dealers-card {
+      padding: 5rem 3rem;
+    }
+  }
+</style>

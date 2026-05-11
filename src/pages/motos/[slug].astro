@@ -1,6 +1,7 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import Button from '../../components/ui/Button.astro';
+import MotoCta from '../../components/motos/MotoCta.astro';
 import { sanityClient, urlFor } from '../../lib/sanity';
 import { motoBySlugQuery, allMotoSlugsQuery } from '../../lib/queries';
 import { fetchPromobilityModelo, normalizePrice } from '../../lib/promobility';
@@ -306,88 +307,12 @@ function formatStatValue(value?: string | null, suffix?: string) {
   )}
 
   {ctaFinal?.imagenFondo && (
-    <section class="moto-cta" aria-labelledby="moto-cta-title">
-      <picture class="moto-cta__media">
-        {(() => {
-          const desktopImage = urlFor(ctaFinal.imagenFondo).width(1800).quality(84).auto('format').url();
-          const desktopImage2x = urlFor(ctaFinal.imagenFondo).width(2600).quality(76).auto('format').url();
-          const mobileSource = ctaFinal.imagenFondo.mobileImage?.asset?._ref
-            ? ctaFinal.imagenFondo.mobileImage
-            : ctaFinal.imagenFondo;
-          const mobileImage = urlFor(mobileSource).width(820).quality(82).auto('format').url();
-          const mobileImage2x = urlFor(mobileSource).width(1200).quality(76).auto('format').url();
-          const imageAlt = ctaFinal.imagenFondo.mobileImage?.alt || ctaFinal.imagenFondo.alt || ctaFinal.titulo;
-
-          return (
-            <>
-              <source
-                media="(max-width: 767px)"
-                srcset={`${mobileImage} 820w, ${mobileImage2x} 1200w`}
-                sizes="100vw"
-              />
-              <img
-                class="moto-cta__image"
-                src={desktopImage}
-                srcset={`${desktopImage} 1800w, ${desktopImage2x} 2600w`}
-                sizes="100vw"
-                alt={imageAlt}
-                width="1800"
-                height="980"
-                loading="lazy"
-                decoding="async"
-              />
-            </>
-          );
-        })()}
-      </picture>
-
-      <div class="moto-cta__overlay" aria-hidden="true"></div>
-
-      <div class="moto-cta__container">
-        <h2 id="moto-cta-title" class="moto-cta__title">{ctaFinal.titulo}</h2>
-        <div class="moto-cta__actions">
-          <Button type="button" class="js-open-gallery" size="lg">
-            Ver galería
-          </Button>
-        </div>
-      </div>
-    </section>
+    <MotoCta
+      titulo={ctaFinal.titulo}
+      imagenFondo={ctaFinal.imagenFondo}
+      hasGallery={galleryImages.length > 0}
+    />
   )}
-
-  <section class="moto-dealers" aria-label="Conoce nuestros concesionarios">
-    {ctaFinal?.imagenFondo && (
-      <picture class="moto-dealers__bg-picture">
-        {(() => {
-          const src = urlFor(ctaFinal.imagenFondo).width(1800).quality(82).auto('format').url();
-          const mobileSource = ctaFinal.imagenFondo.mobileImage?.asset?._ref
-            ? ctaFinal.imagenFondo.mobileImage
-            : ctaFinal.imagenFondo;
-          const mobileSrc = urlFor(mobileSource).width(820).quality(80).auto('format').url();
-          return (
-            <>
-              <source media="(max-width: 767px)" srcset={mobileSrc} />
-              <img
-                class="moto-dealers__bg"
-                src={src}
-                alt=""
-                aria-hidden="true"
-                width="1800"
-                height="980"
-                loading="lazy"
-                decoding="async"
-              />
-            </>
-          );
-        })()}
-      </picture>
-    )}
-    <div class="moto-dealers__container">
-      <div class="moto-dealers__card">
-        <h2 class="moto-dealers__title">Conoce nuestros concesionarios</h2>
-        <Button href="/concesionarios" variant="white" size="lg">Ver concesionarios</Button>
-      </div>
-    </div>
-  </section>
 
   {galleryImages.length > 0 && (
     <dialog id="moto-gallery-dialog" class="moto-gallery" aria-label={`Galería de fotos de ${moto.nombre}`}>
@@ -1373,106 +1298,6 @@ function formatStatValue(value?: string | null, suffix?: string) {
     .moto-features__content {
       opacity: 1;
       transform: none;
-    }
-  }
-
-  /* ── CTA Final ─────────────────────────────────────────── */
-  .moto-cta {
-    @apply relative overflow-hidden;
-    display: flex;
-    align-items: flex-start;
-    justify-content: center;
-  }
-
-  .moto-cta__media {
-    display: block;
-    width: 100%;
-  }
-
-  .moto-cta__image {
-    @apply block w-full h-auto;
-    display: block;
-  }
-
-  .moto-cta__overlay {
-    display: none;
-  }
-
-  .moto-cta__container {
-    @apply absolute inset-0 z-10 flex flex-col items-center;
-    max-width: 100%;
-    padding: 10rem var(--container-padding) 4rem;
-    width: 100%;
-    gap: 2rem;
-  }
-
-  .moto-cta__title {
-    @apply font-heading uppercase text-white text-center;
-    font-size: var(--text-h2);
-    font-weight: 700;
-    line-height: 1;
-    letter-spacing: -0.03em;
-    text-shadow: 0 0.25rem 2rem rgba(0, 0, 0, 0.5);
-    max-width: 20ch;
-  }
-
-  @media (min-width: 768px) {
-    .moto-cta {
-      /* height driven by image */
-    }
-  }
-
-  /* ── Dealers CTA ───────────────────────────────────────── */
-  .moto-dealers {
-    @apply relative overflow-hidden;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .moto-dealers__container {
-    @apply relative z-10;
-    max-width: var(--container-max);
-    width: 100%;
-    padding: 0rem var(--container-padding) 2rem var(--container-padding);
-  }
-
-  .moto-dealers__bg-picture {
-    @apply absolute inset-0 w-full h-full;
-  }
-
-  .moto-dealers__bg {
-    @apply absolute inset-0 w-full h-full;
-    object-fit: cover;
-    object-position: bottom;
-    transform: rotate(180deg);
-  }
-
-  .moto-dealers__card {
-    @apply relative z-10 flex flex-col items-center;
-    background: rgba(18, 18, 18, 1);
-    gap: 2rem;
-    padding: 1.75rem var(--container-padding) 2rem;
-    text-align: center;
-    max-width: var(--container-max);
-    width: 100%;
-  }
-
-  .moto-dealers__title {
-    @apply font-heading uppercase text-white;
-    font-size: clamp(1.5rem, 3vw + 0.5rem, 2.5rem);
-    font-weight: 700;
-    line-height: 1.1;
-    letter-spacing: -0.02em;
-    max-width: 25rem;
-  }
-
-
-
-  @media (min-width: 768px) {
-
-    .moto-dealers__card {
-      padding: 5.5rem 0rem;
     }
   }
 
