@@ -1154,16 +1154,17 @@ function formatStatValue(value?: string | null, suffix?: string) {
     }
 
     .moto-sequence__colors {
-      left: var(--container-padding);
-      right: var(--container-padding);
+      left: 0;
+      right: 0;
       top: auto;
-      bottom: 22%;
+      bottom: 28%;
       transform: none;
-      width: auto;
+      width: 100%;
       height: auto;
       display: flex;
       flex-direction: row;
       align-items: center;
+      justify-content: center;
       gap: 0.85rem;
     }
 
@@ -1187,23 +1188,7 @@ function formatStatValue(value?: string | null, suffix?: string) {
     }
 
     .moto-sequence__color-select {
-      display: block;
-      position: absolute;
-      left: var(--container-padding);
-      right: var(--container-padding);
-      bottom: 14%;
-      width: calc(100% - (var(--container-padding) * 2));
-      padding: 0.6rem 1rem;
-      background: rgba(255, 255, 255, 0.92);
-      border: 1px solid rgba(26, 28, 28, 0.18);
-      border-radius: 0.25rem;
-      color: var(--color-text);
-      font-family: var(--font-body);
-      font-size: var(--text-body);
-      font-weight: 600;
-      pointer-events: auto;
-      -webkit-appearance: auto;
-      appearance: auto;
+      display: none;
     }
 
     .moto-sequence__specs {
