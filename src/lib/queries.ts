@@ -221,6 +221,19 @@ export const allMotoSlugsQuery = `
   }
 `;
 
+// Motos para el mega menú del header (solo las que tienen fotoHeader)
+export const motoNavQuery = `
+  *[_type == "moto" && defined(slug.current) && defined(fotoHeader.asset)] | order(nombre asc) {
+    nombre,
+    "slug": slug.current,
+    fotoHeader {
+      ...,
+      alt,
+      asset-> { _id, url }
+    }
+  }
+`;
+
 // ---- Hero Slides ----
 
 export const heroSlidesQuery = `

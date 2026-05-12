@@ -51,6 +51,22 @@ export default defineType({
       validation: (Rule) => Rule.required(),
     }),
     defineField({
+      name: 'fotoHeader',
+      title: 'Foto Header',
+      type: 'image',
+      description: 'Imagen principal que aparece en el header de la moto.',
+      group: 'general',
+      options: {
+        hotspot: true,
+        accept: 'image/webp,image/avif',
+      },
+      fields: [
+        createRequiredAltField({
+          title: 'Texto alternativo (SEO)',
+        }),
+      ],
+    }),
+    defineField({
       name: 'mostrarNombreGigante',
       title: 'Mostrar nombre gigante en el hero?',
       type: 'boolean',

@@ -1,6 +1,12 @@
 ---
+import { sanityClient, urlFor } from '../../lib/sanity';
+import { motoNavQuery } from '../../lib/queries';
+import type { Moto } from '../../lib/types';
+
+type MotoNav = Pick<Moto, 'nombre' | 'slug' | 'fotoHeader'>;
+const motos = await sanityClient.fetch<MotoNav[]>(motoNavQuery);
+
 const navLinks = [
-  { label: 'Modelos', href: '/motos', hasDropdown: true },
   { label: 'Concesionarios', href: '/concesionarios' },
   { label: 'Noticias', href: '/noticia' },
 ];
@@ -9,29 +15,26 @@ const navLinks = [
 <header class="header">
   <div class="header__inner">
 
-    <!-- Logo -->
+    <!-- Logo (blanco por defecto, rojo cuando el mega menú está abierto) -->
     <a href="/" class="header__logo">
-      <img src="/header/cyclone-logo.webp" alt="Cyclone Motos" width="160" height="36" />
+      <img src="/header/cyclone-logo.webp" class="header__logo-img header__logo-img--default" alt="Cyclone Motos" width="160" height="36" />
+      <img src="/footer/logo_footer.webp" class="header__logo-img header__logo-img--mega" alt="Cyclone Motos" width="160" height="36" />
     </a>
 
     <!-- Navegación central (desktop) -->
     <nav class="header__nav">
-      <!-- Dropdown Modelos -->
-      <div class="nav__dropdown group">
-        <button class="nav__link nav__link--dropdown">
+      <!-- Mega menú Modelos -->
+      <div class="nav__dropdown" id="nav-modelos">
+        <button class="nav__link nav__link--dropdown" aria-expanded="false" aria-controls="mega-panel">
           Modelos
           <svg xmlns="http://www.w3.org/2000/svg" class="nav__arrow" viewBox="0 0 20 20" fill="currentColor">
             <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
           </svg>
         </button>
-        <div class="nav__dropdown-panel">
-          <a href="/motos" class="nav__dropdown-item">Ver todos los modelos</a>
-          <!-- Agrega más subcategorías aquí -->
-        </div>
       </div>
 
       <!-- Links restantes -->
-      {navLinks.filter(l => !l.hasDropdown).map(link => (
+      {navLinks.map(link => (
         <a href={link.href} class="nav__link">{link.label}</a>
       ))}
     </nav>
@@ -57,6 +60,46 @@ const navLinks = [
   <!-- Línea separadora -->
   <div class="header__divider"></div>
 
+  <!-- ── MEGA MENÚ MODELOS ──────────────────────────────────────── -->
+  <div id="mega-panel" class="nav__mega-panel" role="region" aria-label="Modelos de motos">
+    <div class="nav__mega-inner">
+      <!-- Sidebar izquierdo -->
+      <div class="nav__mega-sidebar">
+        <a href="/motos" class="nav__mega-all">Todos los modelos</a>
+      </div>
+
+      <!-- Divisor -->
+      <div class="nav__mega-divider" aria-hidden="true"></div>
+
+      <!-- Grid de motos -->
+      <ul class="nav__mega-grid" role="list">
+        {motos.map(moto => {
+          const imgUrl = moto.fotoHeader?.asset?.url
+            ? urlFor(moto.fotoHeader).width(360).height(220).fit('fill').auto('format').quality(85).url()
+            : null;
+          if (!imgUrl) return null;
+          return (
+            <li>
+              <a href={`/motos/${moto.slug}`} class="nav__mega-card">
+                <div class="nav__mega-card-media">
+                  <img
+                    src={imgUrl}
+                    alt={moto.fotoHeader?.alt || moto.nombre}
+                    width="360"
+                    height="220"
+                    loading="eager"
+                    decoding="async"
+                  />
+                </div>
+                <span class="nav__mega-card-name">{moto.nombre}</span>
+              </a>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  </div>
+
   <!-- Menú móvil -->
   <nav id="mobile-menu" class="mobile-menu">
     <!-- Dropdown Modelos en móvil -->
@@ -69,11 +112,13 @@ const navLinks = [
       </button>
       <div id="mobile-modelos-menu" class="mobile-menu__submenu hidden">
         <a href="/motos" class="mobile-menu__subitem">Ver todos los modelos</a>
-        <!-- Agrega más subcategorías aquí -->
+        {motos.map(moto => (
+          <a href={`/motos/${moto.slug}`} class="mobile-menu__subitem">{moto.nombre}</a>
+        ))}
       </div>
     </div>
 
-    {navLinks.filter(l => !l.hasDropdown).map(link => (
+    {navLinks.map(link => (
       <a href={link.href} class="mobile-menu__item">{link.label}</a>
     ))}
     <a href="/concesionarios" class="mobile-menu__item">Concesionarios más cercanos</a>
@@ -97,6 +142,27 @@ const navLinks = [
     modelosMenu?.classList.toggle('flex');
     modelosIcon?.classList.toggle('rotate-180');
   });
+
+  // Mega menú desktop
+  const navModelos = document.getElementById('nav-modelos');
+  const megaPanel = document.getElementById('mega-panel');
+  const megaBtn = navModelos?.querySelector('button');
+
+  const openMega = () => {
+    header?.classList.add('header--mega-open');
+    megaPanel?.classList.add('is-open');
+    megaBtn?.setAttribute('aria-expanded', 'true');
+  };
+  const closeMega = () => {
+    header?.classList.remove('header--mega-open');
+    megaPanel?.classList.remove('is-open');
+    megaBtn?.setAttribute('aria-expanded', 'false');
+  };
+
+  navModelos?.addEventListener('mouseenter', openMega);
+  navModelos?.addEventListener('mouseleave', closeMega);
+  megaPanel?.addEventListener('mouseenter', openMega);
+  megaPanel?.addEventListener('mouseleave', closeMega);
 
   let ticking = false;
   let blurTimer: number | undefined;
@@ -141,7 +207,7 @@ const navLinks = [
   .header {
     @apply w-full fixed top-0 left-0 right-0 z-50;
     background: linear-gradient(180deg,rgba(0,0,0,0.8) 0%,rgba(0,0,0,0.7) 0%,rgba(0,0,0,0) 100%);
-    transition: backdrop-filter 900ms ease;
+    transition: background 350ms ease, backdrop-filter 900ms ease;
   }
 
   .header--blurred {
@@ -170,8 +236,179 @@ const navLinks = [
     transform: scaleX(0);
   }
 
-  .header__logo img {
-    @apply h-9 w-auto object-contain flex-shrink-0;
+  /* ---- Logo ---- */
+  .header__logo {
+    position: relative;
+    display: block;
+    flex-shrink: 0;
+  }
+
+  .header__logo-img {
+    @apply h-9 w-auto object-contain;
+    transition: opacity 350ms ease;
+  }
+
+  .header__logo-img--mega {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    transform: translateY(-50%);
+    object-fit: contain;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .header--mega-open .header__logo-img--default {
+    opacity: 0;
+  }
+
+  .header--mega-open .header__logo-img--mega {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  /* ---- Header cuando mega está abierto ---- */
+  .header--mega-open {
+    background: white;
+    backdrop-filter: none;
+  }
+
+  .header--mega-open .nav__link,
+  .header--mega-open .header__search-btn {
+    color: #1a1c1c;
+    transition: color 350ms ease;
+  }
+
+  .header--mega-open .header__inner::after {
+    background: rgba(26, 28, 28, 0.15);
+    transform: scaleX(1);
+  }
+
+  /* ---- Dropdown nav (solo el botón) ---- */
+  .nav__dropdown {
+    @apply relative;
+  }
+
+  .nav__dropdown-panel {
+    display: none; /* eliminado, reemplazado por mega panel */
+  }
+
+  /* ---- Mega panel (full-width, debajo del header) ---- */
+  .nav__mega-panel {
+    position: fixed;
+    top: var(--header-height, 80px);
+    left: 0;
+    right: 0;
+    background: white;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.1);
+    border-top: 1px solid var(--color-primary);
+    padding: 2rem 0 2.5rem;
+    opacity: 0;
+    visibility: hidden;
+    clip-path: inset(0 0 100% 0);
+    transition: clip-path 380ms cubic-bezier(0.16, 1, 0.3, 1), opacity 200ms ease, visibility 0ms 380ms;
+    z-index: 49;
+  }
+
+  .nav__mega-panel.is-open {
+    opacity: 1;
+    visibility: visible;
+    clip-path: inset(0 0 0% 0);
+    transition: clip-path 380ms cubic-bezier(0.16, 1, 0.3, 1), opacity 200ms ease, visibility 0ms 0ms;
+  }
+
+  .nav__mega-inner {
+    max-width: var(--container-max, 80rem);
+    margin: 0 auto;
+    padding: 0 1.5rem;
+    display: flex;
+    align-items: flex-start;
+    gap: 2.5rem;
+  }
+
+  /* Sidebar izquierdo */
+  .nav__mega-sidebar {
+    flex-shrink: 0;
+    width: 11rem;
+    padding-top: 0.25rem;
+  }
+
+  .nav__mega-all {
+    display: block;
+    font-family: var(--font-body);
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #1a1c1c;
+    text-decoration: none;
+    padding: 0.4rem 0 0.4rem 0.75rem;
+    border-left: 2px solid var(--color-primary);
+    transition: color 180ms ease;
+    letter-spacing: 0.02em;
+  }
+
+  .nav__mega-all:hover {
+    color: var(--color-primary);
+  }
+
+  /* Divisor vertical */
+  .nav__mega-divider {
+    width: 1px;
+    min-height: 6rem;
+    align-self: stretch;
+    background: var(--color-primary);
+    flex-shrink: 0;
+    margin-top: -2rem;
+    margin-bottom: -2.5rem;
+  }
+
+  /* Grid de motos */
+  .nav__mega-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+    flex: 1;
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  /* Tarjeta de moto */
+  .nav__mega-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.6rem;
+    text-decoration: none;
+    width: 17rem;
+    cursor: pointer;
+  }
+
+  .nav__mega-card-media {
+    width: 100%;
+    overflow: hidden;
+    border-radius: 2px;
+  }
+
+  .nav__mega-card-media img {
+    display: block;
+    width: 100%;
+    height: auto;
+    transform: scale(0.90);
+    transition: transform 500ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .nav__mega-card:hover .nav__mega-card-media img {
+    transform: scale(1.0);
+  }
+
+  .nav__mega-card-name {
+    font-family: var(--font-heading);
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #1a1c1c;
+    text-transform: uppercase;
+    letter-spacing: -0.02em;
+    text-align: center;
   }
 
   .header__divider {
@@ -220,27 +457,15 @@ const navLinks = [
     @apply w-3.5 h-3.5 opacity-70 transition-transform duration-200;
   }
 
-  /* ---- Dropdown desktop ---- */
-  .nav__dropdown {
-    @apply relative;
-  }
-
-  .nav__dropdown-panel {
-    @apply absolute top-full left-1/2 -translate-x-1/2 mt-3 w-48 rounded-md shadow-lg border border-white/10 py-1;
-    @apply opacity-0 invisible translate-y-1 transition-all duration-200;
-    background: #2c2c24;
-  }
-
-  .group:hover .nav__dropdown-panel {
-    @apply opacity-100 visible translate-y-0;
-  }
-
-  .group:hover .nav__arrow {
-    @apply rotate-180;
-  }
-
-  .nav__dropdown-item {
-    @apply block px-4 py-2.5 text-sm text-white/80 hover:text-white hover:bg-white/10 transition-colors;
+  /* Puente invisible entre el botón de Modelos y el mega panel */
+  .nav__dropdown::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: -2rem;
+    right: -2rem;
+    height: 1.5rem; /* cubre el gap entre el header y el panel */
+    background: transparent;
   }
 
   /* ---- Búsqueda ---- */
