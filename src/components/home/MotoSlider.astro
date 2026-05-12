@@ -138,7 +138,7 @@ const hasMultipleSlides = motos.length > 1;
       cachedGap = parseFloat(getComputedStyle(track!).gap) || 0;
     }
 
-    updateLayoutCache();
+    requestAnimationFrame(updateLayoutCache);
     window.addEventListener('resize', updateLayoutCache, { passive: true });
 
     function getSlidesPerView(): number {
