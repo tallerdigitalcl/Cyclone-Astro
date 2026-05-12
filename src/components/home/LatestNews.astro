@@ -43,10 +43,10 @@ const filterLabels = ['Todas', ...availableCategories.map((category) => category
           const desktopUrl = image ? urlFor(image).width(960).quality(88).auto('format').url() : null;
           const desktopUrl2x = image ? urlFor(image).width(1440).quality(84).auto('format').url() : null;
           const mobileUrl = mobileImage?.asset?._ref
-            ? urlFor(mobileImage).width(720).quality(86).auto('format').url()
+            ? urlFor(mobileImage).width(420).quality(86).auto('format').url()
             : desktopUrl;
           const mobileUrl2x = mobileImage?.asset?._ref
-            ? urlFor(mobileImage).width(644).quality(74).auto('format').url()
+            ? urlFor(mobileImage).width(420).quality(74).auto('format').url()
             : desktopUrl2x;
           const imageAlt = mobileImage?.alt || image?.alt || post.homeTitle || post.title;
           const category = post.category ? categoryLabels[post.category] || post.category : null;
@@ -60,7 +60,7 @@ const filterLabels = ['Todas', ...availableCategories.map((category) => category
                     <picture>
                       <source
                         media="(max-width: 767px)"
-                        srcset={mobileUrl2x ? `${mobileUrl} 720w, ${mobileUrl2x} 1080w` : mobileUrl || undefined}
+                        srcset={mobileUrl2x ? `${mobileUrl} 420w, ${mobileUrl2x} 420w` : mobileUrl || undefined}
                         sizes="(max-width: 1023px) 100vw, 33vw"
                       />
                       <img

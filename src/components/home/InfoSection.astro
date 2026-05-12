@@ -23,7 +23,7 @@ const mobileUrl = section?.imagenFondo?.mobileImage?.asset?._ref
   : desktopUrl;
 
 const mobileUrl2x = section?.imagenFondo?.mobileImage?.asset?._ref
-  ? urlFor(section.imagenFondo.mobileImage).width(1400).quality(74).auto('format').url()
+  ? urlFor(section.imagenFondo.mobileImage).width(430).quality(74).auto('format').url()
   : desktopUrl2x;
 
 const imageAlt =
@@ -58,7 +58,7 @@ const imageAlt =
           <img
             class="info-section__mobile-image"
             src={mobileUrl}
-            srcset={mobileUrl2x ? `${mobileUrl} 900w, ${mobileUrl2x} 1400w` : undefined}
+            srcset={mobileUrl2x ? `${mobileUrl} 430w, ${mobileUrl2x} 1400w` : undefined}
             sizes="100vw"
             alt={imageAlt}
             width="900"

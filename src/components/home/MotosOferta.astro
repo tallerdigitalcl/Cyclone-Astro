@@ -43,7 +43,7 @@ const hasMultipleOffers = ofertas.length > 1;
             <a href={offerHref} class="motos-oferta__mobile-card" aria-label={`Ver oferta de ${oferta.displayName}`}>
               <div class="motos-oferta__media">
                 <picture>
-                  <source media="(max-width: 767px)" srcset={`${mobileUrl} 720w, ${mobileUrl2x} 1080w`} sizes="100vw" />
+                  <source media="(max-width: 767px)" srcset={`${mobileUrl} 500w, ${mobileUrl2x} 500w`} sizes="100vw" />
                   <img class="motos-oferta__image" src={desktopUrl} srcset={`${desktopUrl} 960w, ${desktopUrl2x} 1440w`} sizes="100vw" alt={imageAlt} width="960" height="1200" loading={index === 0 ? 'eager' : 'lazy'} fetchpriority={index === 0 ? 'low' : 'auto'} decoding="async" />
                 </picture>
                 <div class="motos-oferta__overlay" aria-hidden="true"></div>

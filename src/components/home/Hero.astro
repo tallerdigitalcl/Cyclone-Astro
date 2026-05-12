@@ -26,7 +26,7 @@ const isSlider = slides.length > 1;
         const imgUrl    = urlFor(slide.imagen).width(1600).quality(85).auto('format').url();
         const imgUrl2x  = urlFor(slide.imagen).width(2560).quality(80).auto('format').url();
         const mobileImage = slide.imagenMobile ?? slide.imagen;
-        const imgMobile = urlFor(mobileImage).width(800).quality(85).auto('format').url();
+        const imgMobile = urlFor(mobileImage).width(570).quality(85).auto('format').url();
         return (
           <div
             class:list={[
@@ -39,7 +39,7 @@ const isSlider = slides.length > 1;
             aria-label={`Slide ${i + 1} de ${slides.length}`}
           >
             <picture>
-              <source media="(max-width: 767px)" srcset={imgMobile} />
+              <source media="(max-width: 767px)" srcset={`${imgMobile} 570w`} sizes="100vw" />
               <img
                 class="hero__bg"
                 src={imgUrl}
