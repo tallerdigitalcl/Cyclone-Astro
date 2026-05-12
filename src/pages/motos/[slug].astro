@@ -647,7 +647,8 @@ function formatStatValue(value?: string | null, suffix?: string) {
     position: absolute;
     z-index: 5;
     top: 22%;
-    right: min(7vw, 6rem);
+    right: max(var(--container-padding), calc((100% - var(--container-max)) / 2));
+    padding-right: 1.5rem;
     display: flex;
     flex-direction: column;
     align-items: flex-end;
@@ -699,7 +700,8 @@ function formatStatValue(value?: string | null, suffix?: string) {
   .moto-sequence__icons {
     position: absolute;
     z-index: 6;
-    right: min(7vw, 6rem);
+    right: max(var(--container-padding), calc((100% - var(--container-max)) / 2));
+    padding-right: 1.5rem;
     bottom: 3.75rem;
     display: flex;
     align-items: center;
@@ -749,7 +751,7 @@ function formatStatValue(value?: string | null, suffix?: string) {
 
   .moto-sequence__colors {
     position: absolute;
-    left: max(var(--container-padding), calc((100% - var(--container-max)) / 2));
+    left: max(var(--container-padding), calc((100% - var(--container-max)) / 2) + 1.5rem);
     top: 50%;
     transform: translateY(-50%);
     width: 8rem;
@@ -846,7 +848,7 @@ function formatStatValue(value?: string | null, suffix?: string) {
 
   .moto-sequence__specs {
     position: absolute;
-    right: max(var(--container-padding), calc((100% - var(--container-max)) / 2));
+    right: max(var(--container-padding), calc((100% - var(--container-max)) / 2) + 1.5rem);
     top: 50%;
     transform: translateY(-50%);
     width: 12rem;
@@ -912,8 +914,8 @@ function formatStatValue(value?: string | null, suffix?: string) {
 
   .moto-sequence__final-bar {
     position: absolute;
-    left: max(var(--container-padding), calc((100% - var(--container-max)) / 2));
-    right: max(var(--container-padding), calc((100% - var(--container-max)) / 2));
+    left: max(var(--container-padding), calc((100% - var(--container-max)) / 2) + 1.5rem);
+    right: max(var(--container-padding), calc((100% - var(--container-max)) / 2) + 1.5rem);
     bottom: 2rem;
     display: flex;
     align-items: center;
@@ -1110,7 +1112,7 @@ function formatStatValue(value?: string | null, suffix?: string) {
     }
 
     .moto-sequence__initial {
-      right: var(--container-padding);
+      right: max(var(--container-padding), calc((100% - var(--container-max)) / 2));
       width: min(25rem, 36vw);
     }
   }
@@ -1149,7 +1151,7 @@ function formatStatValue(value?: string | null, suffix?: string) {
 
     .moto-sequence__initial {
       top: calc(var(--header-height) + 2rem);
-      left: var(--container-padding);
+      left: max(var(--container-padding), calc((100% - var(--container-max)) / 2));
       right: auto;
       bottom: auto;
       width: auto;
