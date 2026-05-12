@@ -11,22 +11,24 @@ import { sanityClient, urlFor } from '../lib/sanity';
 import {
   motosHomeSliderQuery,
   ofertasHomeQuery,
+  motosConFotoOfertaQuery,
   postsQuery,
   heroSlidesQuery,
   homeInfoSectionQuery,
 } from '../lib/queries';
 import type { HomeInfoSection, HomeOffer, HomeSliderMoto, Moto, Oferta, Post, HeroSlide } from '../lib/types';
 
-const [heroSlides, motosSliderSanity, homeInfoSection, ofertasSanity, posts] = await Promise.all([
+const [heroSlides, motosSliderSanity, homeInfoSection, ofertasSanity, fallbackMotosSanity, posts] = await Promise.all([
   sanityClient.fetch<HeroSlide[]>(heroSlidesQuery),
   sanityClient.fetch<Moto[]>(motosHomeSliderQuery),
   sanityClient.fetch<HomeInfoSection | null>(homeInfoSectionQuery),
   sanityClient.fetch<Oferta[]>(ofertasHomeQuery),
+  sanityClient.fetch<Oferta[]>(motosConFotoOfertaQuery),
   sanityClient.fetch<Post[]>(postsQuery),
 ]);
 
 const motosSlider: HomeSliderMoto[] = await buildHomeSliderMotos(motosSliderSanity);
-const ofertas: HomeOffer[] = await buildHomeOffers(ofertasSanity);
+const ofertas: HomeOffer[] = await buildHomeOffers(ofertasSanity, fallbackMotosSanity);
 const ultimasNoticias = posts.slice(0, 5);
 
 const heroLcpImage = heroSlides[0]?.imagen

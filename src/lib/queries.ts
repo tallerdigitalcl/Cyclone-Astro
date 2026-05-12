@@ -91,15 +91,15 @@ export const ofertasHomeQuery = `
     _id,
     apiMotoId,
     orden,
-    imagenFondo {
+    "slug": *[_type == "moto" && apiMotoId == ^.apiMotoId][0].slug.current,
+    "imagenFondo": *[_type == "moto" && apiMotoId == ^.apiMotoId][0].fotoOferta {
       ...,
       alt,
       mobileImage {
         ...,
         alt
       }
-    },
-    "slug": *[_type == "moto" && apiMotoId == ^.apiMotoId][0].slug.current
+    }
   }
 `;
 
@@ -230,6 +230,20 @@ export const motoNavQuery = `
       ...,
       alt,
       asset-> { _id, url }
+    }
+  }
+`;
+
+// Motos con fotoOferta (fallback para cuando no hay entradas en Home - Oferta)
+export const motosConFotoOfertaQuery = `
+  *[_type == "moto" && defined(apiMotoId) && defined(fotoOferta.asset)] {
+    _id,
+    apiMotoId,
+    "slug": slug.current,
+    "imagenFondo": fotoOferta {
+      ...,
+      alt,
+      mobileImage { ..., alt }
     }
   }
 `;

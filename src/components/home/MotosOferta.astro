@@ -72,7 +72,7 @@ const hasMultipleOffers = ofertas.length > 1;
       )}
 
       <!-- DESKTOP: grid estatico -->
-      <div class="motos-oferta__desktop-grid" aria-label="Listado de ofertas destacadas">
+      <div class:list={['motos-oferta__desktop-grid', !hasMultipleOffers && 'has-single']} aria-label="Listado de ofertas destacadas">
         {ofertas.map((oferta, index) => {
           const desktopUrl = urlFor(oferta.imagenFondo).width(960).quality(86).auto('format').url();
           const desktopUrl2x = urlFor(oferta.imagenFondo).width(1440).quality(82).auto('format').url();
@@ -352,6 +352,10 @@ const hasMultipleOffers = ofertas.length > 1;
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 1rem;
+    }
+
+    .motos-oferta__desktop-grid.has-single > :global(*:first-child) {
+      grid-column: 2;
     }
 
     .motos-oferta__desktop-card {

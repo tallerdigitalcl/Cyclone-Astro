@@ -67,6 +67,23 @@ export default defineType({
       ],
     }),
     defineField({
+      name: 'fotoOferta',
+      title: 'Foto Oferta (Home)',
+      type: 'image',
+      description: 'Imagen que aparece en la sección de ofertas del home. Formato vertical recomendado.',
+      group: 'general',
+      options: {
+        hotspot: true,
+        accept: 'image/webp,image/avif',
+      },
+      fields: [
+        createRequiredAltField({
+          title: 'Texto alternativo (SEO)',
+        }),
+        createMobileImageField(),
+      ],
+    }),
+    defineField({
       name: 'mostrarNombreGigante',
       title: 'Mostrar nombre gigante en el hero?',
       type: 'boolean',

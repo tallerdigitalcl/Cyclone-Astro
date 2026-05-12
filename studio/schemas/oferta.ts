@@ -1,5 +1,4 @@
 import { defineField, defineType } from 'sanity';
-import { createMobileImageField, createRequiredAltField } from './imageFields';
 
 export default defineType({
   name: 'oferta',
@@ -10,23 +9,7 @@ export default defineType({
       name: 'apiMotoId',
       title: 'ID de la moto (API)',
       type: 'string',
-      description: 'ID exacto de Track/Promobility para cruzar nombre, precio lista y bono.',
-      validation: (Rule) => Rule.required(),
-    }),
-    defineField({
-      name: 'imagenFondo',
-      title: 'Imagen de fondo Desktop',
-      type: 'image',
-      options: {
-        hotspot: true,
-        accept: 'image/webp,image/avif',
-      },
-      fields: [
-        createRequiredAltField({
-          title: 'Texto alternativo Desktop',
-        }),
-        createMobileImageField(),
-      ],
+      description: 'ID exacto de Track/Promobility para cruzar nombre, precio lista y bono. La foto vendrá desde el documento de la moto.',
       validation: (Rule) => Rule.required(),
     }),
     defineField({
@@ -49,13 +32,11 @@ export default defineType({
     select: {
       title: 'apiMotoId',
       subtitle: 'orden',
-      media: 'imagenFondo',
     },
-    prepare({ title, subtitle, media }) {
+    prepare({ title, subtitle }) {
       return {
         title: title ? `Oferta ${title}` : 'Oferta sin ID',
         subtitle: typeof subtitle === 'number' ? `Orden: ${subtitle}` : 'Sin orden',
-        media,
       };
     },
   },

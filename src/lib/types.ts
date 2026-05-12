@@ -132,6 +132,7 @@ export interface Moto {
   imagenSliderHome?: SanityImage;
   mostrarNombreGigante?: boolean;
   fotoHeader?: SanityImage;
+  fotoOferta?: SanityImage;
   scrollSequenceFrames?: MotoScrollSequenceFrame[];
   heroImagenes?: SanityImage[];
   zonaInformativa?: MotoInfoSection;
@@ -160,10 +161,11 @@ export interface Oferta {
   apiMotoId: string;
   slug?: string;
   orden?: number;
-  imagenFondo: SanityImage;
+  imagenFondo?: SanityImage; // resuelto desde moto.fotoOferta via query
 }
 
-export interface HomeOffer extends Oferta {
+export interface HomeOffer extends Omit<Oferta, 'imagenFondo'> {
+  imagenFondo: SanityImage;
   apiModel: PromobilityMotoModel;
   displayName: string;
   displayListPrice?: string | null;
