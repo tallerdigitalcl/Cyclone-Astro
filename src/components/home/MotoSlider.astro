@@ -129,6 +129,18 @@ const hasMultipleSlides = motos.length > 1;
   if (track && slides.length > 0) {
     let currentIndex = 0;
 
+    // Cache layout values — only updated on resize, never read during touchmove
+    let cachedSlideWidth = 0;
+    let cachedGap = 0;
+
+    function updateLayoutCache(): void {
+      cachedSlideWidth = slides[0]?.offsetWidth ?? 0;
+      cachedGap = parseFloat(getComputedStyle(track!).gap) || 0;
+    }
+
+    updateLayoutCache();
+    window.addEventListener('resize', updateLayoutCache, { passive: true });
+
     function getSlidesPerView(): number {
       return window.innerWidth >= 992 ? 2 : 1;
     }
@@ -138,9 +150,7 @@ const hasMultipleSlides = motos.length > 1;
     }
 
     function getOffset(index: number): number {
-      const gap = parseFloat(getComputedStyle(track!).gap) || 0;
-      const slideWidth = slides[0]?.offsetWidth ?? 0;
-      return index * (slideWidth + gap);
+      return index * (cachedSlideWidth + cachedGap);
     }
 
     function goTo(index: number): void {
@@ -223,8 +233,7 @@ const hasMultipleSlides = motos.length > 1;
         }
 
         const dx = e.changedTouches[0].clientX - touchStartX;
-        const slideWidth = slides[0]?.offsetWidth ?? 0;
-        const threshold = slideWidth * 0.25; // 25% of slide width to commit
+        const threshold = cachedSlideWidth * 0.25; // 25% of slide width to commit
 
         // Restore transition before snapping
         track!.style.transition = '';
