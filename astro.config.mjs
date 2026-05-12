@@ -9,6 +9,11 @@ export default defineConfig({
   build: {
     inlineStylesheets: 'always',
   },
+  vite: {
+    build: {
+      sourcemap: true,
+    },
+  },
   image: {
     // Permite imágenes externas desde Sanity CDN
     domains: ['cdn.sanity.io'],
