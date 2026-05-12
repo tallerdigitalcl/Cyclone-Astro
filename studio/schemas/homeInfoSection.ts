@@ -33,6 +33,7 @@ export default defineType({
     defineField({
       name: 'imagenFondo',
       title: 'Imagen de fondo Desktop',
+      description: '1920x1080px',
       type: 'image',
       options: {
         hotspot: true,
@@ -40,7 +41,9 @@ export default defineType({
       },
       fields: [
         createRequiredAltField(),
-        createMobileImageField(),
+        createMobileImageField({
+          description: '430x730px',
+        }),
       ],
       validation: (Rule) => Rule.required(),
     }),

@@ -102,6 +102,7 @@ export default defineType({
     defineField({
       name: 'imagen',
       title: 'Imagen de fondo Desktop',
+      description:'1920x1080px',
       type: 'image',
       options: {
         hotspot: true,
@@ -118,6 +119,7 @@ export default defineType({
     defineField({
       name: 'imagenMobile',
       title: 'Imagen para Mobile',
+      description: '430x930px',
       type: 'image',
       options: {
         hotspot: true,

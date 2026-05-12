@@ -54,7 +54,7 @@ export default defineType({
       name: 'fotoHeader',
       title: 'Foto Header',
       type: 'image',
-      description: 'Imagen principal que aparece en el header de la moto.',
+      description: '360x220px. \nImagen principal que aparece en el header de la moto.',
       group: 'general',
       options: {
         hotspot: true,
@@ -70,7 +70,7 @@ export default defineType({
       name: 'fotoOferta',
       title: 'Foto Oferta (Home)',
       type: 'image',
-      description: 'Imagen que aparece en la sección de ofertas del home. Formato vertical recomendado.',
+      description: '440x416px. \nImagen que aparece en la sección de ofertas del home. Formato vertical recomendado.',
       group: 'general',
       options: {
         hotspot: true,
@@ -80,7 +80,9 @@ export default defineType({
         createRequiredAltField({
           title: 'Texto alternativo (SEO)',
         }),
-        createMobileImageField(),
+        createMobileImageField({
+          description: '380x400px. \nVersión de la foto para dispositivos móviles.',
+        }),
       ],
     }),
     defineField({
@@ -95,7 +97,7 @@ export default defineType({
       name: 'scrollSequenceFrames',
       title: 'Secuencia de scroll 0 a 30 grados',
       type: 'array',
-      description: 'Sube exactamente 13 imagenes: 0, 2.5, 5, 7.5, 10, 12.5, 15, 17.5, 20, 22.5, 25, 27.5 y 30 grados.',
+      description: '1500X985px Sube exactamente 13 imagenes: 0, 2.5, 5, 7.5, 10, 12.5, 15, 17.5, 20, 22.5, 25, 27.5 y 30 grados.',
       group: 'scrollSequence',
       of: [
         {
@@ -147,6 +149,7 @@ export default defineType({
     defineField({
       name: 'imagenSliderHome',
       title: 'Imagen slider home Desktop',
+      description: '530x420px. \nImagen que aparece en el slider del home.Recomendamos formato horizontal para mejor resultado.',
       type: 'image',
       group: 'hero',
       options: {
@@ -157,7 +160,9 @@ export default defineType({
         createRequiredAltField({
           title: 'Texto alternativo Desktop',
         }),
-        createMobileImageField(),
+        createMobileImageField({
+          description: '380x480px. \nImagen para el slider del home en dispositivos móviles.',
+        }),
       ],
       validation: (Rule) => Rule.required(),
     }),
@@ -183,6 +188,7 @@ export default defineType({
         defineField({
           name: 'imagenFondo',
           title: 'Imagen de fondo Desktop',
+          description: '1920x1080px. \nImagen de fondo para la zona informativa.',
           type: 'image',
           options: {
             hotspot: true,
@@ -201,6 +207,7 @@ export default defineType({
     defineField({
       name: 'colores',
       title: 'Colores de la motocicleta',
+      description: '1500x984px. \nAgrega los diferentes colores en los que esta motocicleta esta disponible. Cada color tiene su propia foto para mostrar en la galeria y en la sección de colores.',
       type: 'array',
       group: 'colors',
       of: [
