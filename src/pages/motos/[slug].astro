@@ -837,7 +837,7 @@ function formatStatValue(value?: string | null, suffix?: string) {
     @apply font-body uppercase font-semibold;
     display: none;
     color: var(--color-text);
-    font-size: 0.62rem;
+    font-size: var(--text-body-sm);
     letter-spacing: 0.08em;
     white-space: nowrap;
   }
@@ -949,7 +949,7 @@ function formatStatValue(value?: string | null, suffix?: string) {
 
   .moto-sequence__final-action span {
     @apply font-body;
-    font-size: var(--text-button);
+    font-size: var(--text-body);
     font-weight: 800;
   }
 
@@ -1055,6 +1055,7 @@ function formatStatValue(value?: string | null, suffix?: string) {
     @apply absolute inset-x-0 bottom-0;
     padding: 2.5rem 1rem 1rem;
     background: linear-gradient(0deg, rgba(15, 17, 17, 0.9) 0%, rgba(15, 17, 17, 0) 100%);
+    text-align: center;
     opacity: 0;
     transform: translateY(0.5rem);
     transition:
@@ -1070,15 +1071,15 @@ function formatStatValue(value?: string | null, suffix?: string) {
 
   .moto-features__name {
     @apply font-heading uppercase text-white;
-    font-size: var(--text-h4);
-    font-weight: 700;
+    font-size: var(--text-body-lg);
+    font-weight: 400;
   }
 
   .moto-features__detail {
     @apply font-body;
     margin-top: 0.35rem;
     color: rgba(255, 255, 255, 0.78);
-    font-size: var(--text-body-sm);
+    font-size: var(--text-body-lg);
   }
 
   .moto-features__actions {
