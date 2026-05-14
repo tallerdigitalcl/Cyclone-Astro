@@ -75,7 +75,7 @@ const navLinks = [
       <ul class="nav__mega-grid" role="list">
         {motos.map(moto => {
           const imgUrl = moto.fotoHeader?.asset?.url
-            ? urlFor(moto.fotoHeader).width(360).height(220).fit('fill').auto('format').quality(85).url()
+            ? urlFor(moto.fotoHeader).width(360).fit('fill').auto('format').quality(85).url()
             : null;
           if (!imgUrl) return null;
           return (
@@ -334,14 +334,14 @@ const navLinks = [
   }
 
   .nav__mega-all {
-    display: block;
+    display: inline-block;
     font-family: var(--font-body);
     font-size: 0.875rem;
     font-weight: 600;
     color: #1a1c1c;
     text-decoration: none;
-    padding: 0.4rem 0 0.4rem 0.75rem;
-    border-left: 2px solid var(--color-primary);
+    padding: 0.4rem 0;
+    border-bottom: 2px solid var(--color-primary);
     transition: color 180ms ease;
     letter-spacing: 0.02em;
   }
@@ -365,6 +365,7 @@ const navLinks = [
   .nav__mega-grid {
     display: flex;
     flex-wrap: wrap;
+    align-items: flex-end;
     gap: 1.5rem;
     flex: 1;
     list-style: none;
