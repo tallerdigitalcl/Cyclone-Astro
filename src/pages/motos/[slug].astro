@@ -941,7 +941,7 @@ function formatStatValue(value?: string | null, suffix?: string) {
 
   .moto-info {
     @apply relative overflow-hidden;
-    min-height: 34rem;
+    height: 100dvh;
     background: var(--color-secondary-dark);
   }
 
@@ -962,7 +962,8 @@ function formatStatValue(value?: string | null, suffix?: string) {
   }
 
   .moto-info__container {
-    @apply relative z-10 mx-auto flex min-h-[50rem] items-center;
+    @apply relative z-10 mx-auto flex items-center;
+    height: 100%;
     max-width: var(--container-max);
     padding: 0 var(--container-padding);
   }
