@@ -783,6 +783,12 @@ function formatStatValue(value?: string | null, suffix?: string) {
     left: 2.05rem;
   }
 
+  /* Un solo color: centrado verticalmente en el contenedor */
+  .moto-sequence__colors li:only-child {
+    top: 50%;
+    left: 0;
+  }
+
   .moto-sequence__colors li:nth-child(2) {
     top: 19%;
     left: 0.85rem;

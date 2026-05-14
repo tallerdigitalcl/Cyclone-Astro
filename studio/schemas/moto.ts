@@ -318,7 +318,7 @@ export default defineType({
     }),
     defineField({
       name: 'ctaFinal',
-      title: 'CTA final',
+      title: 'CTA Galeria',
       type: 'object',
       group: 'cta',
       description: 'Seccion al final de la pagina con titulo e imagen de fondo.',
