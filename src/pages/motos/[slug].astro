@@ -310,7 +310,7 @@ function formatStatValue(value?: string | null, suffix?: string) {
     </section>
   )}
 
-  {ctaFinal?.imagenFondo && (
+  {ctaFinal?.imagenFondo?.asset?._ref && (
     <MotoCta
       titulo={ctaFinal.titulo}
       imagenFondo={ctaFinal.imagenFondo}

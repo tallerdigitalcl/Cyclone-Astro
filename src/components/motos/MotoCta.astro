@@ -52,6 +52,10 @@ interface Props {
 
 const { titulo, imagenFondo, hasGallery = false } = Astro.props;
 
+if (!imagenFondo?.asset?._ref) {
+  throw new Error(`MotoCta: imagenFondo sin asset en "${titulo}". Asigná una imagen en el CMS.`);
+}
+
 const desktopImage = urlFor(imagenFondo).width(1800).quality(84).auto('format').url();
 const desktopImage2x = urlFor(imagenFondo).width(2600).quality(76).auto('format').url();
 const mobileSource = imagenFondo.mobileImage?.asset?._ref ? imagenFondo.mobileImage : imagenFondo;
