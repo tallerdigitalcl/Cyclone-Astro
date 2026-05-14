@@ -941,7 +941,6 @@ function formatStatValue(value?: string | null, suffix?: string) {
 
   .moto-info {
     @apply relative overflow-hidden;
-    height: 100dvh;
     background: var(--color-secondary-dark);
   }
 
@@ -965,7 +964,7 @@ function formatStatValue(value?: string | null, suffix?: string) {
     @apply relative z-10 mx-auto flex items-center;
     height: 100%;
     max-width: var(--container-max);
-    padding: 0 var(--container-padding);
+    padding:22rem var(--container-padding);
   }
 
   .moto-info__content {
@@ -1275,10 +1274,6 @@ function formatStatValue(value?: string | null, suffix?: string) {
     .moto-sequence__final-action p {
       flex-direction: column;
       gap: 0.2rem;
-    }
-
-    .moto-info {
-      min-height: 31rem;
     }
 
     .moto-info__overlay {
