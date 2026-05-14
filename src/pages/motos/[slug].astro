@@ -770,48 +770,23 @@ function formatStatValue(value?: string | null, suffix?: string) {
 
   .moto-sequence__colors li {
     position: absolute;
-    left: 0;
     display: flex;
     align-items: center;
     gap: 0.85rem;
     min-height: 1.4rem;
+    /* Distribución dinámica con curvatura:
+       - top: distribuye uniformemente de 0% a 100%
+       - left: máximo indent (2.05rem) en extremos, 0 en el centro
+         fórmula: 2.05rem × 2 × |index − total/2| / total            */
+    top: calc(var(--item-index) * 100% / max(var(--item-total), 1));
+    left: calc(2.05rem * 2 * abs(var(--item-index) - var(--item-total) / 2) / max(var(--item-total), 1));
     transform: translateY(-50%);
   }
 
-  .moto-sequence__colors li:nth-child(1) {
-    top: 0%;
-    left: 2.05rem;
-  }
-
-  /* Un solo color: centrado verticalmente en el contenedor */
+  /* Caso especial: un único color → centrado verticalmente, sin indent */
   .moto-sequence__colors li:only-child {
     top: 50%;
     left: 0;
-  }
-
-  .moto-sequence__colors li:nth-child(2) {
-    top: 19%;
-    left: 0.85rem;
-  }
-
-  .moto-sequence__colors li:nth-child(3) {
-    top: 39%;
-    left: 0;
-  }
-
-  .moto-sequence__colors li:nth-child(4) {
-    top: 61%;
-    left: 0;
-  }
-
-  .moto-sequence__colors li:nth-child(5) {
-    top: 81%;
-    left: 0.85rem;
-  }
-
-  .moto-sequence__colors li:nth-child(6) {
-    top: 100%;
-    left: 2.05rem;
   }
 
   .moto-sequence__color {
