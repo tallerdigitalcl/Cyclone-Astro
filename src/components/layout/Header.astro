@@ -72,7 +72,7 @@ const navLinks = [
       <div class="nav__mega-divider" aria-hidden="true"></div>
 
       <!-- Grid de motos -->
-      <ul class="nav__mega-grid" role="list">
+      <ul class="nav__mega-grid" role="list" >
         {motos.map(moto => {
           const imgUrl = moto.fotoHeader?.asset?.url
             ? urlFor(moto.fotoHeader).width(250).fit('fill').auto('format').quality(100).url()
