@@ -75,7 +75,7 @@ const navLinks = [
       <ul class="nav__mega-grid" role="list">
         {motos.map(moto => {
           const imgUrl = moto.fotoHeader?.asset?.url
-            ? urlFor(moto.fotoHeader).width(360).fit('fill').auto('format').quality(85).url()
+            ? urlFor(moto.fotoHeader).width(250).fit('fill').auto('format').quality(100).url()
             : null;
           if (!imgUrl) return null;
           return (
@@ -100,48 +100,103 @@ const navLinks = [
     </div>
   </div>
 
-  <!-- Menú móvil -->
-  <nav id="mobile-menu" class="mobile-menu">
-    <!-- Dropdown Modelos en móvil -->
-    <div>
-      <button id="mobile-modelos-toggle" class="mobile-menu__dropdown-btn">
-        Modelos
-        <svg id="mobile-modelos-icon" xmlns="http://www.w3.org/2000/svg" class="nav__arrow" viewBox="0 0 20 20" fill="currentColor">
-          <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
-        </svg>
-      </button>
-      <div id="mobile-modelos-menu" class="mobile-menu__submenu hidden">
-        <a href="/motos" class="mobile-menu__subitem">Ver todos los modelos</a>
-        {motos.map(moto => (
-          <a href={`/motos/${moto.slug}`} class="mobile-menu__subitem">{moto.nombre}</a>
-        ))}
-      </div>
-    </div>
-
-    {navLinks.map(link => (
-      <a href={link.href} class="mobile-menu__item">{link.label}</a>
-    ))}
-    <a href="/concesionarios" class="mobile-menu__item">Concesionarios más cercanos</a>
-  </nav>
 </header>
+
+<!-- Menú móvil FUERA del header — evita que backdrop-filter lo atrape como containing block -->
+<div id="mobile-menu" class="mobile-menu" aria-hidden="true" role="dialog" aria-modal="true" aria-label="Menú de navegación">
+  <!-- Barra superior -->
+  <div class="mobile-menu__bar">
+    <a href="/" class="mobile-menu__bar-logo">
+      <img src="/footer/logo_footer.webp" alt="Cyclone Motos" width="140" height="32" />
+    </a>
+    <button id="menu-close" class="mobile-menu__close-btn" aria-label="Cerrar menú">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+      </svg>
+    </button>
+  </div>
+
+  <!-- Contenedor deslizante -->
+  <div class="mobile-menu__slider-wrap">
+    <div class="mobile-menu__slider" id="mobile-slider">
+
+      <!-- Panel principal -->
+      <div class="mobile-menu__panel">
+        <button id="mobile-modelos-btn" class="mobile-menu__link mobile-menu__link--sub" type="button">
+          <span>Modelos</span>
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" class="mobile-menu__chevron">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
+        {navLinks.map(link => (
+          <a href={link.href} class="mobile-menu__link">{link.label}</a>
+        ))}
+        <a href="/concesionarios" class="mobile-menu__link">Concesionarios más cercanos</a>
+      </div>
+
+      <!-- Panel Modelos -->
+      <div class="mobile-menu__panel">
+        <div class="mobile-menu__sub-header">
+          <button id="mobile-back-btn" class="mobile-menu__back-btn" type="button" aria-label="Volver">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
+          <a href="/motos" class="mobile-menu__sub-title">Todos los modelos</a>
+        </div>
+        <ul class="mobile-menu__moto-list">
+          {motos.map(moto => {
+            const mobileImgUrl = moto.fotoHeader?.asset?.url
+              ? urlFor(moto.fotoHeader).width(300).fit('fill').auto('format').quality(80).url()
+              : null;
+            return (
+              <li>
+                <a href={`/motos/${moto.slug}`} class="mobile-menu__moto-link">
+                  <div class="mobile-menu__moto-img-wrap">
+                    {mobileImgUrl && (
+                      <img src={mobileImgUrl} alt={moto.fotoHeader?.alt || moto.nombre} width="100" height="65" loading="lazy" />
+                    )}
+                  </div>
+                  <span class="mobile-menu__moto-name">{moto.nombre}</span>
+                </a>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+
+    </div>
+  </div>
+</div>
 
 <script>
   const header = document.querySelector<HTMLElement>('.header');
-  const toggle = document.getElementById('menu-toggle');
-  const menu = document.getElementById('mobile-menu');
-  toggle?.addEventListener('click', () => {
-    menu?.classList.toggle('hidden');
-    menu?.classList.toggle('flex');
-  });
 
-  const modelosToggle = document.getElementById('mobile-modelos-toggle');
-  const modelosMenu = document.getElementById('mobile-modelos-menu');
-  const modelosIcon = document.getElementById('mobile-modelos-icon');
-  modelosToggle?.addEventListener('click', () => {
-    modelosMenu?.classList.toggle('hidden');
-    modelosMenu?.classList.toggle('flex');
-    modelosIcon?.classList.toggle('rotate-180');
-  });
+  // Mobile menu overlay
+  const mobileMenu = document.getElementById('mobile-menu');
+  const mobileSlider = document.getElementById('mobile-slider');
+  const menuToggle = document.getElementById('menu-toggle');
+  const menuClose = document.getElementById('menu-close');
+  const mobileModelosBtn = document.getElementById('mobile-modelos-btn');
+  const mobileBackBtn = document.getElementById('mobile-back-btn');
+
+  const openMobileMenu = () => {
+    mobileMenu?.classList.add('is-open');
+    mobileMenu?.removeAttribute('aria-hidden');
+    document.body.style.overflow = 'hidden';
+  };
+
+  const closeMobileMenu = () => {
+    mobileMenu?.classList.remove('is-open');
+    mobileMenu?.setAttribute('aria-hidden', 'true');
+    document.body.style.overflow = '';
+    setTimeout(() => { mobileSlider?.classList.remove('show-sub'); }, 300);
+  };
+
+  menuToggle?.addEventListener('click', openMobileMenu);
+  menuClose?.addEventListener('click', closeMobileMenu);
+  mobileModelosBtn?.addEventListener('click', () => { mobileSlider?.classList.add('show-sub'); });
+  mobileBackBtn?.addEventListener('click', () => { mobileSlider?.classList.remove('show-sub'); });
 
   // Mega menú desktop
   const navModelos = document.getElementById('nav-modelos');
@@ -205,7 +260,7 @@ const navLinks = [
 <style>
   /* ---- Header base ---- */
   .header {
-    @apply w-full fixed top-0 left-0 right-0 z-50;
+    @apply w-full fixed top-0 left-0 right-0 z-[9999];
     background: linear-gradient(180deg,rgba(0,0,0,0.8) 0%,rgba(0,0,0,0.7) 0%,rgba(0,0,0,0) 100%);
     transition: background 350ms ease, backdrop-filter 900ms ease;
   }
@@ -307,7 +362,7 @@ const navLinks = [
     visibility: hidden;
     clip-path: inset(0 0 100% 0);
     transition: clip-path 380ms cubic-bezier(0.16, 1, 0.3, 1), opacity 200ms ease, visibility 0ms 380ms;
-    z-index: 49;
+    z-index: 9998;
   }
 
   .nav__mega-panel.is-open {
@@ -487,24 +542,181 @@ const navLinks = [
     @apply w-6 h-6;
   }
 
-  /* ---- Menú móvil ---- */
+  /* ---- Menú móvil (overlay) ---- */
   .mobile-menu {
-    @apply hidden flex-col bg-[#2c2c24] px-6 py-4 gap-4;
+    position: fixed;
+    inset: 0;
+    background: #fff;
+    z-index: 10000;
+    display: flex;
+    flex-direction: column;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(-6px);
+    transition: opacity 280ms ease, transform 280ms ease;
+    overflow: hidden;
   }
 
-  .mobile-menu__item {
-    @apply text-sm font-medium text-white/90 hover:text-white py-2 border-b border-white/10 transition-colors;
+  .mobile-menu.is-open {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
   }
 
-  .mobile-menu__dropdown-btn {
-    @apply w-full flex items-center justify-between text-sm font-medium text-white/90 hover:text-white py-2 border-b border-white/10 bg-transparent cursor-pointer transition-colors;
+  @media (min-width: 1024px) {
+    .mobile-menu { display: none !important; }
   }
 
-  .mobile-menu__submenu {
-    @apply flex-col pl-4 mt-1 gap-1;
+  .mobile-menu__bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 1.5rem;
+    height: 80px;
+    flex-shrink: 0;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
   }
 
-  .mobile-menu__subitem {
-    @apply text-sm text-white/70 hover:text-white py-2 border-b border-white/10 transition-colors;
+  .mobile-menu__bar-logo img {
+    height: 2rem;
+    width: auto;
+    object-fit: contain;
+  }
+
+  .mobile-menu__close-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0.5rem;
+    color: #1a1c1c;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .mobile-menu__close-btn svg {
+    width: 1.5rem;
+    height: 1.5rem;
+  }
+
+  .mobile-menu__slider-wrap {
+    flex: 1;
+    overflow: hidden;
+  }
+
+  .mobile-menu__slider {
+    display: flex;
+    width: 200%;
+    height: 100%;
+    transition: transform 360ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .mobile-menu__slider.show-sub {
+    transform: translateX(-50%);
+  }
+
+  .mobile-menu__panel {
+    width: 50%;
+    overflow-y: auto;
+    padding: 0 1.5rem 2rem;
+  }
+
+  .mobile-menu__link {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.1rem 0;
+    font-size: 1rem;
+    font-weight: 500;
+    color: #1a1c1c;
+    border-top: none;
+    border-left: none;
+    border-right: none;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+    text-decoration: none;
+    width: 100%;
+    background: none;
+    cursor: pointer;
+    text-align: left;
+    font-family: inherit;
+  }
+
+  .mobile-menu__link--sub {
+    /* inherits .mobile-menu__link */ 
+  }
+
+  .mobile-menu__chevron {
+    width: 1.1rem;
+    height: 1.1rem;
+    color: #999;
+    flex-shrink: 0;
+  }
+
+  .mobile-menu__sub-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem 0;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+    margin-bottom: 0.25rem;
+  }
+
+  .mobile-menu__back-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0.25rem;
+    color: #1a1c1c;
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+  }
+
+  .mobile-menu__back-btn svg {
+    width: 1.25rem;
+    height: 1.25rem;
+  }
+
+  .mobile-menu__sub-title {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #1a1c1c;
+    text-decoration: none;
+  }
+
+  .mobile-menu__moto-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .mobile-menu__moto-link {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+    text-decoration: none;
+  }
+
+  .mobile-menu__moto-img-wrap {
+    width: 70%;
+    flex-shrink: 0;
+  }
+
+  .mobile-menu__moto-img-wrap img {
+    width: 100%;
+    height: auto;
+    object-fit: contain;
+    display: block;
+  }
+
+  .mobile-menu__moto-name {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #1a1c1c;
+    text-transform: uppercase;
+    letter-spacing: -0.01em;
+    font-family: var(--font-heading);
   }
 </style>
