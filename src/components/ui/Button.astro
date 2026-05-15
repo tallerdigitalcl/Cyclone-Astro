@@ -1,5 +1,6 @@
 ---
 interface Props {
+  id?: string;
   href?: string;
   variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'white';
   size?: 'sm' | 'md' | 'lg' | 'wide';
@@ -8,9 +9,11 @@ interface Props {
   class?: string;
   paddingX?: string;
   paddingXMobile?: string;
+  fullWidth?: boolean;
 }
 
 const {
+  id,
   href,
   variant = 'primary',
   size = 'md',
@@ -19,17 +22,19 @@ const {
   class: className,
   paddingX,
   paddingXMobile,
+  fullWidth = false,
 } = Astro.props;
 
 const Tag = href ? 'a' : 'button';
 ---
 
 <Tag
+  id={id}
   href={href}
   target={href ? target : undefined}
   rel={href && target === '_blank' ? 'noopener noreferrer' : undefined}
   type={!href ? type : undefined}
-  class:list={['btn', `btn--${variant}`, `btn--${size}`, className]}
+  class:list={['btn', `btn--${variant}`, `btn--${size}`, fullWidth && 'btn--full', className]}
   style={[paddingX ? `--btn-px: ${paddingX}` : '', paddingXMobile ? `--btn-px-mobile: ${paddingXMobile}` : ''].filter(Boolean).join('; ') || undefined}
 >
   <slot />
@@ -142,6 +147,10 @@ const Tag = href ? 'a' : 'button';
   .btn--wide {
     min-height: 3.125rem;
     padding: 0.875rem var(--btn-px, 3.5rem);
+  }
+
+  .btn--full {
+    width: 100%;
   }
   @media (max-width: 767px) {
     .btn--sm {
