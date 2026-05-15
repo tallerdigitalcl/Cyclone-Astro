@@ -1,0 +1,658 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+
+const API_URL = 'https://track.promobility.cl/api/locations/sucursales';
+const SITE_ID = import.meta.env.PROMOBILITY_API_SITE_ID || '6';
+const TOKEN = import.meta.env.PROMOBILITY_API_TOKEN || '';
+const MAPBOX_TOKEN = import.meta.env.PUBLIC_MAPBOX_TOKEN || '';
+
+interface RawSucursal {
+  id: number;
+  name: string;
+  address: string;
+  spider: string | null;
+  phone: string | null;
+  hours: string | null;
+  latitude: string;
+  longitude: string;
+  is_active: boolean;
+}
+interface RawCommune {
+  id: number;
+  name: string;
+  region_id: number;
+  sucursales: RawSucursal[];
+}
+interface RawRegion {
+  id: number;
+  name: string;
+  communes: RawCommune[];
+}
+interface ApiPayload {
+  regiones: RawRegion[];
+}
+
+export interface Sucursal extends RawSucursal {
+  comuna: string;
+  region: string;
+  region_id: number;
+}
+
+let sucursales: Sucursal[] = [];
+let regiones: { id: number; name: string }[] = [];
+let fetchError = false;
+
+try {
+  const url = new URL(API_URL);
+  url.searchParams.set('id_web', SITE_ID);
+  const res = await fetch(url.toString(), {
+    headers: {
+      Authorization: `Bearer ${TOKEN}`,
+      Origin: 'cyclonemotos.cl',
+    },
+    signal: AbortSignal.timeout(15_000),
+  });
+
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+  const data: ApiPayload = await res.json();
+
+  sucursales = data.regiones.flatMap((r) =>
+    r.communes.flatMap((c) =>
+      c.sucursales
+        .filter((s) => s.is_active)
+        .map((s) => ({ ...s, comuna: c.name, region: r.name, region_id: r.id }))
+    )
+  );
+
+  // Unique regions keeping order
+  const seen = new Set<number>();
+  for (const r of data.regiones) {
+    if (!seen.has(r.id)) {
+      regiones.push({ id: r.id, name: r.name });
+      seen.add(r.id);
+    }
+  }
+} catch (e) {
+  console.error('Error fetching sucursales:', e);
+  fetchError = true;
+}
+---
+
+<BaseLayout title="Concesionarios — Cyclone Motos" description="Encuentra el concesionario Cyclone Motos más cercano a ti.">
+  <div class="dealers-page">
+    <div class="dealers-header">
+      <h1 class="dealers-title">Concesionarios</h1>
+      <p class="dealers-subtitle">Encontrá el punto de venta Cyclone más cercano a tu ubicación.</p>
+    </div>
+
+    {fetchError ? (
+      <div class="dealers-error">
+        No se pudo cargar la información de concesionarios. Intentá de nuevo más tarde.
+      </div>
+    ) : (
+      <div class="dealers-layout">
+        <!-- Sidebar -->
+        <aside class="dealers-sidebar">
+          <div class="sidebar-filters">
+            <input
+              id="search-input"
+              type="search"
+              placeholder="Buscar por nombre o dirección…"
+              class="sidebar-search"
+              autocomplete="off"
+            />
+            <select id="region-select" class="sidebar-select">
+              <option value="">Todas las regiones</option>
+              {regiones.map((r) => (
+                <option value={String(r.id)}>{r.name}</option>
+              ))}
+            </select>
+            <select id="commune-select" class="sidebar-select" disabled>
+              <option value="">Todas las comunas</option>
+            </select>
+          </div>
+
+          <div class="sidebar-count" id="result-count">
+            {sucursales.length} concesionarios
+          </div>
+
+          <ul class="sidebar-list" id="dealers-list">
+            {sucursales.map((s) => (
+              <li
+                class="sidebar-item"
+                data-id={String(s.id)}
+                data-lat={s.latitude}
+                data-lng={s.longitude}
+                data-region-id={String(s.region_id)}
+                data-comuna={s.comuna}
+              >
+                <span class="item-name">{s.name}</span>
+                <span class="item-meta">{s.comuna}</span>
+                <span class="item-badge">{s.region}</span>
+              </li>
+            ))}
+          </ul>
+        </aside>
+
+        <!-- Map container -->
+        <div class="dealers-map-wrap">
+          <div id="dealers-map" class="dealers-map"></div>
+          <p class="geo-status" id="geo-status">Detectando tu ubicación…</p>
+        </div>
+      </div>
+    )}
+  </div>
+
+  <!-- Pass data to client -->
+  <script
+    id="dealers-data"
+    type="application/json"
+    set:html={JSON.stringify(sucursales)}
+  />
+  <script id="mapbox-token-data" type="application/json" set:html={JSON.stringify(MAPBOX_TOKEN)} />
+
+  <!-- Mapbox GL JS + CSS (loaded in-body, sync, before our inline script) -->
+  <link
+    href="https://api.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.css"
+    rel="stylesheet"
+  />
+  <script is:inline src="https://api.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.js"></script>
+
+<script is:inline>
+(function () {
+  // ── Data ─────────────────────────────────────────────────────────────
+  const sucursalesRaw = document.getElementById('dealers-data');
+  const tokenRaw = document.getElementById('mapbox-token-data');
+  if (!sucursalesRaw || !tokenRaw) return;
+
+  const sucursales = JSON.parse(sucursalesRaw.textContent || '[]');
+  const MAPBOX_TOKEN = JSON.parse(tokenRaw.textContent || '""');
+
+  if (!MAPBOX_TOKEN || !sucursales.length) {
+    document.getElementById('geo-status').style.display = 'none';
+    return;
+  }
+
+  // ── Unique communes per region for dropdown ───────────────────────────
+  const communesByRegion = {};
+  sucursales.forEach((s) => {
+    if (!communesByRegion[s.region_id]) communesByRegion[s.region_id] = new Set();
+    communesByRegion[s.region_id].add(s.comuna);
+  });
+
+  // ── Mapbox init ───────────────────────────────────────────────────────
+  mapboxgl.accessToken = MAPBOX_TOKEN;
+
+  const map = new mapboxgl.Map({
+    container: 'dealers-map',
+    style: 'mapbox://styles/mapbox/outdoors-v12',
+    center: [-70.6, -33.4],
+    zoom: 5,
+  });
+
+  map.addControl(new mapboxgl.NavigationControl(), 'top-right');
+
+  // ── Markers & popups ──────────────────────────────────────────────────
+  const markers = {}; // id → { marker, el, sucursal }
+
+  function createPinEl(active) {
+    const el = document.createElement('img');
+    el.src = '/pin_concesionari.webp';
+    el.width = 26;
+    el.height = 29;
+    el.className = 'map-pin' + (active ? ' map-pin--active' : '');
+    el.style.display = 'block';
+    return el;
+  }
+
+  function buildPopupHTML(s) {
+    return `
+      <div class="dealer-popup">
+        <strong class="popup-name">${s.name}</strong>
+        <p class="popup-address">${s.address}</p>
+        ${s.phone ? `<p class="popup-phone"><a href="tel:${s.phone}">${s.phone}</a></p>` : ''}
+        ${s.hours ? `<p class="popup-hours">${s.hours}</p>` : ''}
+      </div>`;
+  }
+
+  let activeId = null;
+  let activePopup = null;
+
+  function activateMarker(id) {
+    // Deactivate previous
+    if (activeId !== null && markers[activeId]) {
+      markers[activeId].el.classList.remove('map-pin--active');
+    }
+    if (activePopup) { activePopup.remove(); activePopup = null; }
+
+    activeId = id;
+    const entry = markers[id];
+    if (!entry) return;
+
+    entry.el.classList.add('map-pin--active');
+
+    activePopup = new mapboxgl.Popup({ offset: 28, closeButton: true, maxWidth: '280px' })
+      .setLngLat([parseFloat(entry.sucursal.longitude), parseFloat(entry.sucursal.latitude)])
+      .setHTML(buildPopupHTML(entry.sucursal))
+      .addTo(map);
+
+    activePopup.on('close', () => {
+      if (activeId === id) {
+        entry.el.classList.remove('map-pin--active');
+        activeId = null;
+      }
+    });
+
+    // Highlight list item
+    document.querySelectorAll('.sidebar-item').forEach((li) => li.classList.remove('is-active'));
+    const listItem = document.querySelector(`.sidebar-item[data-id="${id}"]`);
+    if (listItem) {
+      listItem.classList.add('is-active');
+      listItem.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
+  }
+
+  map.on('load', () => {
+    sucursales.forEach((s) => {
+      const el = createPinEl(false);
+      const marker = new mapboxgl.Marker({ element: el, anchor: 'bottom' })
+        .setLngLat([parseFloat(s.longitude), parseFloat(s.latitude)])
+        .addTo(map);
+
+      markers[s.id] = { marker, el, sucursal: s };
+
+      el.addEventListener('click', () => {
+        map.flyTo({ center: [parseFloat(s.longitude), parseFloat(s.latitude)], zoom: 14, speed: 1.4 });
+        activateMarker(s.id);
+      });
+    });
+  });
+
+  // ── Sidebar list click ────────────────────────────────────────────────
+  document.getElementById('dealers-list').addEventListener('click', (e) => {
+    const li = e.target.closest('.sidebar-item');
+    if (!li) return;
+    const id = parseInt(li.dataset.id, 10);
+    const lat = parseFloat(li.dataset.lat);
+    const lng = parseFloat(li.dataset.lng);
+    map.flyTo({ center: [lng, lat], zoom: 14, speed: 1.4 });
+    activateMarker(id);
+  });
+
+  // ── Filtering ─────────────────────────────────────────────────────────
+  const searchInput = document.getElementById('search-input');
+  const regionSelect = document.getElementById('region-select');
+  const communeSelect = document.getElementById('commune-select');
+  const resultCount = document.getElementById('result-count');
+  const allItems = Array.from(document.querySelectorAll('.sidebar-item'));
+
+  function applyFilters() {
+    const query = searchInput.value.toLowerCase().trim();
+    const regionId = regionSelect.value;
+    const commune = communeSelect.value;
+    let visible = 0;
+
+    allItems.forEach((li) => {
+      const id = parseInt(li.dataset.id, 10);
+      const entry = markers[id];
+      const s = entry?.sucursal;
+      if (!s) return;
+
+      const matchesSearch = !query ||
+        s.name.toLowerCase().includes(query) ||
+        s.address.toLowerCase().includes(query);
+      const matchesRegion = !regionId || String(s.region_id) === regionId;
+      const matchesCommune = !commune || s.comuna === commune;
+      const show = matchesSearch && matchesRegion && matchesCommune;
+
+      li.style.display = show ? '' : 'none';
+      if (entry) entry.el.style.display = show ? '' : 'none';
+      if (show) visible++;
+    });
+
+    resultCount.textContent = `${visible} concesionario${visible !== 1 ? 's' : ''}`;
+  }
+
+  function updateCommuneDropdown(regionId) {
+    communeSelect.innerHTML = '<option value="">Todas las comunas</option>';
+    communeSelect.disabled = !regionId;
+    if (!regionId) return;
+    const communes = communesByRegion[regionId] ? Array.from(communesByRegion[regionId]).sort() : [];
+    communes.forEach((name) => {
+      const opt = document.createElement('option');
+      opt.value = name;
+      opt.textContent = name;
+      communeSelect.appendChild(opt);
+    });
+  }
+
+  regionSelect.addEventListener('change', () => {
+    communeSelect.value = '';
+    updateCommuneDropdown(regionSelect.value);
+    applyFilters();
+  });
+
+  communeSelect.addEventListener('change', applyFilters);
+  searchInput.addEventListener('input', applyFilters);
+
+  // ── Geolocation ───────────────────────────────────────────────────────
+  function distanceSq(lat1, lng1, lat2, lng2) {
+    const dlat = lat1 - lat2;
+    const dlng = lng1 - lng2;
+    return dlat * dlat + dlng * dlng;
+  }
+
+  function findClosestRegionId(userLat, userLng) {
+    let minDist = Infinity;
+    let bestRegionId = null;
+    sucursales.forEach((s) => {
+      const d = distanceSq(userLat, userLng, parseFloat(s.latitude), parseFloat(s.longitude));
+      if (d < minDist) {
+        minDist = d;
+        bestRegionId = s.region_id;
+      }
+    });
+    return bestRegionId;
+  }
+
+  function preselectRegion(regionId) {
+    regionSelect.value = String(regionId);
+    updateCommuneDropdown(String(regionId));
+    applyFilters();
+  }
+
+  const geoStatus = document.getElementById('geo-status');
+
+  function resolveGeo(lat, lng, fromUser) {
+    geoStatus.style.display = 'none';
+    if (fromUser) {
+      map.flyTo({ center: [lng, lat], zoom: 10, speed: 1.6 });
+    } else {
+      map.flyTo({ center: [lng, lat], zoom: 10, speed: 1.6 });
+    }
+    const regionId = findClosestRegionId(lat, lng);
+    if (regionId) preselectRegion(regionId);
+  }
+
+  function fallbackToRM() {
+    resolveGeo(-33.4569, -70.6483, false);
+  }
+
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(
+      (pos) => resolveGeo(pos.coords.latitude, pos.coords.longitude, true),
+      () => fallbackToRM(),
+      { timeout: 8000 }
+    );
+  } else {
+    fallbackToRM();
+  }
+})();
+</script>
+
+<style>
+  /* ── Page wrapper ── */
+  .dealers-page {
+    min-height: 100dvh;
+    background: var(--color-bg, #ffffff);
+    padding-top: var(--header-height, 72px);
+  }
+
+  .dealers-header {
+    max-width: var(--container-max, 1280px);
+    margin: 0 auto;
+    padding: 2.5rem 1.5rem 1.5rem;
+  }
+
+  .dealers-title {
+    font-family: var(--font-heading);
+    font-size: var(--text-h2);
+    font-weight: 700;
+    color: var(--color-text, #1a1c1c);
+    text-transform: uppercase;
+    letter-spacing: -0.03em;
+    margin: 0 0 0.35rem;
+  }
+
+  .dealers-subtitle {
+    font-family: var(--font-body);
+    font-size: 0.95rem;
+    color: var(--color-text-muted, #5f6368);
+    margin: 0;
+  }
+
+  .dealers-error {
+    max-width: 40rem;
+    margin: 3rem auto;
+    padding: 1.5rem;
+    background: #fff0f0;
+    border: 1px solid var(--color-primary, #d6000f);
+    border-radius: var(--radius-md, 0.75rem);
+    color: var(--color-primary-dark, #a8000c);
+    text-align: center;
+    font-family: var(--font-body);
+  }
+
+  /* ── Main layout ── */
+  .dealers-layout {
+    max-width: var(--container-max, 1280px);
+    margin: 0 auto;
+    padding: 0 1.5rem 3rem;
+    display: flex;
+    gap: 1.25rem;
+    height: 600px;
+  }
+
+  /* ── Sidebar ── */
+  .dealers-sidebar {
+    width: 300px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    background: var(--color-bg, #ffffff);
+    border: 1px solid var(--color-border, #e9eaeb);
+    border-radius: var(--radius-md, 0.75rem);
+    overflow: hidden;
+  }
+
+  .sidebar-filters {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0.85rem;
+    border-bottom: 1px solid var(--color-border, #e9eaeb);
+    background: var(--color-bg-alt, #f7f7f7);
+  }
+
+  .sidebar-search,
+  .sidebar-select {
+    width: 100%;
+    padding: 0.5rem 0.65rem;
+    font-family: var(--font-body);
+    font-size: 0.83rem;
+    color: var(--color-text, #1a1c1c);
+    background: var(--color-bg, #ffffff);
+    border: 1px solid var(--color-border, #e9eaeb);
+    border-radius: var(--radius-sm, 0.375rem);
+    outline: none;
+    transition: border-color 150ms ease;
+    box-sizing: border-box;
+  }
+
+  .sidebar-search:focus,
+  .sidebar-select:focus {
+    border-color: var(--color-primary, #d6000f);
+  }
+
+  .sidebar-select:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+
+  .sidebar-count {
+    padding: 0.5rem 0.85rem;
+    font-family: var(--font-body);
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--color-text-muted, #5f6368);
+    border-bottom: 1px solid var(--color-border, #e9eaeb);
+    background: var(--color-bg-alt, #f7f7f7);
+  }
+
+  .sidebar-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    overflow-y: auto;
+    flex: 1;
+  }
+
+  .sidebar-item {
+    padding: 0.7rem 0.85rem;
+    border-bottom: 1px solid var(--color-border, #e9eaeb);
+    cursor: pointer;
+    transition: background 140ms ease;
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+  }
+
+  .sidebar-item:hover {
+    background: var(--color-bg-alt, #f7f7f7);
+  }
+
+  .sidebar-item.is-active {
+    background: #fff0f0;
+    border-left: 3px solid var(--color-primary, #d6000f);
+  }
+
+  .sidebar-item.is-active .item-name {
+    color: var(--color-primary, #d6000f);
+  }
+
+  .item-name {
+    font-family: var(--font-body);
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--color-text, #1a1c1c);
+    line-height: 1.3;
+  }
+
+  .item-meta {
+    font-family: var(--font-body);
+    font-size: 0.75rem;
+    color: var(--color-text-muted, #5f6368);
+  }
+
+  .item-badge {
+    font-family: var(--font-body);
+    font-size: 0.68rem;
+    font-weight: 600;
+    color: var(--color-primary, #d6000f);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  /* ── Map ── */
+  .dealers-map-wrap {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    min-width: 0;
+  }
+
+  .dealers-map {
+    flex: 1;
+    border-radius: var(--radius-md, 0.75rem);
+    border: 1px solid var(--color-border, #e9eaeb);
+    overflow: hidden;
+  }
+
+  .geo-status {
+    font-family: var(--font-body);
+    font-size: 0.78rem;
+    color: var(--color-text-muted, #5f6368);
+    text-align: center;
+    margin: 0;
+  }
+
+  /* ── Custom map pin ── */
+  :global(.map-pin) {
+    width: 26px;
+    height: 29px;
+    cursor: pointer;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.40));
+    transition: transform 180ms ease, filter 180ms ease;
+  }
+
+  :global(.map-pin--active),
+  :global(.map-pin:hover) {
+    transform: translateY(-5px);
+    filter: drop-shadow(0 4px 8px rgba(0,0,0,0.50)) brightness(0.85);
+  }
+
+  /* ── Mapbox popup override ── */
+  :global(.mapboxgl-popup-content) {
+    background: #ffffff !important;
+    border: 1px solid var(--color-border, #e9eaeb) !important;
+    border-radius: var(--radius-md, 0.75rem) !important;
+    padding: 0.85rem 1rem !important;
+    box-shadow: var(--shadow-md, 0 4px 12px rgba(0,0,0,0.10)) !important;
+  }
+
+  :global(.mapboxgl-popup-tip) {
+    border-top-color: var(--color-border, #e9eaeb) !important;
+  }
+
+  :global(.dealer-popup) {
+    font-family: var(--font-body);
+    color: var(--color-text, #1a1c1c);
+  }
+
+  :global(.popup-name) {
+    display: block;
+    font-size: 0.9rem;
+    font-weight: 700;
+    margin-bottom: 0.35rem;
+  }
+
+  :global(.popup-address),
+  :global(.popup-phone),
+  :global(.popup-hours) {
+    font-size: 0.78rem;
+    margin: 0.2rem 0;
+    line-height: 1.4;
+    color: var(--color-text-muted, #5f6368);
+  }
+
+  :global(.popup-phone a) {
+    color: var(--color-primary, #d6000f);
+    text-decoration: none;
+  }
+
+  :global(.popup-hours) {
+    color: var(--color-text-muted, #5f6368);
+    font-style: italic;
+  }
+
+  /* ── Responsive ── */
+  @media (max-width: 768px) {
+    .dealers-layout {
+      flex-direction: column;
+      height: auto;
+      padding-bottom: 2rem;
+    }
+
+    .dealers-sidebar {
+      width: 100%;
+      max-height: 300px;
+    }
+
+    .dealers-map-wrap {
+      height: 400px;
+    }
+  }
+</style>
+</BaseLayout>

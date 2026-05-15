@@ -1,0 +1,607 @@
+---
+// Fetch sucursales at build time so the token stays server-side
+const API_URL = 'https://track.promobility.cl/api/locations/sucursales';
+const SITE_ID = import.meta.env.PROMOBILITY_API_SITE_ID || '6';
+const TOKEN  = import.meta.env.PROMOBILITY_API_TOKEN  || '';
+
+interface RawSucursal {
+  id: number; name: string; address: string;
+  spider: string | null; phone: string | null; hours: string | null;
+  latitude: string; longitude: string; is_active: boolean;
+}
+interface Sucursal extends RawSucursal {
+  comuna: string; region: string; region_id: number;
+}
+
+let sucursales: Sucursal[] = [];
+let regiones: { id: number; name: string }[] = [];
+
+try {
+  const url = new URL(API_URL);
+  url.searchParams.set('id_web', SITE_ID);
+  const res = await fetch(url.toString(), {
+    headers: { Authorization: `Bearer ${TOKEN}`, Origin: 'cyclonemotos.cl' },
+    signal: AbortSignal.timeout(15_000),
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const data = await res.json();
+  sucursales = data.regiones.flatMap((r: any) =>
+    r.communes.flatMap((c: any) =>
+      c.sucursales
+        .filter((s: any) => s.is_active)
+        .map((s: any) => ({ ...s, comuna: c.name, region: r.name, region_id: r.id }))
+    )
+  );
+  const seen = new Set<number>();
+  for (const r of data.regiones) {
+    if (!seen.has(r.id)) { regiones.push({ id: r.id, name: r.name }); seen.add(r.id); }
+  }
+} catch (e) {
+  console.error('[ConcesionariosModal] fetch error:', e);
+}
+---
+
+<!-- Embedded data (read by client script) -->
+<script id="cmod-sucursales" type="application/json" set:html={JSON.stringify(sucursales)}></script>
+<script id="cmod-regiones"   type="application/json" set:html={JSON.stringify(regiones)}></script>
+
+<!-- Modal markup -->
+<div id="dealer-modal" class="cmod" aria-modal="true" role="dialog" aria-label="Concesionarios Cyclone Motos">
+  <div class="cmod__backdrop" id="cmod-backdrop"></div>
+
+  <div class="cmod__box">
+    <!-- Map fills the whole box -->
+    <div id="cmod-map" class="cmod__map"></div>
+
+    <!-- Close (top-right) -->
+    <button class="cmod__close" id="cmod-close" aria-label="Cerrar">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+           stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+        <path d="M18 6L6 18M6 6l12 12"/>
+      </svg>
+    </button>
+
+    <!-- Filter overlay (top-left, hidden when card is open) -->
+    <div class="cmod__filter" id="cmod-filter">
+      <svg class="cmod-filter__pin" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+      </svg>
+      <select id="cmod-region-select" class="cmod-filter__select">
+        <option value="">Ingresa región/comuna</option>
+      </select>
+      <svg class="cmod-filter__chevron" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+        <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd"/>
+      </svg>
+    </div>
+
+    <!-- Dealer info card (top-left, replaces filter when pin clicked) -->
+    <div class="cmod__card" id="cmod-card">
+      <button class="cmod-card__close" id="cmod-card-close" aria-label="Cerrar información">×</button>
+      <h2 class="cmod-card__name" id="cmod-card-name"></h2>
+      <ul class="cmod-card__details" id="cmod-card-details"></ul>
+      <a class="cmod-card__cta" id="cmod-card-cta" href="#" target="_blank" rel="noopener noreferrer">
+        VER RUTA
+      </a>
+    </div>
+
+    <!-- Loading overlay -->
+    <div class="cmod__loading" id="cmod-loading">Cargando mapa…</div>
+  </div>
+</div>
+
+<script>
+  // ── Types ──────────────────────────────────────────────────────────
+  type Sucursal = {
+    id: number; name: string; address: string;
+    spider: string | null; phone: string | null; hours: string | null;
+    latitude: string; longitude: string;
+    comuna: string; region: string; region_id: number;
+  };
+
+  // ── Read embedded data ─────────────────────────────────────────────
+  const sucursales: Sucursal[] = JSON.parse(
+    document.getElementById('cmod-sucursales')?.textContent || '[]'
+  );
+  const regiones: { id: number; name: string }[] = JSON.parse(
+    document.getElementById('cmod-regiones')?.textContent || '[]'
+  );
+  const TOKEN = import.meta.env.PUBLIC_MAPBOX_TOKEN || '';
+
+  // ── DOM refs ───────────────────────────────────────────────────────
+  const modal        = document.getElementById('dealer-modal')!;
+  const backdrop     = document.getElementById('cmod-backdrop')!;
+  const closeBtn     = document.getElementById('cmod-close')!;
+  const mapContainer = document.getElementById('cmod-map')!;
+  const filterEl     = document.getElementById('cmod-filter')!;
+  const regionSelect = document.getElementById('cmod-region-select') as HTMLSelectElement;
+  const cardEl       = document.getElementById('cmod-card')!;
+  const cardClose    = document.getElementById('cmod-card-close')!;
+  const cardName     = document.getElementById('cmod-card-name')!;
+  const cardDetails  = document.getElementById('cmod-card-details')!;
+  const cardCta      = document.getElementById('cmod-card-cta') as HTMLAnchorElement;
+  const loadingEl    = document.getElementById('cmod-loading')!;
+
+  // ── State ──────────────────────────────────────────────────────────
+  let mapboxgl: any = null;
+  let map: any = null;
+  let markers: Record<number, { marker: any; el: HTMLElement; icon: HTMLImageElement; s: Sucursal }> = {};
+  let initialized = false;
+
+  // ── Populate region select ─────────────────────────────────────────
+  regiones.forEach((r) => {
+    const opt = document.createElement('option');
+    opt.value = String(r.id);
+    opt.textContent = r.name;
+    regionSelect.appendChild(opt);
+  });
+
+  // ── Modal open / close ─────────────────────────────────────────────
+  async function openModal() {
+    // Close mobile menu if open
+    const mobileMenu = document.getElementById('mobile-menu') as HTMLElement | null;
+    if (mobileMenu) mobileMenu.hidden = true;
+    document.body.style.overflow = 'hidden';
+    modal.classList.add('cmod--open');
+
+    if (!initialized) {
+      initialized = true;
+      await bootstrap();
+    } else {
+      map?.resize();
+    }
+  }
+
+  function closeModal() {
+    modal.classList.remove('cmod--open');
+    document.body.style.overflow = '';
+  }
+
+  closeBtn.addEventListener('click', closeModal);
+  backdrop.addEventListener('click', closeModal);
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
+
+  // Listen for any element with data-open-dealers
+  document.addEventListener('click', (e) => {
+    if ((e.target as Element).closest('[data-open-dealers]')) openModal();
+  });
+
+  // ── Bootstrap: lazy-load Mapbox + init map ─────────────────────────
+  async function loadMapboxCSS() {
+    if (document.querySelector('[data-mapbox-css]')) return;
+    await new Promise<void>((resolve) => {
+      const link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = 'https://api.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.css';
+      link.setAttribute('data-mapbox-css', '');
+      link.onload = () => resolve();
+      link.onerror = () => resolve();
+      document.head.appendChild(link);
+    });
+  }
+
+  async function bootstrap() {
+    if (!TOKEN || !sucursales.length) {
+      loadingEl.textContent = 'No hay información disponible.';
+      return;
+    }
+    loadingEl.style.display = 'flex';
+
+    try {
+      const [mod] = await Promise.all([
+        import('mapbox-gl'),
+        loadMapboxCSS(),
+      ]);
+      mapboxgl = mod.default;
+      mapboxgl.accessToken = TOKEN;
+
+      map = new mapboxgl.Map({
+        container: mapContainer,
+        style: 'mapbox://styles/mapbox/streets-v12',
+        center: [-70.6, -33.4],
+        zoom: 5,
+      });
+
+      map.addControl(new mapboxgl.NavigationControl(), 'top-right');
+
+      map.on('load', () => {
+        loadingEl.style.display = 'none';
+        addMarkers();
+        doGeolocation();
+      });
+    } catch (err) {
+      console.error('[ConcesionariosModal] Mapbox init error:', err);
+      loadingEl.textContent = 'Error al cargar el mapa.';
+    }
+  }
+
+  // ── Markers ────────────────────────────────────────────────────────
+  function addMarkers() {
+    sucursales.forEach((s) => {
+      const el = document.createElement('div');
+      const icon = document.createElement('img') as HTMLImageElement;
+
+      el.style.cssText = 'display:block;cursor:pointer';
+      icon.src = '/pin_concesionari.webp';
+      icon.width = 26;
+      icon.height = 29;
+      icon.style.cssText = 'display:block;transform-origin:bottom center;filter:none;transition:transform 160ms ease,filter 160ms ease';
+      el.appendChild(icon);
+
+      const marker = new mapboxgl.Marker({ element: el, anchor: 'bottom' })
+        .setLngLat([parseFloat(s.longitude), parseFloat(s.latitude)])
+        .addTo(map);
+
+      markers[s.id] = { marker, el, icon, s };
+
+      el.addEventListener('mouseenter', () => { if (icon !== activePin()) setPinState(s.id, 'hover'); });
+      el.addEventListener('mouseleave', () => { if (icon !== activePin()) setPinState(s.id, 'idle'); });
+      el.addEventListener('click', () => {
+        map.flyTo({ center: [parseFloat(s.longitude), parseFloat(s.latitude)], zoom: 14, speed: 1.4 });
+        showCard(s);
+      });
+    });
+  }
+
+  function setPinState(id: number, state: 'idle' | 'hover' | 'active') {
+    const entry = markers[id];
+    if (!entry) return;
+
+    entry.el.style.zIndex = state === 'active' ? '2' : state === 'hover' ? '1' : '';
+    entry.icon.style.transform = state === 'active' ? 'scale(1.22)' : state === 'hover' ? 'scale(1.12)' : '';
+    entry.icon.style.filter =
+      state === 'active'
+        ? 'drop-shadow(0 4px 8px rgba(0,0,0,.24))'
+        : state === 'hover'
+          ? 'drop-shadow(0 3px 6px rgba(0,0,0,.18))'
+          : 'none';
+  }
+
+  function activePin(): HTMLImageElement | null {
+    const card = document.getElementById('cmod-card');
+    if (!card || !card.dataset.activeId) return null;
+    return markers[Number(card.dataset.activeId)]?.icon ?? null;
+  }
+
+  // ── Info card ──────────────────────────────────────────────────────
+  const ICON_LOC   = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="15" height="15" style="color:#d6000f"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>`;
+  const ICON_EMAIL = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15" style="color:#d6000f"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>`;
+  const ICON_PHONE = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15" style="color:#d6000f"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.14 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.05 2H6a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 21 16.92z"/></svg>`;
+  const ICON_CLOCK = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15" style="color:#d6000f"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>`;
+
+  function showCard(s: Sucursal) {
+    cardEl.dataset.activeId = String(s.id);
+    cardName.textContent = s.name;
+    Object.values(markers).forEach(({ s }) => setPinState(s.id, 'idle'));
+    setPinState(s.id, 'active');
+
+    const rows: { icon: string; text: string }[] = [
+      { icon: ICON_LOC, text: s.address },
+    ];
+    if (s.spider) rows.push({ icon: ICON_EMAIL, text: s.spider });
+    if (s.phone)  rows.push({ icon: ICON_PHONE, text: s.phone });
+    if (s.hours)  rows.push({ icon: ICON_CLOCK, text: s.hours });
+
+    cardDetails.innerHTML = rows
+      .map(r => `<li class="cmod-card__row"><span class="cmod-card__icon">${r.icon}</span><span>${r.text}</span></li>`)
+      .join('');
+
+    cardCta.href = `https://www.google.com/maps/dir/?api=1&destination=${s.latitude},${s.longitude}`;
+
+    cardEl.style.display = 'block';
+  }
+
+  cardClose.addEventListener('click', () => {
+    const activeId = Number(cardEl.dataset.activeId);
+    if (activeId) setPinState(activeId, 'idle');
+    cardEl.style.display = 'none';
+    cardEl.dataset.activeId = '';
+  });
+
+  // ── Region filter ──────────────────────────────────────────────────
+  regionSelect.addEventListener('change', () => {
+    const rid = regionSelect.value;
+
+    if (rid && map) {
+      focusRegion(Number(rid));
+    } else if (!rid && map) {
+      map.flyTo({ center: [-70.6, -33.4], zoom: 5, speed: 1.2 });
+    }
+  });
+
+  function focusRegion(regionId: number) {
+    const first = sucursales.find((s) => s.region_id === regionId);
+    if (!first || !map) return;
+
+    map.flyTo({
+      center: [parseFloat(first.longitude), parseFloat(first.latitude)],
+      zoom: 9,
+      speed: 1.4,
+    });
+  }
+
+  // ── Geolocation ────────────────────────────────────────────────────
+  function doGeolocation() {
+    if (!navigator.geolocation) { fallbackGeo(); return; }
+
+    let didFocus = false;
+    const fallbackTimer = window.setTimeout(() => {
+      if (didFocus) return;
+      didFocus = true;
+      fallbackGeo();
+    }, 450);
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        if (didFocus) return;
+        didFocus = true;
+        window.clearTimeout(fallbackTimer);
+        preselectNearestRegion(pos.coords.latitude, pos.coords.longitude);
+      },
+      () => {
+        if (didFocus) return;
+        didFocus = true;
+        window.clearTimeout(fallbackTimer);
+        fallbackGeo();
+      },
+      { timeout: 1200, maximumAge: 300000 }
+    );
+  }
+
+  function fallbackGeo() {
+    preselectNearestRegion(-33.4569, -70.6483);
+  }
+
+  function preselectNearestRegion(lat: number, lng: number) {
+    let minD = Infinity, bestId: number | null = null;
+    sucursales.forEach(s => {
+      const d = (lat - parseFloat(s.latitude)) ** 2 + (lng - parseFloat(s.longitude)) ** 2;
+      if (d < minD) { minD = d; bestId = s.region_id; }
+    });
+    if (bestId) {
+      regionSelect.value = String(bestId);
+      focusRegion(bestId);
+    }
+  }
+</script>
+
+<style>
+  /* ── Modal shell ── */
+  .cmod {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 11000;
+    align-items: center;
+    justify-content: center;
+  }
+  .cmod.cmod--open { display: flex; }
+
+  .cmod__backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+  }
+
+  .cmod__box {
+    position: relative;
+    width: 95vw;
+    height: 88vh;
+    max-height: 780px;
+    border-radius: 0;
+    overflow: hidden;
+    z-index: 1;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+  }
+
+  /* ── Map ── */
+  .cmod__map {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  /* ── Loading ── */
+  .cmod__loading {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.9);
+    font-family: var(--font-body);
+    font-size: 0.9rem;
+    color: var(--color-text-muted, #5f6368);
+    z-index: 5;
+  }
+
+  /* ── Close button (top-right) ── */
+  .cmod__close {
+    position: absolute;
+    top: 0;
+    right: 0;
+    z-index: 10;
+    width: 46px;
+    height: 46px;
+    background: var(--color-primary, #d6000f);
+    border: none;
+    border-radius: 0;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    transition: background 150ms ease;
+  }
+  .cmod__close:hover { background: var(--color-primary-dark, #a8000c); }
+  .cmod__close svg { width: 20px; height: 20px; }
+
+  /* ── Filter pill (top-left overlay) ── */
+  .cmod__filter {
+    --cmod-panel-width: 430px;
+    position: absolute;
+    top: 2rem;
+    left: 2rem;
+    z-index: 12;
+    background: #fff;
+    border-radius: 0;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.18);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    width: var(--cmod-panel-width);
+    max-width: calc(100vw - 28px);
+  }
+
+  .cmod-filter__pin {
+    width: 18px;
+    height: 18px;
+    color: var(--color-primary, #d6000f);
+    flex-shrink: 0;
+  }
+
+  .cmod-filter__select {
+    flex: 1;
+    border: none;
+    outline: none;
+    font-family: var(--font-body);
+    font-size: var(--text-body);
+    color: var(--color-text-muted, #5f6368);
+    background: transparent;
+    appearance: none;
+    cursor: pointer;
+    min-width: 0;
+  }
+  .cmod-filter__select:focus { color: var(--color-text, #1a1c1c); }
+
+  .cmod-filter__chevron {
+    width: 16px;
+    height: 16px;
+    color: var(--color-text-muted, #5f6368);
+    flex-shrink: 0;
+    pointer-events: none;
+  }
+
+  /* ── Dealer info card (top-left overlay) ── */
+  .cmod__card {
+    --cmod-panel-width: 430px;
+    position: absolute;
+    top: 5.5rem;
+    left: 2rem;
+    z-index: 10;
+    background: #fff;
+    border-radius: 0;
+    box-shadow: var(--shadow-lg);
+    padding: 1.75rem;
+    width: var(--cmod-panel-width);
+    max-width: calc(100vw - 28px);
+    display: none;
+  }
+
+  .cmod-card__close {
+    position: absolute;
+    top: 1.1rem;
+    right: 1.25rem;
+    background: none;
+    border: none;
+    font-size: 1.75rem;
+    font-family: var(--font-heading);
+    font-weight: 700;
+    line-height: 1;
+    color: var(--color-text);
+    cursor: pointer;
+    padding: 0;
+  }
+  .cmod-card__close:hover { color: var(--color-primary); }
+
+  .cmod-card__name {
+    font-family: var(--font-heading);
+    font-size: var(--text-h3);
+    font-weight: 900;
+    text-transform: uppercase;
+    color: var(--color-text, #1a1c1c);
+    margin: 0 2rem 1.7rem 0;
+    line-height: var(--leading-subheading);
+  }
+
+  .cmod-card__details {
+    list-style: none;
+    margin: 0 0 2.15rem;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1.35rem;
+  }
+
+  :global(.cmod-card__row) {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    font-family: var(--font-body);
+    font-size: var(--text-body);
+    color: var(--color-text);
+    line-height: var(--leading-compact);
+  }
+
+  :global(.cmod-card__icon) {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 1.05rem;
+    margin-top: 0.28rem;
+    color: var(--color-primary, #d6000f);
+  }
+
+  :global(.cmod-card__icon svg) {
+    display: block;
+    width: 1rem;
+    height: 1rem;
+    color: var(--color-primary, #d6000f);
+  }
+
+  :global(.cmod-card__row > span:last-child) {
+    display: block;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .cmod-card__cta {
+    display: block;
+    width: 100%;
+    padding: 1.1rem;
+    background: var(--color-primary, #d6000f);
+    color: #fff;
+    text-align: center;
+    font-family: var(--font-heading);
+    font-size: var(--text-button);
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    text-decoration: none;
+    border-radius: 0;
+    transition: background 150ms ease;
+    box-sizing: border-box;
+  }
+  .cmod-card__cta:hover { background: var(--color-primary-dark, #a8000c); }
+
+  /* ── Responsive ── */
+  @media (max-width: 600px) {
+    .cmod__box { width: 100vw; height: 100dvh; border-radius: 0; max-height: none; }
+    .cmod__close { border-radius: 0; }
+    .cmod__card {
+      top: 70px;
+      padding: 1.35rem;
+      width: calc(100vw - 28px);
+    }
+
+    .cmod__filter {
+      width: calc(100vw - 28px);
+    }
+
+    .cmod-card__details {
+      gap: 1rem;
+    }
+  }
+</style>

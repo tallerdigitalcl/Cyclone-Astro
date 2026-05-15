@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 54" fill="none">
+  <!-- Drop shadow -->
+  <ellipse cx="20" cy="52" rx="7" ry="2.5" fill="rgba(0,0,0,0.22)"/>
+  <!-- Pin body -->
+  <path d="M20 1C9.507 1 1 9.507 1 20c0 11.598 19 33 19 33S39 31.598 39 20C39 9.507 30.493 1 20 1z" fill="#d6000f"/>
+  <!-- Slight inner sheen -->
+  <path d="M20 3C10.611 3 3 10.611 3 20c0 3.58.999 6.924 2.73 9.764C9.56 11.48 14.386 6 20 6c5.614 0 10.44 5.48 14.27 23.764A16.917 16.917 0 0 0 37 20C37 10.611 29.389 3 20 3z" fill="rgba(255,255,255,0.10)"/>
+  <!-- White C letter - bold, centered in circle area -->
+  <text
+    x="20.5"
+    y="22"
+    font-family="Roboto, 'Helvetica Neue', Arial, sans-serif"
+    font-size="18"
+    font-weight="900"
+    fill="#ffffff"
+    text-anchor="middle"
+    dominant-baseline="central"
+    letter-spacing="-0.5"
+  >C</text>
+</svg>

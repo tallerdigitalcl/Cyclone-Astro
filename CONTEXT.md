@@ -96,6 +96,16 @@ Nota: la ruta antigua `/blog` fue reemplazada por `/noticia`.
 - Tiene gradiente vertical negro desde arriba.
 - En top de pagina se muestra transparente con linea inferior blanca.
 - Al hacer scroll mantiene fondo con blur y animacion de linea inferior.
+- **z-index: 9999** para quedar siempre por encima de todo, incluida la interna de motos.
+- El mega menu tiene **z-index: 9998**.
+- **Mega menu desktop**: full-width, se abre al hacer hover sobre "Modelos". Muestra grid de motos con foto (`fotoHeader`) y nombre. Cambia el logo a version oscura cuando esta abierto. Usa `motoNavQuery` para obtener las motos.
+- **Menu mobile**: overlay pantalla completa con **z-index: 10000** (por encima del header). Tiene dos paneles deslizantes:
+  - Panel principal: lista de links (Modelos, Concesionarios, Noticias, Concesionarios mas cercanos).
+  - Panel Modelos: desliza horizontalmente, muestra lista de motos con foto y nombre, boton volver.
+  - Barra superior con logo oscuro y boton cerrar (X).
+  - Bloquea el scroll del body mientras esta abierto.
+- **Importante**: el `#mobile-menu` esta renderizado **fuera del `<header>`** en el DOM para evitar que `backdrop-filter` del header lo atrape como containing block (lo que romperia `position: fixed`).
+- Queries usadas: `motoNavQuery` (motos con `fotoHeader`).
 
 ### Hero
 - Usa `heroSlide` desde Sanity.
@@ -205,11 +215,31 @@ Nota: la ruta antigua `/blog` fue reemplazada por `/noticia`.
   - nombre de la moto y CTA final
 - Usa imagen de fondo estatica local en `public/moto/hero.webp`.
 
+### Selector de colores (hero secuencial)
+- Los colores vienen de Promobility API (`apiModel.colors`).
+- Se renderizan en una lista vertical a la izquierda con curvatura tipo arco.
+- Cada `<li>` recibe `--item-index` y `--item-total` como CSS custom properties desde el HTML.
+- El posicionamiento es **100% dinamico via CSS**: `top` y `left` se calculan con `calc()` usando esas variables. Funciona para cualquier cantidad de colores (1 a 6).
+- Formula de curvatura: `left = 2.05rem × 2 × abs(index − total/2) / total` (indent maximo en extremos, 0 en el centro).
+- Con un solo color: `:only-child` lo centra verticalmente con `top: 50%; left: 0`.
+- Al seleccionar un color, se intercambia la imagen de la moto usando imagenes de Sanity (`colores[].imagen`) cruzadas por nombre con los colores de la API.
+
 ### Secciones editoriales de moto
-- `caracteristicasAdicionales` ya se renderiza en la interna con grilla de imagenes, titulo y detalle.
+- `moto-info`: seccion de zona informativa con `height: 100dvh`. El contenido (`.moto-info__container`) esta centrado verticalmente con `height: 100%` y `items-center`.
+- `caracteristicasAdicionales` se renderiza con grilla de imagenes, titulo y detalle.
 - `fichaTecnica` se expone mediante boton hacia el PDF.
-- `zonaInformativa` ya se renderiza debajo de caracteristicas.
-- `tituloGaleria` y `galeriaFotos` ya existen a nivel schema, aunque el desarrollo visual puede seguir creciendo.
+- `zonaInformativa` se renderiza debajo de caracteristicas.
+- `tituloGaleria` y `galeriaFotos` existen a nivel schema y en la pagina.
+- `ctaFinal` renderiza el componente `MotoCta` solo si `ctaFinal.imagenFondo.asset._ref` existe (guarda defensiva para evitar error de `urlFor` cuando la imagen no esta asignada en el CMS).
+
+### MotoCta
+- Componente `src/components/motos/MotoCta.astro`.
+- Seccion CTA con animacion scroll-driven nativa (CSS puro, cero JS).
+- Efecto "pin & scrub": imagen se achica en perspectiva, titulo aparece desde abajo, luego emerge el boton CTA.
+- Tecnica: `view-timeline`, `animation-timeline`, `animation-range`, `position: sticky`.
+- Compatible con `@supports (animation-timeline: scroll())`. Si no soporta: version estatica. Con `prefers-reduced-motion`: estado final directo.
+- **Guarda defensiva**: lanza error descriptivo si `imagenFondo.asset._ref` esta ausente, para detectar rapido cuando falta asignar imagen en el CMS.
+- En `[slug].astro` la condicion de render es `ctaFinal?.imagenFondo?.asset?._ref` (no basta con que el objeto exista).
 
 ## Integracion con Promobility API
 Archivo clave: `src/lib/promobility.ts`
@@ -324,14 +354,23 @@ Exports principales:
 - `allMotoSlugsQuery`
 - `heroSlidesQuery`
 - `homeInfoSectionQuery`
+- `motoNavQuery` — motos con `fotoHeader` para el mega menu y menu mobile del header
+- `motosConFotoOfertaQuery` — motos con `fotoOferta`, fallback cuando no hay entradas en Home-Oferta
 
 ## Tipos TypeScript relevantes
 Archivo: `src/lib/types.ts`
 
 Tipos importantes:
 - `SanityImage`
+- `SanityFile`
 - `Post`
+- `Author`
+- `HeroStat`
 - `HeroSlide`
+- `MotoSpec`
+- `MotoScrollSequenceFrame`
+- `MotoAdditionalFeature`
+- `MotoInfoSection`
 - `Moto`
 - `PromobilityMotoModel`
 - `PromobilityMotoColor`
@@ -339,8 +378,6 @@ Tipos importantes:
 - `HomeInfoSection`
 - `Oferta`
 - `HomeOffer`
-- `MotoAdditionalFeature`
-- `MotoInfoSection`
 
 ## Optimizaciones de rendimiento y SEO aplicadas
 - CSS pequeno inlineado con `inlineStylesheets: 'always'`.
@@ -399,3 +436,15 @@ npx sanity deploy
 - Seguir puliendo la interna de moto, especialmente detalles responsive y acabados del hero secuencial.
 - Evaluar webhook Sanity -> Cloudflare Pages para que los cambios editoriales disparen deploy automatico.
 - Revisar si conviene migrar a SSR para precios/contenido en tiempo real.
+- Asignar imagen de fondo CTA (`ctaFinal.imagenFondo`) en las motos que aun no la tienen en Sanity.
+
+## Gotchas y decisiones tecnicas importantes
+
+### backdrop-filter y position: fixed
+`backdrop-filter` en un ancestro crea un nuevo containing block para `position: fixed`, haciendo que `inset: 0` se calcule relativo al ancestro y no al viewport. Por eso el `#mobile-menu` esta renderizado **fuera del `<header>`**, aunque sea parte del componente `Header.astro`.
+
+### urlFor de Sanity sin asset
+Si un campo de imagen en Sanity tiene `alt` pero no tiene imagen asignada, el objeto llega sin `asset._ref`. Llamar `urlFor()` sobre ese objeto lanza un error fatal. La convencion del proyecto es siempre verificar `?.asset?._ref` antes de renderizar o llamar `urlFor`.
+
+### Selector de colores dinamico
+Los colores de la API se renderizan con CSS custom properties `--item-index` y `--item-total` inyectadas en cada `<li>`. El posicionamiento (top + curvatura lateral) se calcula enteramente con `calc()` en CSS, sin JS. Esto permite que funcione con cualquier cantidad de colores de 1 a 6 sin tocar CSS.

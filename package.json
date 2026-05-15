@@ -15,6 +15,7 @@
     "@sanity/client": "^6.0.0",
     "@sanity/image-url": "^1.0.0",
     "astro": "^5.0.0",
+    "mapbox-gl": "^3.23.1",
     "tailwindcss": "^3.4.19"
   },
   "devDependencies": {
