@@ -140,8 +140,16 @@ try {
     // Close mobile menu if open
     const mobileMenu = document.getElementById('mobile-menu') as HTMLElement | null;
     if (mobileMenu) mobileMenu.hidden = true;
+    const box = modal.querySelector<HTMLElement>('.cmod__box');
+
     document.body.style.overflow = 'hidden';
     modal.classList.add('cmod--open');
+    box?.classList.remove('cmod__box--closing');
+    if (box) {
+      void box.offsetWidth;
+      box.classList.add('cmod__box--opening');
+      box.addEventListener('animationend', () => box.classList.remove('cmod__box--opening'), { once: true });
+    }
 
     if (!initialized) {
       initialized = true;
@@ -152,8 +160,27 @@ try {
   }
 
   function closeModal() {
-    modal.classList.remove('cmod--open');
-    document.body.style.overflow = '';
+    const box = modal.querySelector<HTMLElement>('.cmod__box');
+
+    if (!modal.classList.contains('cmod--open') || box?.classList.contains('cmod__box--closing')) return;
+
+    if (!box) {
+      modal.classList.remove('cmod--open');
+      document.body.style.overflow = '';
+      return;
+    }
+
+    box.classList.remove('cmod__box--opening');
+    box.classList.add('cmod__box--closing');
+    box.addEventListener(
+      'animationend',
+      () => {
+        box.classList.remove('cmod__box--closing');
+        modal.classList.remove('cmod--open');
+        document.body.style.overflow = '';
+      },
+      { once: true }
+    );
   }
 
   closeBtn.addEventListener('click', closeModal);
@@ -367,19 +394,30 @@ try {
 <style>
   /* ── Modal shell ── */
   .cmod {
-    display: none;
+    display: flex;
     position: fixed;
     inset: 0;
     z-index: 11000;
     align-items: center;
     justify-content: center;
+    visibility: hidden;
+    pointer-events: none;
   }
-  .cmod.cmod--open { display: flex; }
+  .cmod.cmod--open {
+    visibility: visible;
+    pointer-events: auto;
+  }
 
   .cmod__backdrop {
     position: absolute;
     inset: 0;
     background: rgba(0, 0, 0, 0.55);
+    opacity: 0;
+    transition: opacity 350ms ease;
+  }
+
+  .cmod.cmod--open .cmod__backdrop {
+    opacity: 1;
   }
 
   .cmod__box {
@@ -391,6 +429,41 @@ try {
     overflow: hidden;
     z-index: 1;
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+    transform-origin: bottom center;
+    will-change: clip-path, transform, opacity;
+  }
+
+  .cmod__box--opening {
+    animation: cmod-genie-open 380ms cubic-bezier(0.34, 1.1, 0.64, 1) both;
+  }
+
+  .cmod__box--closing {
+    animation: cmod-genie-open 380ms cubic-bezier(0.34, 1.1, 0.64, 1) reverse both;
+  }
+
+  @keyframes cmod-genie-open {
+    0% {
+      opacity: 0;
+      transform: translateY(14%) scaleX(0.06) scaleY(0.02);
+      clip-path: polygon(49% 100%, 51% 100%, 51% 100%, 49% 100%);
+    }
+
+    42% {
+      opacity: 1;
+      transform: translateY(2%) scaleX(0.72) scaleY(1.04);
+      clip-path: polygon(6% 0%, 94% 0%, 58% 100%, 42% 100%);
+    }
+
+    78% {
+      transform: translateY(-0.5%) scaleX(1.03) scaleY(0.99);
+      clip-path: polygon(0% 0%, 100% 0%, 98% 100%, 2% 100%);
+    }
+
+    100% {
+      opacity: 1;
+      transform: translateY(0) scaleX(1) scaleY(1);
+      clip-path: polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%);
+    }
   }
 
   /* ── Map ── */
