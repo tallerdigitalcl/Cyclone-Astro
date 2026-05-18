@@ -1,10 +1,13 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+import Button from '../components/ui/Button.astro';
+import { sanityClient, urlFor } from '../lib/sanity';
+import { concesionariosPageQuery } from '../lib/queries';
+import type { ConcesionariosPage, ConcesionariosPageService } from '../lib/types';
 
 const API_URL = 'https://track.promobility.cl/api/locations/sucursales';
 const SITE_ID = import.meta.env.PROMOBILITY_API_SITE_ID || '6';
 const TOKEN = import.meta.env.PROMOBILITY_API_TOKEN || '';
-const MAPBOX_TOKEN = import.meta.env.PUBLIC_MAPBOX_TOKEN || '';
 
 interface RawSucursal {
   id: number;
@@ -17,34 +20,71 @@ interface RawSucursal {
   longitude: string;
   is_active: boolean;
 }
+
 interface RawCommune {
   id: number;
   name: string;
   region_id: number;
   sucursales: RawSucursal[];
 }
+
 interface RawRegion {
   id: number;
   name: string;
   communes: RawCommune[];
 }
+
 interface ApiPayload {
   regiones: RawRegion[];
 }
 
-export interface Sucursal extends RawSucursal {
+interface Sucursal extends RawSucursal {
   comuna: string;
+  comuna_id: number;
   region: string;
   region_id: number;
 }
 
+const formatPhoneHref = (phone: string | null) => phone ? `tel:${phone.replace(/[^\d+]/g, '')}` : undefined;
+const formatRouteHref = (sucursal: Sucursal) =>
+  `https://www.google.com/maps/dir/?api=1&destination=${sucursal.latitude},${sucursal.longitude}`;
+
+const defaultServices: ConcesionariosPageService[] = [
+  { titulo: 'Ventas', iconKey: 'ventas' },
+  { titulo: 'Repuestos', iconKey: 'repuestos' },
+  { titulo: 'Servicios', iconKey: 'servicios' },
+];
+
+const serviceIconPaths: Record<string, string> = {
+  ventas: 'M5.2 13.6 3.5 9.9H2V8.3h2.6l1.2 2.6h2.9L10 7.4h4.6l1.5 3.5h1.1c2.2 0 4 1.8 4 4s-1.8 4-4 4a4 4 0 0 1-3.9-3.2H9.5a4 4 0 1 1-4.3-2.1Zm.8 3.7a2.4 2.4 0 1 0 0-4.8 2.4 2.4 0 0 0 0 4.8Zm11.2 0a2.4 2.4 0 1 0 0-4.8 2.4 2.4 0 0 0 0 4.8Zm-7.4-3.2h3.4l1.1-1.6H9.2l.6 1.6Z',
+  repuestos: 'M12 4V1L7.8 5.2 12 9.4V6a6 6 0 0 1 5.7 7.8l1.7 1A8 8 0 0 0 12 4Zm-5.7 6.2-1.7-1A8 8 0 0 0 12 20v3l4.2-4.2L12 14.6V18a6 6 0 0 1-5.7-7.8Z',
+  servicios: 'm22 19.6-6.3-6.3a6.5 6.5 0 0 1-7.6-8.9l4.1 4.1 2.3-2.3-4.1-4.1a6.5 6.5 0 0 1 8.9 7.6l6.3 6.3-3.6 3.6Z',
+};
+
+const getServiceIconPath = (service: ConcesionariosPageService) =>
+  serviceIconPaths[service.iconKey || service.titulo.toLowerCase()] || serviceIconPaths.servicios;
+
+const getServiceIconUrl = (service: ConcesionariosPageService) => {
+  if (!service.icono?.asset) return null;
+  return urlFor(service.icono).width(64).height(64).fit('max').format('webp').url();
+};
+
 let sucursales: Sucursal[] = [];
 let regiones: { id: number; name: string }[] = [];
+let comunas: { id: number; name: string; region_id: number }[] = [];
 let fetchError = false;
+let pageContent: ConcesionariosPage | null = null;
+
+try {
+  pageContent = await sanityClient.fetch<ConcesionariosPage | null>(concesionariosPageQuery);
+} catch (error) {
+  console.error('[Concesionarios] Error fetching Sanity content:', error);
+}
 
 try {
   const url = new URL(API_URL);
   url.searchParams.set('id_web', SITE_ID);
+
   const res = await fetch(url.toString(), {
     headers: {
       Authorization: `Bearer ${TOKEN}`,
@@ -56,603 +96,583 @@ try {
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
   const data: ApiPayload = await res.json();
+  const seenRegions = new Set<number>();
+  const seenComunas = new Set<number>();
 
-  sucursales = data.regiones.flatMap((r) =>
-    r.communes.flatMap((c) =>
-      c.sucursales
-        .filter((s) => s.is_active)
-        .map((s) => ({ ...s, comuna: c.name, region: r.name, region_id: r.id }))
-    )
-  );
+  for (const region of data.regiones) {
+    const activeCommunes = region.communes.filter((commune) =>
+      commune.sucursales.some((sucursal) => sucursal.is_active)
+    );
 
-  // Unique regions keeping order
-  const seen = new Set<number>();
-  for (const r of data.regiones) {
-    if (!seen.has(r.id)) {
-      regiones.push({ id: r.id, name: r.name });
-      seen.add(r.id);
+    if (activeCommunes.length && !seenRegions.has(region.id)) {
+      regiones.push({ id: region.id, name: region.name });
+      seenRegions.add(region.id);
+    }
+
+    for (const commune of activeCommunes) {
+      if (!seenComunas.has(commune.id)) {
+        comunas.push({ id: commune.id, name: commune.name, region_id: region.id });
+        seenComunas.add(commune.id);
+      }
+
+      sucursales.push(
+        ...commune.sucursales
+          .filter((sucursal) => sucursal.is_active)
+          .map((sucursal) => ({
+            ...sucursal,
+            comuna: commune.name,
+            comuna_id: commune.id,
+            region: region.name,
+            region_id: region.id,
+          }))
+      );
     }
   }
-} catch (e) {
-  console.error('Error fetching sucursales:', e);
+} catch (error) {
+  console.error('[Concesionarios] Error fetching sucursales:', error);
   fetchError = true;
 }
+
+const title = pageContent?.titulo || 'Encuentra tu';
+const highlightedTitle = pageContent?.tituloDestacado || 'próxima aventura';
+const descriptionLines = (pageContent?.descripcion || 'Elige tu Concesionario más cercano.\nContamos con expertos de alto rendimiento listos para atenderte.')
+  .split('\n')
+  .map((line) => line.trim())
+  .filter(Boolean);
+const services = pageContent?.servicios?.length ? pageContent.servicios : defaultServices;
 ---
 
-<BaseLayout title="Concesionarios — Cyclone Motos" description="Encuentra el concesionario Cyclone Motos más cercano a ti.">
-  <div class="dealers-page">
-    <div class="dealers-header">
-      <h1 class="dealers-title">Concesionarios</h1>
-      <p class="dealers-subtitle">Encontrá el punto de venta Cyclone más cercano a tu ubicación.</p>
-    </div>
+<BaseLayout
+  title="Concesionarios - Cyclone Motos"
+  description="Encuentra el concesionario Cyclone Motos mas cercano a ti por region y comuna."
+>
+  <main class="dealers-page" data-dealers-page>
+    <section class="dealers-hero" aria-labelledby="dealers-title">
+      <div class="dealers-hero__container">
+        <h1 id="dealers-title" class="dealers-hero__title">
+          {title} <span>{highlightedTitle}</span>
+        </h1>
 
-    {fetchError ? (
-      <div class="dealers-error">
-        No se pudo cargar la información de concesionarios. Intentá de nuevo más tarde.
-      </div>
-    ) : (
-      <div class="dealers-layout">
-        <!-- Sidebar -->
-        <aside class="dealers-sidebar">
-          <div class="sidebar-filters">
-            <input
-              id="search-input"
-              type="search"
-              placeholder="Buscar por nombre o dirección…"
-              class="sidebar-search"
-              autocomplete="off"
-            />
-            <select id="region-select" class="sidebar-select">
-              <option value="">Todas las regiones</option>
-              {regiones.map((r) => (
-                <option value={String(r.id)}>{r.name}</option>
-              ))}
-            </select>
-            <select id="commune-select" class="sidebar-select" disabled>
-              <option value="">Todas las comunas</option>
-            </select>
-          </div>
+        <div class="dealers-hero__intro" data-dealers-intro>
+          {descriptionLines.map((line) => <p>{line}</p>)}
 
-          <div class="sidebar-count" id="result-count">
-            {sucursales.length} concesionarios
-          </div>
-
-          <ul class="sidebar-list" id="dealers-list">
-            {sucursales.map((s) => (
-              <li
-                class="sidebar-item"
-                data-id={String(s.id)}
-                data-lat={s.latitude}
-                data-lng={s.longitude}
-                data-region-id={String(s.region_id)}
-                data-comuna={s.comuna}
-              >
-                <span class="item-name">{s.name}</span>
-                <span class="item-meta">{s.comuna}</span>
-                <span class="item-badge">{s.region}</span>
+          <ul class="dealers-services" aria-label="Tipos de servicios disponibles">
+            {services.map((service) => (
+              <li>
+                {getServiceIconUrl(service) ? (
+                  <img
+                    src={getServiceIconUrl(service)!}
+                    alt={service.icono?.alt || service.titulo}
+                    width="32"
+                    height="32"
+                    loading="eager"
+                    decoding="async"
+                  />
+                ) : (
+                  <svg aria-hidden="true" viewBox="0 0 24 24">
+                    <path d={getServiceIconPath(service)} />
+                  </svg>
+                )}
+                <span>{service.titulo}</span>
               </li>
             ))}
           </ul>
-        </aside>
-
-        <!-- Map container -->
-        <div class="dealers-map-wrap">
-          <div id="dealers-map" class="dealers-map"></div>
-          <p class="geo-status" id="geo-status">Detectando tu ubicación…</p>
         </div>
+
+        {fetchError ? (
+          <p class="dealers-error">No se pudo cargar la informacion de concesionarios. Intentalo de nuevo mas tarde.</p>
+        ) : (
+          <>
+            <form class="dealers-filter" data-dealers-filter aria-label="Filtrar concesionarios">
+              <label class="dealers-filter__field">
+                <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 2C8.1 2 5 5.1 5 9c0 5.2 7 13 7 13s7-7.8 7-13c0-3.9-3.1-7-7-7Zm0 9.5A2.5 2.5 0 1 1 12 6a2.5 2.5 0 0 1 0 5.5Z"/></svg>
+                <span class="sr-only">Region</span>
+                <select id="region-select" data-region-select>
+                  <option value="">Ingresa region</option>
+                  {regiones.map((region) => (
+                    <option value={String(region.id)}>{region.name}</option>
+                  ))}
+                </select>
+              </label>
+
+              <label class="dealers-filter__field">
+                <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 6h16v2H4V6Zm3 5h10v2H7v-2Zm3 5h4v2h-4v-2Z"/></svg>
+                <span class="sr-only">Comuna</span>
+                <select id="commune-select" data-commune-select disabled>
+                  <option value="">Ingresa comuna</option>
+                  {comunas.map((comuna) => (
+                    <option value={String(comuna.id)} data-region-id={String(comuna.region_id)}>
+                      {comuna.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </form>
+
+            <p class="dealers-empty" data-dealers-empty hidden>
+              No encontramos concesionarios activos para esta busqueda.
+            </p>
+
+            <div class="dealers-results" data-dealers-results aria-live="polite">
+              {sucursales.map((sucursal) => (
+                <article
+                  class="dealer-card"
+                  data-dealer-card
+                  data-region-id={String(sucursal.region_id)}
+                  data-comuna-id={String(sucursal.comuna_id)}
+                >
+                  <h2 class="dealer-card__title">{sucursal.name}</h2>
+
+                  <ul class="dealer-card__details">
+                    <li>
+                      <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 2C8.1 2 5 5.1 5 9c0 5.2 7 13 7 13s7-7.8 7-13c0-3.9-3.1-7-7-7Zm0 9.5A2.5 2.5 0 1 1 12 6a2.5 2.5 0 0 1 0 5.5Z"/></svg>
+                      <span>{sucursal.address}</span>
+                    </li>
+                    {sucursal.spider && (
+                      <li>
+                        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M20 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2Zm-.4 4.2-7.1 4.5a1 1 0 0 1-1 0L4.4 8.2V6.6l7.6 4.8 7.6-4.8v1.6Z"/></svg>
+                        <a href={`mailto:${sucursal.spider}`}>{sucursal.spider}</a>
+                      </li>
+                    )}
+                    {sucursal.phone && (
+                      <li>
+                        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M20.5 15.5c-1.4 0-2.7-.2-4-.7a1.2 1.2 0 0 0-1.2.3l-1.8 1.8a15.5 15.5 0 0 1-6.4-6.4l1.8-1.8c.3-.3.4-.8.3-1.2-.4-1.3-.7-2.6-.7-4A1.5 1.5 0 0 0 7 2H4.5A1.5 1.5 0 0 0 3 3.5 17.5 17.5 0 0 0 20.5 21a1.5 1.5 0 0 0 1.5-1.5V17a1.5 1.5 0 0 0-1.5-1.5Z"/></svg>
+                        <a href={formatPhoneHref(sucursal.phone)}>{sucursal.phone}</a>
+                      </li>
+                    )}
+                    {sucursal.hours && (
+                      <li>
+                        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm1 10.2 3.8 2.2-1 1.7-4.8-2.8V6h2v6.2Z"/></svg>
+                        <span>{sucursal.hours}</span>
+                      </li>
+                    )}
+                  </ul>
+
+                  <div class="dealer-card__services">
+                    <p>Tipos de servicios:</p>
+                    <ul>
+                      {services.map((service) => (
+                        <li>
+                          {getServiceIconUrl(service) ? (
+                            <img
+                              src={getServiceIconUrl(service)!}
+                              alt={service.icono?.alt || service.titulo}
+                              width="24"
+                              height="24"
+                              loading="lazy"
+                              decoding="async"
+                            />
+                          ) : (
+                            <svg aria-hidden="true" viewBox="0 0 24 24">
+                              <path d={getServiceIconPath(service)} />
+                            </svg>
+                          )}
+                          <span>{service.titulo}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  <Button href={formatRouteHref(sucursal)} target="_blank" size="lg" fullWidth>
+                    Ver ruta
+                  </Button>
+                </article>
+              ))}
+            </div>
+          </>
+        )}
       </div>
-    )}
-  </div>
+    </section>
+  </main>
 
-  <!-- Pass data to client -->
   <script
-    id="dealers-data"
+    id="dealers-communes-data"
     type="application/json"
-    set:html={JSON.stringify(sucursales)}
+    set:html={JSON.stringify(comunas)}
   />
-  <script id="mapbox-token-data" type="application/json" set:html={JSON.stringify(MAPBOX_TOKEN)} />
 
-  <!-- Mapbox GL JS + CSS (loaded in-body, sync, before our inline script) -->
-  <link
-    href="https://api.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.css"
-    rel="stylesheet"
-  />
-  <script is:inline src="https://api.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.js"></script>
+  <script>
+    const page = document.querySelector<HTMLElement>('[data-dealers-page]');
+    const regionSelect = document.querySelector<HTMLSelectElement>('[data-region-select]');
+    const communeSelect = document.querySelector<HTMLSelectElement>('[data-commune-select]');
+    const cards = Array.from(document.querySelectorAll<HTMLElement>('[data-dealer-card]'));
+    const empty = document.querySelector<HTMLElement>('[data-dealers-empty]');
+    const communesDataEl = document.getElementById('dealers-communes-data');
+    const communes: { id: number; name: string; region_id: number }[] = JSON.parse(
+      communesDataEl?.textContent || '[]'
+    );
 
-<script is:inline>
-(function () {
-  // ── Data ─────────────────────────────────────────────────────────────
-  const sucursalesRaw = document.getElementById('dealers-data');
-  const tokenRaw = document.getElementById('mapbox-token-data');
-  if (!sucursalesRaw || !tokenRaw) return;
+    const updateCommunes = () => {
+      if (!regionSelect || !communeSelect) return;
 
-  const sucursales = JSON.parse(sucursalesRaw.textContent || '[]');
-  const MAPBOX_TOKEN = JSON.parse(tokenRaw.textContent || '""');
+      const regionId = regionSelect.value;
+      const regionCommunes = communes.filter((commune) => String(commune.region_id) === regionId);
 
-  if (!MAPBOX_TOKEN || !sucursales.length) {
-    document.getElementById('geo-status').style.display = 'none';
-    return;
-  }
+      communeSelect.innerHTML = '<option value="">Comuna</option>';
+      communeSelect.disabled = !regionId;
 
-  // ── Unique communes per region for dropdown ───────────────────────────
-  const communesByRegion = {};
-  sucursales.forEach((s) => {
-    if (!communesByRegion[s.region_id]) communesByRegion[s.region_id] = new Set();
-    communesByRegion[s.region_id].add(s.comuna);
-  });
+      regionCommunes.forEach((commune) => {
+        const option = document.createElement('option');
+        option.value = String(commune.id);
+        option.textContent = commune.name;
+        communeSelect.appendChild(option);
+      });
+    };
 
-  // ── Mapbox init ───────────────────────────────────────────────────────
-  mapboxgl.accessToken = MAPBOX_TOKEN;
+    const applyFilters = () => {
+      if (!page || !regionSelect || !communeSelect || !empty) return;
 
-  const map = new mapboxgl.Map({
-    container: 'dealers-map',
-    style: 'mapbox://styles/mapbox/outdoors-v12',
-    center: [-70.6, -33.4],
-    zoom: 5,
-  });
+      const regionId = regionSelect.value;
+      const comunaId = communeSelect.value;
+      const hasFilter = Boolean(regionId || comunaId);
+      let visibleCount = 0;
 
-  map.addControl(new mapboxgl.NavigationControl(), 'top-right');
+      page.classList.toggle('is-filtered', hasFilter);
 
-  // ── Markers & popups ──────────────────────────────────────────────────
-  const markers = {}; // id → { marker, el, sucursal }
+      cards.forEach((card, index) => {
+        const matchesRegion = !regionId || card.dataset.regionId === regionId;
+        const matchesCommune = !comunaId || card.dataset.comunaId === comunaId;
+        const isVisible = hasFilter && matchesRegion && matchesCommune;
 
-  function createPinEl(active) {
-    const el = document.createElement('img');
-    el.src = '/pin_concesionari.webp';
-    el.width = 26;
-    el.height = 29;
-    el.className = 'map-pin' + (active ? ' map-pin--active' : '');
-    el.style.display = 'block';
-    return el;
-  }
+        card.hidden = !isVisible;
+        card.style.setProperty('--dealer-card-index', String(index % 6));
+        if (isVisible) visibleCount += 1;
+      });
 
-  function buildPopupHTML(s) {
-    return `
-      <div class="dealer-popup">
-        <strong class="popup-name">${s.name}</strong>
-        <p class="popup-address">${s.address}</p>
-        ${s.phone ? `<p class="popup-phone"><a href="tel:${s.phone}">${s.phone}</a></p>` : ''}
-        ${s.hours ? `<p class="popup-hours">${s.hours}</p>` : ''}
-      </div>`;
-  }
+      empty.hidden = !hasFilter || visibleCount > 0;
+    };
 
-  let activeId = null;
-  let activePopup = null;
-
-  function activateMarker(id) {
-    // Deactivate previous
-    if (activeId !== null && markers[activeId]) {
-      markers[activeId].el.classList.remove('map-pin--active');
-    }
-    if (activePopup) { activePopup.remove(); activePopup = null; }
-
-    activeId = id;
-    const entry = markers[id];
-    if (!entry) return;
-
-    entry.el.classList.add('map-pin--active');
-
-    activePopup = new mapboxgl.Popup({ offset: 28, closeButton: true, maxWidth: '280px' })
-      .setLngLat([parseFloat(entry.sucursal.longitude), parseFloat(entry.sucursal.latitude)])
-      .setHTML(buildPopupHTML(entry.sucursal))
-      .addTo(map);
-
-    activePopup.on('close', () => {
-      if (activeId === id) {
-        entry.el.classList.remove('map-pin--active');
-        activeId = null;
-      }
-    });
-
-    // Highlight list item
-    document.querySelectorAll('.sidebar-item').forEach((li) => li.classList.remove('is-active'));
-    const listItem = document.querySelector(`.sidebar-item[data-id="${id}"]`);
-    if (listItem) {
-      listItem.classList.add('is-active');
-      listItem.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-    }
-  }
-
-  map.on('load', () => {
-    sucursales.forEach((s) => {
-      const el = createPinEl(false);
-      const marker = new mapboxgl.Marker({ element: el, anchor: 'bottom' })
-        .setLngLat([parseFloat(s.longitude), parseFloat(s.latitude)])
-        .addTo(map);
-
-      markers[s.id] = { marker, el, sucursal: s };
-
-      el.addEventListener('click', () => {
-        map.flyTo({ center: [parseFloat(s.longitude), parseFloat(s.latitude)], zoom: 14, speed: 1.4 });
-        activateMarker(s.id);
+    document.querySelectorAll<HTMLElement>('.dealers-filter__field').forEach((field) => {
+      field.addEventListener('click', (event) => {
+        const select = field.querySelector('select');
+        if (!select || (event.target as HTMLElement).closest('select')) return;
+        select.focus();
+        select.showPicker?.();
       });
     });
-  });
 
-  // ── Sidebar list click ────────────────────────────────────────────────
-  document.getElementById('dealers-list').addEventListener('click', (e) => {
-    const li = e.target.closest('.sidebar-item');
-    if (!li) return;
-    const id = parseInt(li.dataset.id, 10);
-    const lat = parseFloat(li.dataset.lat);
-    const lng = parseFloat(li.dataset.lng);
-    map.flyTo({ center: [lng, lat], zoom: 14, speed: 1.4 });
-    activateMarker(id);
-  });
-
-  // ── Filtering ─────────────────────────────────────────────────────────
-  const searchInput = document.getElementById('search-input');
-  const regionSelect = document.getElementById('region-select');
-  const communeSelect = document.getElementById('commune-select');
-  const resultCount = document.getElementById('result-count');
-  const allItems = Array.from(document.querySelectorAll('.sidebar-item'));
-
-  function applyFilters() {
-    const query = searchInput.value.toLowerCase().trim();
-    const regionId = regionSelect.value;
-    const commune = communeSelect.value;
-    let visible = 0;
-
-    allItems.forEach((li) => {
-      const id = parseInt(li.dataset.id, 10);
-      const entry = markers[id];
-      const s = entry?.sucursal;
-      if (!s) return;
-
-      const matchesSearch = !query ||
-        s.name.toLowerCase().includes(query) ||
-        s.address.toLowerCase().includes(query);
-      const matchesRegion = !regionId || String(s.region_id) === regionId;
-      const matchesCommune = !commune || s.comuna === commune;
-      const show = matchesSearch && matchesRegion && matchesCommune;
-
-      li.style.display = show ? '' : 'none';
-      if (entry) entry.el.style.display = show ? '' : 'none';
-      if (show) visible++;
+    regionSelect?.addEventListener('change', () => {
+      updateCommunes();
+      if (communeSelect) communeSelect.value = '';
+      applyFilters();
     });
 
-    resultCount.textContent = `${visible} concesionario${visible !== 1 ? 's' : ''}`;
-  }
-
-  function updateCommuneDropdown(regionId) {
-    communeSelect.innerHTML = '<option value="">Todas las comunas</option>';
-    communeSelect.disabled = !regionId;
-    if (!regionId) return;
-    const communes = communesByRegion[regionId] ? Array.from(communesByRegion[regionId]).sort() : [];
-    communes.forEach((name) => {
-      const opt = document.createElement('option');
-      opt.value = name;
-      opt.textContent = name;
-      communeSelect.appendChild(opt);
-    });
-  }
-
-  regionSelect.addEventListener('change', () => {
-    communeSelect.value = '';
-    updateCommuneDropdown(regionSelect.value);
+    communeSelect?.addEventListener('change', applyFilters);
     applyFilters();
-  });
+  </script>
 
-  communeSelect.addEventListener('change', applyFilters);
-  searchInput.addEventListener('input', applyFilters);
-
-  // ── Geolocation ───────────────────────────────────────────────────────
-  function distanceSq(lat1, lng1, lat2, lng2) {
-    const dlat = lat1 - lat2;
-    const dlng = lng1 - lng2;
-    return dlat * dlat + dlng * dlng;
-  }
-
-  function findClosestRegionId(userLat, userLng) {
-    let minDist = Infinity;
-    let bestRegionId = null;
-    sucursales.forEach((s) => {
-      const d = distanceSq(userLat, userLng, parseFloat(s.latitude), parseFloat(s.longitude));
-      if (d < minDist) {
-        minDist = d;
-        bestRegionId = s.region_id;
-      }
-    });
-    return bestRegionId;
-  }
-
-  function preselectRegion(regionId) {
-    regionSelect.value = String(regionId);
-    updateCommuneDropdown(String(regionId));
-    applyFilters();
-  }
-
-  const geoStatus = document.getElementById('geo-status');
-
-  function resolveGeo(lat, lng, fromUser) {
-    geoStatus.style.display = 'none';
-    if (fromUser) {
-      map.flyTo({ center: [lng, lat], zoom: 10, speed: 1.6 });
-    } else {
-      map.flyTo({ center: [lng, lat], zoom: 10, speed: 1.6 });
-    }
-    const regionId = findClosestRegionId(lat, lng);
-    if (regionId) preselectRegion(regionId);
-  }
-
-  function fallbackToRM() {
-    resolveGeo(-33.4569, -70.6483, false);
-  }
-
-  if (navigator.geolocation) {
-    navigator.geolocation.getCurrentPosition(
-      (pos) => resolveGeo(pos.coords.latitude, pos.coords.longitude, true),
-      () => fallbackToRM(),
-      { timeout: 8000 }
-    );
-  } else {
-    fallbackToRM();
-  }
-})();
-</script>
-
-<style>
-  /* ── Page wrapper ── */
-  .dealers-page {
-    min-height: 100dvh;
-    background: var(--color-bg, #ffffff);
-    padding-top: var(--header-height, 72px);
-  }
-
-  .dealers-header {
-    max-width: var(--container-max, 1280px);
-    margin: 0 auto;
-    padding: 2.5rem 1.5rem 1.5rem;
-  }
-
-  .dealers-title {
-    font-family: var(--font-heading);
-    font-size: var(--text-h2);
-    font-weight: 700;
-    color: var(--color-text, #1a1c1c);
-    text-transform: uppercase;
-    letter-spacing: -0.03em;
-    margin: 0 0 0.35rem;
-  }
-
-  .dealers-subtitle {
-    font-family: var(--font-body);
-    font-size: 0.95rem;
-    color: var(--color-text-muted, #5f6368);
-    margin: 0;
-  }
-
-  .dealers-error {
-    max-width: 40rem;
-    margin: 3rem auto;
-    padding: 1.5rem;
-    background: #fff0f0;
-    border: 1px solid var(--color-primary, #d6000f);
-    border-radius: var(--radius-md, 0.75rem);
-    color: var(--color-primary-dark, #a8000c);
-    text-align: center;
-    font-family: var(--font-body);
-  }
-
-  /* ── Main layout ── */
-  .dealers-layout {
-    max-width: var(--container-max, 1280px);
-    margin: 0 auto;
-    padding: 0 1.5rem 3rem;
-    display: flex;
-    gap: 1.25rem;
-    height: 600px;
-  }
-
-  /* ── Sidebar ── */
-  .dealers-sidebar {
-    width: 300px;
-    flex-shrink: 0;
-    display: flex;
-    flex-direction: column;
-    background: var(--color-bg, #ffffff);
-    border: 1px solid var(--color-border, #e9eaeb);
-    border-radius: var(--radius-md, 0.75rem);
-    overflow: hidden;
-  }
-
-  .sidebar-filters {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-    padding: 0.85rem;
-    border-bottom: 1px solid var(--color-border, #e9eaeb);
-    background: var(--color-bg-alt, #f7f7f7);
-  }
-
-  .sidebar-search,
-  .sidebar-select {
-    width: 100%;
-    padding: 0.5rem 0.65rem;
-    font-family: var(--font-body);
-    font-size: 0.83rem;
-    color: var(--color-text, #1a1c1c);
-    background: var(--color-bg, #ffffff);
-    border: 1px solid var(--color-border, #e9eaeb);
-    border-radius: var(--radius-sm, 0.375rem);
-    outline: none;
-    transition: border-color 150ms ease;
-    box-sizing: border-box;
-  }
-
-  .sidebar-search:focus,
-  .sidebar-select:focus {
-    border-color: var(--color-primary, #d6000f);
-  }
-
-  .sidebar-select:disabled {
-    opacity: 0.45;
-    cursor: not-allowed;
-  }
-
-  .sidebar-count {
-    padding: 0.5rem 0.85rem;
-    font-family: var(--font-body);
-    font-size: 0.75rem;
-    font-weight: 600;
-    color: var(--color-text-muted, #5f6368);
-    border-bottom: 1px solid var(--color-border, #e9eaeb);
-    background: var(--color-bg-alt, #f7f7f7);
-  }
-
-  .sidebar-list {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    overflow-y: auto;
-    flex: 1;
-  }
-
-  .sidebar-item {
-    padding: 0.7rem 0.85rem;
-    border-bottom: 1px solid var(--color-border, #e9eaeb);
-    cursor: pointer;
-    transition: background 140ms ease;
-    display: flex;
-    flex-direction: column;
-    gap: 0.15rem;
-  }
-
-  .sidebar-item:hover {
-    background: var(--color-bg-alt, #f7f7f7);
-  }
-
-  .sidebar-item.is-active {
-    background: #fff0f0;
-    border-left: 3px solid var(--color-primary, #d6000f);
-  }
-
-  .sidebar-item.is-active .item-name {
-    color: var(--color-primary, #d6000f);
-  }
-
-  .item-name {
-    font-family: var(--font-body);
-    font-size: 0.85rem;
-    font-weight: 700;
-    color: var(--color-text, #1a1c1c);
-    line-height: 1.3;
-  }
-
-  .item-meta {
-    font-family: var(--font-body);
-    font-size: 0.75rem;
-    color: var(--color-text-muted, #5f6368);
-  }
-
-  .item-badge {
-    font-family: var(--font-body);
-    font-size: 0.68rem;
-    font-weight: 600;
-    color: var(--color-primary, #d6000f);
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-  }
-
-  /* ── Map ── */
-  .dealers-map-wrap {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 0.4rem;
-    min-width: 0;
-  }
-
-  .dealers-map {
-    flex: 1;
-    border-radius: var(--radius-md, 0.75rem);
-    border: 1px solid var(--color-border, #e9eaeb);
-    overflow: hidden;
-  }
-
-  .geo-status {
-    font-family: var(--font-body);
-    font-size: 0.78rem;
-    color: var(--color-text-muted, #5f6368);
-    text-align: center;
-    margin: 0;
-  }
-
-  /* ── Custom map pin ── */
-  :global(.map-pin) {
-    width: 26px;
-    height: 29px;
-    cursor: pointer;
-    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.40));
-    transition: transform 180ms ease, filter 180ms ease;
-  }
-
-  :global(.map-pin--active),
-  :global(.map-pin:hover) {
-    transform: translateY(-5px);
-    filter: drop-shadow(0 4px 8px rgba(0,0,0,0.50)) brightness(0.85);
-  }
-
-  /* ── Mapbox popup override ── */
-  :global(.mapboxgl-popup-content) {
-    background: #ffffff !important;
-    border: 1px solid var(--color-border, #e9eaeb) !important;
-    border-radius: var(--radius-md, 0.75rem) !important;
-    padding: 0.85rem 1rem !important;
-    box-shadow: var(--shadow-md, 0 4px 12px rgba(0,0,0,0.10)) !important;
-  }
-
-  :global(.mapboxgl-popup-tip) {
-    border-top-color: var(--color-border, #e9eaeb) !important;
-  }
-
-  :global(.dealer-popup) {
-    font-family: var(--font-body);
-    color: var(--color-text, #1a1c1c);
-  }
-
-  :global(.popup-name) {
-    display: block;
-    font-size: 0.9rem;
-    font-weight: 700;
-    margin-bottom: 0.35rem;
-  }
-
-  :global(.popup-address),
-  :global(.popup-phone),
-  :global(.popup-hours) {
-    font-size: 0.78rem;
-    margin: 0.2rem 0;
-    line-height: 1.4;
-    color: var(--color-text-muted, #5f6368);
-  }
-
-  :global(.popup-phone a) {
-    color: var(--color-primary, #d6000f);
-    text-decoration: none;
-  }
-
-  :global(.popup-hours) {
-    color: var(--color-text-muted, #5f6368);
-    font-style: italic;
-  }
-
-  /* ── Responsive ── */
-  @media (max-width: 768px) {
-    .dealers-layout {
-      flex-direction: column;
-      height: auto;
-      padding-bottom: 2rem;
+  <style>
+    .dealers-page {
+      min-height: 100dvh;
+      background: #ffffff;
+      padding-top: var(--header-height, 72px);
     }
 
-    .dealers-sidebar {
+    .dealers-hero {
+      padding: clamp(3.75rem, 8vw, 6.25rem) 1.5rem clamp(5rem, 10vw, 8rem);
+    }
+
+    .dealers-hero__container {
+      width: min(100%, 1080px);
+      margin: 0 auto;
+      text-align: center;
+    }
+
+    .dealers-hero__title {
+      margin: 0;
+      font-family: var(--font-heading);
+      font-size: var(--text-h1);
+      font-weight: 700;
+      line-height: var(--leading-heading);
+      letter-spacing: -0.04em;
+      text-transform: uppercase;
+      color: #111827;
+    }
+
+    .dealers-hero__title span {
+      color: var(--color-primary);
+    }
+
+    .dealers-hero__intro {
+      display: grid;
+      gap: 0.2rem;
+      max-height: 13rem;
+      margin-top: 2rem;
+      opacity: 1;
+      transform: translateY(0);
+      transition:
+        max-height 520ms ease,
+        margin 520ms ease,
+        opacity 320ms ease,
+        transform 520ms ease;
+    }
+
+    .is-filtered .dealers-hero__intro {
+      max-height: 0;
+      margin-top: 0;
+      opacity: 0;
+      overflow: hidden;
+      transform: translateY(-1rem);
+      pointer-events: none;
+    }
+
+    .dealers-hero__intro p {
+      margin: 0;
+      font-family: var(--font-body);
+      font-size: var(--text-body);
+      line-height: var(--leading-body);
+      color: #617083;
+    }
+
+    .dealers-services {
+      display: flex;
+      justify-content: center;
+      gap: clamp(2rem, 7vw, 5rem);
+      list-style: none;
+      margin: 2.4rem 0 0;
+      padding: 0;
+    }
+
+    .dealers-services li {
+      display: grid;
+      justify-items: center;
+      gap: 0.35rem;
+      font-family: var(--font-body);
+      font-size: clamp(1.25rem, 2.2vw, 1.75rem);
+      color: #111111;
+    }
+
+    .dealers-services svg,
+    .dealers-services img,
+    .dealer-card__services img,
+    .dealer-card__services svg {
+      width: 1.45rem;
+      height: 1.45rem;
+      object-fit: contain;
+      fill: currentColor;
+    }
+
+    .dealers-filter {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      width: min(100%, 1080px);
+      margin: 2.6rem auto 0;
+      background: #ffffff;
+      border: 1px solid transparent;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+      transition:
+        margin 520ms ease,
+        border-color 360ms ease,
+        box-shadow 360ms ease;
+    }
+
+    .is-filtered .dealers-filter {
+      margin-top: 2.3rem;
+      border-color: var(--color-primary);
+      box-shadow: none;
+    }
+
+    .dealers-filter__field {
+      display: flex;
+      align-items: center;
+      gap: 1.15rem;
+      min-height: 4rem;
+      padding: 0 1.25rem;
+      cursor: pointer;
+    }
+
+    .dealers-filter__field + .dealers-filter__field {
+      border-left: 1px solid rgba(214, 0, 15, 0.28);
+    }
+
+    .dealers-filter__field svg {
+      width: 1.1rem;
+      height: 1.1rem;
+      flex: 0 0 auto;
+      fill: var(--color-primary);
+    }
+
+    .dealers-filter select {
       width: 100%;
-      max-height: 300px;
+      min-width: 0;
+      border: 0;
+      outline: 0;
+      background: transparent;
+      color: var(--color-text);
+      font-family: var(--font-body);
+      font-size: var(--text-body);
+      cursor: pointer;
+      appearance: auto;
     }
 
-    .dealers-map-wrap {
-      height: 400px;
+    .dealers-filter select:disabled {
+      opacity: 0.58;
+      cursor: not-allowed;
     }
-  }
-</style>
+
+    .dealers-results {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 1.5rem;
+      margin-top: 2rem;
+      text-align: left;
+    }
+
+    .dealer-card {
+      display: flex;
+      flex-direction: column;
+      min-height: 100%;
+      padding: clamp(1.35rem, 2.2vw, 2rem);
+      border: 1px solid #e8eaee;
+      background: #ffffff;
+      box-shadow: 0 2px 10px rgba(17, 24, 39, 0.06);
+      opacity: 0;
+      transform: translateY(1rem);
+      animation: dealer-card-enter 520ms ease forwards;
+      animation-delay: calc(var(--dealer-card-index, 0) * 55ms);
+    }
+
+    .dealer-card[hidden] {
+      display: none;
+    }
+
+    .dealer-card__title {
+      margin: 0 0 1.5rem;
+      font-family: var(--font-heading);
+      font-size: var(--text-h3);
+      font-weight: 700;
+      line-height: var(--leading-subheading);
+      color: var(--color-text);
+      text-transform: uppercase;
+    }
+
+    .dealer-card__details {
+      display: grid;
+      gap: 1rem;
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+
+    .dealer-card__details li {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.8rem;
+      font-family: var(--font-body);
+      font-size: var(--text-small);
+      line-height: var(--leading-compact);
+      color: var(--color-text);
+    }
+
+    .dealer-card__details svg {
+      width: 0.95rem;
+      height: 0.95rem;
+      flex: 0 0 auto;
+      margin-top: 0.15rem;
+      fill: var(--color-primary);
+    }
+
+    .dealer-card__details a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    .dealer-card__services {
+      margin-top: 1.3rem;
+      margin-bottom: 0.85rem;
+      font-family: var(--font-body);
+      color: #111111;
+    }
+
+    .dealer-card__services p {
+      margin: 0 0 0.75rem;
+      font-size: var(--text-small);
+      font-weight: 700;
+    }
+
+    .dealer-card__services ul {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 0.5rem;
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+
+    .dealer-card__services li {
+      display: grid;
+      justify-items: center;
+      gap: 0.2rem;
+      font-size: var(--text-caption);
+      text-align: center;
+    }
+
+    .dealer-card :global(.btn) {
+      margin-top: auto;
+    }
+
+    .dealers-empty,
+    .dealers-error {
+      margin: 2rem auto 0;
+      font-family: var(--font-body);
+      font-size: var(--text-body);
+      color: var(--color-text);
+      text-align: center;
+    }
+
+    .dealers-error {
+      max-width: 44rem;
+      padding: 1.25rem;
+      border: 1px solid var(--color-primary);
+      color: var(--color-primary);
+    }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    @keyframes dealer-card-enter {
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @media (max-width: 960px) {
+      .dealers-results {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 767px) {
+      .dealers-hero {
+        padding-inline: 1rem;
+      }
+
+      .dealers-filter {
+        grid-template-columns: 1fr;
+      }
+
+      .dealers-filter__field + .dealers-filter__field {
+        border-left: 0;
+        border-top: 1px solid rgba(214, 0, 15, 0.28);
+      }
+
+      .dealers-services {
+        gap: 1.5rem;
+      }
+
+      .dealers-results {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
 </BaseLayout>

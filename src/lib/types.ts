@@ -116,6 +116,20 @@ export interface HomeInfoSection {
   imagenFondo: SanityImage;
 }
 
+export interface ConcesionariosPageService {
+  titulo: string;
+  icono?: SanityImage;
+  iconKey?: 'ventas' | 'repuestos' | 'servicios' | string;
+}
+
+export interface ConcesionariosPage {
+  _id: string;
+  titulo: string;
+  tituloDestacado: string;
+  descripcion: string;
+  servicios?: ConcesionariosPageService[];
+}
+
 export interface Moto {
   _id: string;
   nombre: string;

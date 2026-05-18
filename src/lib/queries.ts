@@ -282,3 +282,19 @@ export const homeInfoSectionQuery = `
     }
   }
 `;
+
+export const concesionariosPageQuery = `
+  *[_type == "concesionariosPage"] | order(_updatedAt desc)[0] {
+    _id,
+    titulo,
+    tituloDestacado,
+    descripcion,
+    servicios[] {
+      titulo,
+      icono {
+        ...,
+        alt
+      }
+    }
+  }
+`;

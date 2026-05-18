@@ -54,7 +54,7 @@ export default defineType({
       name: 'fotoHeader',
       title: 'Foto Header',
       type: 'image',
-      description: '360x220px. \nImagen principal que aparece en el header de la moto.',
+      description: '272px de ancho. \nImagen principal que aparece en el header de la moto.',
       group: 'general',
       options: {
         hotspot: true,
@@ -63,6 +63,9 @@ export default defineType({
       fields: [
         createRequiredAltField({
           title: 'Texto alternativo (SEO)',
+        }),
+        createMobileImageField({
+          description: '410px de ancho. \nVersión de la foto para dispositivos móviles.',
         }),
       ],
     }),

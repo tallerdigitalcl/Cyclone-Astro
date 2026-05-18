@@ -147,7 +147,7 @@ const navLinks = [
         <ul class="mobile-menu__moto-list">
           {motos.map(moto => {
             const mobileImgUrl = moto.fotoHeader?.asset?.url
-              ? urlFor(moto.fotoHeader).width(300).fit('fill').auto('format').quality(80).url()
+              ? urlFor(moto.fotoHeader).width(410).fit('fill').auto('format').quality(80).url()
               : null;
             return (
               <li>
