@@ -66,7 +66,7 @@ const getServiceIconPath = (service: ConcesionariosPageService) =>
 
 const getServiceIconUrl = (service: ConcesionariosPageService) => {
   if (!service.icono?.asset) return null;
-  return urlFor(service.icono).width(64).height(64).fit('max').format('webp').url();
+  return urlFor(service.icono).width(64).fit('max').format('webp').url();
 };
 
 let sucursales: Sucursal[] = [];
@@ -164,7 +164,6 @@ const services = pageContent?.servicios?.length ? pageContent.servicios : defaul
                     src={getServiceIconUrl(service)!}
                     alt={service.icono?.alt || service.titulo}
                     width="32"
-                    height="32"
                     loading="eager"
                     decoding="async"
                   />
@@ -258,7 +257,6 @@ const services = pageContent?.servicios?.length ? pageContent.servicios : defaul
                               src={getServiceIconUrl(service)!}
                               alt={service.icono?.alt || service.titulo}
                               width="24"
-                              height="24"
                               loading="lazy"
                               decoding="async"
                             />
@@ -443,13 +441,22 @@ const services = pageContent?.servicios?.length ? pageContent.servicios : defaul
     }
 
     .dealers-services svg,
-    .dealers-services img,
-    .dealer-card__services img,
     .dealer-card__services svg {
       width: 1.45rem;
       height: 1.45rem;
-      object-fit: contain;
       fill: currentColor;
+    }
+
+    .dealers-services img,
+    .dealer-card__services img {
+      width: 1.45rem;
+      height: auto;
+      object-fit: contain;
+    }
+
+    .dealers-services li:first-child img,
+    .dealer-card__services li:first-child img {
+      width: 2.45rem;
     }
 
     .dealers-filter {
