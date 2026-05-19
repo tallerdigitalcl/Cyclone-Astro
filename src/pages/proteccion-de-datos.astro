@@ -1,0 +1,255 @@
+---
+import { toHTML } from '@portabletext/to-html';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { sanityClient, urlFor } from '../lib/sanity';
+import { proteccionDatosPageQuery } from '../lib/queries';
+import type { ProteccionDatosPage, SanityImage } from '../lib/types';
+
+const fallbackContent: ProteccionDatosPage = {
+  _id: 'fallback-proteccion-datos',
+  titulo: 'Proteccion de Datos',
+  descripcionSeo: 'Politica de proteccion de datos de Cyclone Motos.',
+  contenido: [
+    {
+      _type: 'block',
+      _key: 'fallback-intro',
+      style: 'normal',
+      markDefs: [],
+      children: [
+        {
+          _type: 'span',
+          _key: 'fallback-intro-span',
+          text: 'Agrega el contenido de Proteccion de Datos desde Sanity para publicar la version final de esta pagina.',
+          marks: [],
+        },
+      ],
+    },
+  ],
+};
+
+const escapeHtml = (value = '') =>
+  value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+
+const getPlainTextFromBlocks = (blocks: ProteccionDatosPage['contenido'] = []) =>
+  blocks
+    .flatMap((block) => block?.children?.map((child: { text?: string }) => child.text || '') || [])
+    .join(' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+const buildImageMarkup = (image: SanityImage) => {
+  const desktopUrl = urlFor(image).width(1120).quality(88).auto('format').url();
+  const desktopUrl2x = urlFor(image).width(1680).quality(82).auto('format').url();
+  const mobileImage = image.mobileImage;
+  const mobileUrl = mobileImage?.asset?._ref
+    ? urlFor(mobileImage).width(720).quality(86).auto('format').url()
+    : desktopUrl;
+  const mobileUrl2x = mobileImage?.asset?._ref
+    ? urlFor(mobileImage).width(1080).quality(82).auto('format').url()
+    : desktopUrl2x;
+
+  return {
+    alt: escapeHtml(mobileImage?.alt || image.alt || ''),
+    desktopUrl,
+    desktopUrl2x,
+    mobileUrl,
+    mobileUrl2x,
+  };
+};
+
+let pageContent: ProteccionDatosPage | null = null;
+
+try {
+  pageContent = await sanityClient.fetch<ProteccionDatosPage | null>(proteccionDatosPageQuery);
+} catch (error) {
+  console.error('[ProteccionDatos] Error fetching Sanity content:', error);
+}
+
+const content = {
+  ...fallbackContent,
+  ...pageContent,
+};
+
+const contentHTML = content.contenido
+  ? toHTML(content.contenido, {
+      components: {
+        types: {
+          image: ({ value }) => {
+            if (!value?.asset?._ref) {
+              return '';
+            }
+
+            const imageMarkup = buildImageMarkup(value);
+            const caption = value.caption
+              ? `<figcaption class="legal-page__image-caption">${escapeHtml(value.caption)}</figcaption>`
+              : '';
+
+            return `
+              <figure class="legal-page__image">
+                <picture>
+                  <source
+                    media="(max-width: 767px)"
+                    srcset="${imageMarkup.mobileUrl} 720w, ${imageMarkup.mobileUrl2x} 1080w"
+                    sizes="100vw"
+                  />
+                  <img
+                    src="${imageMarkup.desktopUrl}"
+                    srcset="${imageMarkup.desktopUrl} 1120w, ${imageMarkup.desktopUrl2x} 1680w"
+                    sizes="(min-width: 1200px) 960px, 100vw"
+                    alt="${imageMarkup.alt}"
+                    loading="lazy"
+                    decoding="async"
+                  />
+                </picture>
+                ${caption}
+              </figure>
+            `;
+          },
+        },
+        marks: {
+          link: ({ children, value }) => {
+            const href = value?.href ? escapeHtml(value.href) : '#';
+            const rel = value?.blank ? ' rel="noreferrer noopener"' : '';
+            const target = value?.blank ? ' target="_blank"' : '';
+            return `<a href="${href}"${target}${rel}>${children}</a>`;
+          },
+        },
+      },
+    })
+  : '';
+
+const fallbackDescription = getPlainTextFromBlocks(content.contenido).slice(0, 155);
+const pageDescription = content.descripcionSeo || fallbackDescription || fallbackContent.descripcionSeo;
+---
+
+<BaseLayout title={`${content.titulo} - Cyclone Motos`} description={pageDescription}>
+  <main class="legal-page">
+    <article class="legal-page__container">
+      <h1 class="legal-page__title">{content.titulo}</h1>
+      {contentHTML && <div class="legal-page__content" set:html={contentHTML} />}
+    </article>
+  </main>
+
+  <style>
+    .legal-page {
+      min-height: 100vh;
+      padding: calc(var(--header-height, 72px) + clamp(2.5rem, 6vw, 5rem)) 1.5rem clamp(4rem, 8vw, 6rem);
+      background: #ffffff;
+      color: var(--color-text);
+    }
+
+    .legal-page__container {
+      width: min(100%, var(--container-max));
+      padding-inline:1.5rem;
+      margin: 0 auto;
+    }
+
+    .legal-page__title {
+      margin: 0 0 clamp(2rem, 4vw, 3rem);
+      font-family: var(--font-heading);
+      font-size: var(--text-h2);
+      font-weight: 700;
+      line-height: var(--leading-heading);
+      letter-spacing: -0.04em;
+      text-transform: uppercase;
+      color: var(--color-text);
+    }
+
+    .legal-page__content {
+      font-family: var(--font-body);
+      font-size: var(--text-body-sm);
+      line-height: var(--leading-body);
+      color: rgba(26, 28, 28, 0.9);
+    }
+
+    .legal-page__content :global(*) {
+      overflow-wrap: break-word;
+    }
+
+    .legal-page__content :global(p) {
+      margin: 0 0 1rem;
+    }
+
+    .legal-page__content :global(h2),
+    .legal-page__content :global(h3),
+    .legal-page__content :global(h4) {
+      margin: clamp(1.8rem, 4vw, 2.8rem) 0 0.85rem;
+      font-family: var(--font-heading);
+      font-weight: 700;
+      line-height: 1.12;
+      letter-spacing: -0.035em;
+      color: var(--color-text);
+    }
+
+    .legal-page__content :global(h2) {
+      font-size: var(--text-h3);
+    }
+
+    .legal-page__content :global(h3) {
+      font-size: var(--text-h4);
+    }
+
+    .legal-page__content :global(h4) {
+      font-size: var(--text-body-lg);
+    }
+
+    .legal-page__content :global(ul),
+    .legal-page__content :global(ol) {
+      margin: 0 0 1.2rem 1.25rem;
+      padding: 0;
+    }
+
+    .legal-page__content :global(li) {
+      margin-bottom: 0.45rem;
+    }
+
+    .legal-page__content :global(a) {
+      color: var(--color-primary);
+      font-weight: 700;
+      text-decoration: underline;
+      text-underline-offset: 0.18em;
+    }
+
+    .legal-page__content :global(blockquote) {
+      margin: 1.5rem 0;
+      padding: 1rem 1.25rem;
+      border-left: 3px solid var(--color-primary);
+      background: rgba(214, 0, 15, 0.06);
+      color: var(--color-text);
+    }
+
+    .legal-page__content :global(code) {
+      padding: 0.12rem 0.28rem;
+      border-radius: 0.2rem;
+      background: rgba(26, 28, 28, 0.08);
+      font-size: 0.92em;
+    }
+
+    .legal-page__image {
+      margin: clamp(1.75rem, 4vw, 2.5rem) 0;
+    }
+
+    .legal-page__image img {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+
+    .legal-page__image-caption {
+      margin-top: 0.65rem;
+      font-size: var(--text-body-sm);
+      color: rgba(26, 28, 28, 0.62);
+    }
+
+    @media (max-width: 767px) {
+      .legal-page {
+        padding-inline: 1.1rem;
+      }
+    }
+  </style>
+</BaseLayout>

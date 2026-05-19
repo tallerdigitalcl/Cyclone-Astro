@@ -298,3 +298,35 @@ export const concesionariosPageQuery = `
     }
   }
 `;
+
+export const descubreMasPageQuery = `
+  *[_type == "descubreMasPage"] | order(_updatedAt desc)[0] {
+    _id,
+    titulo,
+    tituloDestacado,
+    descripcion,
+    imagenFondo {
+      ...,
+      alt,
+      "dimensions": asset->metadata.dimensions,
+      mobileImage {
+        ...,
+        alt,
+        "dimensions": asset->metadata.dimensions
+      }
+    },
+    descripcionInferior,
+    textoGrandeInferior,
+    botonTexto,
+    botonUrl
+  }
+`;
+
+export const proteccionDatosPageQuery = `
+  *[_type == "proteccionDatosPage"] | order(_updatedAt desc)[0] {
+    _id,
+    titulo,
+    descripcionSeo,
+    contenido
+  }
+`;

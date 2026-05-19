@@ -4,6 +4,12 @@ export interface SanityImage {
     _ref: string;
     _type: 'reference';
     url?: string;
+    metadata?: {
+      dimensions?: {
+        width?: number;
+        height?: number;
+      };
+    };
   };
   alt?: string;
   mobileImage?: SanityImage;
@@ -12,6 +18,10 @@ export interface SanityImage {
     y: number;
     height: number;
     width: number;
+  };
+  dimensions?: {
+    width?: number;
+    height?: number;
   };
 }
 
@@ -128,6 +138,26 @@ export interface ConcesionariosPage {
   tituloDestacado: string;
   descripcion: string;
   servicios?: ConcesionariosPageService[];
+}
+
+export interface DescubreMasPage {
+  _id: string;
+  titulo: string;
+  tituloDestacado?: string;
+  descripcion: string;
+  imagenFondo: SanityImage;
+  descripcionInferior: string;
+  textoGrandeInferior: string;
+  botonTexto: string;
+  botonUrl: string;
+}
+
+export interface ProteccionDatosPage {
+  _id: string;
+  titulo: string;
+  descripcionSeo?: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  contenido?: any[];
 }
 
 export interface Moto {
