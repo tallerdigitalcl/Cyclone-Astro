@@ -10,6 +10,43 @@ const worldLinks = [
   { label: 'Protección de datos' },
 ];
 
+interface FooterWorldLink {
+  label: string;
+  href: string;
+  blank?: boolean;
+}
+
+interface FooterSettings {
+  nuestroMundoTitulo?: string;
+  nuestroMundoLinks?: FooterWorldLink[];
+}
+
+const footerSettingsQuery = `*[_type == "footerSettings"] | order(_updatedAt desc)[0] {
+  nuestroMundoTitulo,
+  nuestroMundoLinks[] {
+    label,
+    href,
+    blank
+  }
+}`;
+
+const fallbackWorldTitle = 'Nuestro mundo';
+const fallbackWorldLinks: FooterWorldLink[] = [
+  { label: 'Descubre más', href: '/descubre-mas' },
+  { label: 'Concesionarios', href: '/concesionarios' },
+  { label: 'Protección de datos', href: '/proteccion-de-datos' },
+];
+
+let footerSettings: FooterSettings | null = null;
+
+try {
+  footerSettings = await sanityClient.fetch<FooterSettings | null>(footerSettingsQuery);
+} catch (error) {
+  console.error('[Footer] Error fetching Sanity content:', error);
+}
+
+const footerWorldTitle = footerSettings?.nuestroMundoTitulo || fallbackWorldTitle;
+const footerWorldLinks = footerSettings?.nuestroMundoLinks?.filter((link) => link.label && link.href) || fallbackWorldLinks;
 const currentYear = new Date().getFullYear();
 ---
 
@@ -60,15 +97,18 @@ const currentYear = new Date().getFullYear();
       </nav>
 
       <nav class="footer__nav" aria-labelledby="footer-world-title">
-        <h3 id="footer-world-title" class="footer__title">Nuestro mundo</h3>
+        <h3 id="footer-world-title" class="footer__title">{footerWorldTitle}</h3>
         <ul class="footer__link-list">
-          {worldLinks.map((link) => (
+          {footerWorldLinks.map((link) => (
             <li>
-              {link.href ? (
-                <a href={link.href} class="footer__link">{link.label}</a>
-              ) : (
-                <span class="footer__link footer__link--muted">{link.label}</span>
-              )}
+              <a
+                href={link.href}
+                class="footer__link"
+                target={link.blank ? '_blank' : undefined}
+                rel={link.blank ? 'noreferrer noopener' : undefined}
+              >
+                {link.label}
+              </a>
             </li>
           ))}
         </ul>

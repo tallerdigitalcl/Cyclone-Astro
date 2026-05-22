@@ -67,7 +67,6 @@ const categoryLabel = post.category ? categoryLabels[post.category] || post.cate
       <a href={`/noticia/${post.slug}`}>{post.title}</a>
     </h2>
     {post.excerpt && <p class="post-card__excerpt">{post.excerpt}</p>}
-    {post.author && <p class="post-card__author">Por {post.author.name}</p>}
   </div>
 </article>
 
@@ -145,10 +144,4 @@ const categoryLabel = post.category ? categoryLabels[post.category] || post.cate
     line-height: 1.5;
   }
 
-  .post-card__author {
-    @apply font-body;
-    margin-top: auto;
-    font-size: 0.82rem;
-    color: var(--color-muted);
-  }
 </style>

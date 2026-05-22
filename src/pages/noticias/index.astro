@@ -1,0 +1,404 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Button from '../../components/ui/Button.astro';
+import { sanityClient, urlFor } from '../../lib/sanity';
+import { postsQuery } from '../../lib/queries';
+import type { Post, SanityImage } from '../../lib/types';
+
+const posts: Post[] = await sanityClient.fetch(postsQuery);
+
+const categoryLabels: Record<string, string> = {
+  tips: 'Tips',
+  eventos: 'Eventos',
+  nuevo: 'Nuevo',
+};
+
+const filters = [
+  { label: 'Todas', value: 'all' },
+  { label: 'Tips', value: 'tips' },
+  { label: 'Eventos', value: 'eventos' },
+  { label: 'Nuevo', value: 'nuevo' },
+];
+
+const buildPostImage = (image?: SanityImage, title = 'Noticia Cyclone') => {
+  if (!image?.asset?._ref) {
+    return null;
+  }
+
+  const mobileImage = image.mobileImage?.asset?._ref ? image.mobileImage : image;
+
+  return {
+    alt: mobileImage?.alt || image.alt || title,
+    desktopUrl: urlFor(image).width(760).quality(88).auto('format').url(),
+    desktopUrl2x: urlFor(image).width(1140).quality(82).auto('format').url(),
+    mobileUrl: urlFor(mobileImage).width(720).quality(86).auto('format').url(),
+    mobileUrl2x: urlFor(mobileImage).width(1080).quality(80).auto('format').url(),
+  };
+};
+---
+
+<BaseLayout
+  title="Noticias | Cyclone Motos"
+  description="Revisa las ultimas noticias, eventos, tips y novedades de Cyclone Motos."
+>
+  <main class="news-page">
+    <section class="news-listing" aria-labelledby="news-listing-title">
+      <div class="news-listing__container">
+        <header class="news-listing__header">
+          <h1 id="news-listing-title" class="news-listing__title">Noticias</h1>
+
+          <nav class="news-listing__tabs" aria-label="Filtrar noticias">
+            {filters.map((filter) => (
+              <button
+                type="button"
+                class:list={['news-listing__tab', filter.value === 'all' && 'is-active']}
+                data-news-filter={filter.value}
+                aria-pressed={filter.value === 'all' ? 'true' : 'false'}
+              >
+                {filter.label}
+              </button>
+            ))}
+          </nav>
+        </header>
+
+        {posts.length > 0 ? (
+          <>
+            <div class="news-listing__grid" data-news-grid>
+              {posts.map((post, index) => {
+                const image = buildPostImage(post.homeImage, post.homeTitle || post.title);
+                const categoryLabel = post.category ? categoryLabels[post.category] || post.category : null;
+
+                return (
+                  <article
+                    class="news-card"
+                    data-news-card
+                    data-category={post.category || 'sin-categoria'}
+                    data-index={index}
+                  >
+                    {image && (
+                      <a href={`/noticia/${post.slug}`} class="news-card__image-link" tabindex="-1" aria-hidden="true">
+                        <picture>
+                          <source
+                            media="(max-width: 767px)"
+                            srcset={`${image.mobileUrl} 720w, ${image.mobileUrl2x} 1080w`}
+                            sizes="100vw"
+                          />
+                          <img
+                            src={image.desktopUrl}
+                            srcset={`${image.desktopUrl} 760w, ${image.desktopUrl2x} 1140w`}
+                            sizes="(min-width: 1280px) 390px, (min-width: 768px) 31vw, 100vw"
+                            alt={image.alt}
+                            width="760"
+                            height="460"
+                            loading={index < 3 ? 'eager' : 'lazy'}
+                            decoding="async"
+                          />
+                        </picture>
+                      </a>
+                    )}
+
+                    <div class="news-card__body">
+                      {categoryLabel && <p class="news-card__category">{categoryLabel}</p>}
+                      <h2 class="news-card__title">
+                        <a href={`/noticia/${post.slug}`}>{post.homeTitle || post.title}</a>
+                      </h2>
+                      {post.excerpt && <p class="news-card__excerpt">{post.excerpt}</p>}
+                      <a href={`/noticia/${post.slug}`} class="news-card__read-more">
+                        Leer más <span aria-hidden="true">-&gt;</span>
+                      </a>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+
+            <div class="news-listing__load-more" data-news-load-more-wrap>
+              <Button type="button" variant="outline" size="wide" data-news-load-more>
+                Cargar más noticias
+              </Button>
+            </div>
+          </>
+        ) : (
+          <p class="news-listing__empty">No hay noticias publicadas aun.</p>
+        )}
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const INITIAL_VISIBLE_NEWS = 9;
+    const grid = document.querySelector('[data-news-grid]');
+    const cards = Array.from(document.querySelectorAll('[data-news-card]'));
+    const tabs = Array.from(document.querySelectorAll('[data-news-filter]'));
+    const loadMoreWrap = document.querySelector('[data-news-load-more-wrap]');
+    const loadMoreButton = document.querySelector('[data-news-load-more]');
+    let activeFilter = 'all';
+    let visibleCount = INITIAL_VISIBLE_NEWS;
+
+    const getFilteredCards = () =>
+      cards.filter((card) => activeFilter === 'all' || card.getAttribute('data-category') === activeFilter);
+
+    const renderNews = () => {
+      const filteredCards = getFilteredCards();
+
+      cards.forEach((card) => {
+        card.setAttribute('hidden', '');
+      });
+
+      filteredCards.slice(0, visibleCount).forEach((card) => {
+        card.removeAttribute('hidden');
+      });
+
+      if (loadMoreWrap) {
+        loadMoreWrap.toggleAttribute('hidden', filteredCards.length <= visibleCount);
+      }
+
+      if (grid) {
+        grid.toggleAttribute('data-empty', filteredCards.length === 0);
+      }
+    };
+
+    tabs.forEach((tab) => {
+      tab.addEventListener('click', () => {
+        activeFilter = tab.getAttribute('data-news-filter') || 'all';
+        visibleCount = INITIAL_VISIBLE_NEWS;
+
+        tabs.forEach((item) => {
+          const isActive = item === tab;
+          item.classList.toggle('is-active', isActive);
+          item.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+        });
+
+        renderNews();
+      });
+    });
+
+    loadMoreButton?.addEventListener('click', () => {
+      visibleCount = getFilteredCards().length;
+      renderNews();
+    });
+
+    renderNews();
+  </script>
+
+  <style>
+    .news-page {
+      background: #ffffff;
+      color: var(--color-text);
+    }
+
+    .news-listing {
+      min-height: 100vh;
+      padding: calc(var(--header-height, 72px) + clamp(2.5rem, 5vw, 4.5rem)) var(--container-padding) clamp(5rem, 9vw, 8rem);
+    }
+
+    .news-listing__container {
+      width: min(100%, var(--container-max));
+      margin: 0 auto;
+    }
+
+    .news-listing__header {
+      margin-bottom: clamp(2rem, 4vw, 3rem);
+    }
+
+    .news-listing__title {
+      margin: 0 0 clamp(2rem, 4vw, 3rem);
+      font-family: var(--font-heading);
+      font-size: var(--text-h2);
+      font-weight: 700;
+      line-height: var(--leading-heading);
+      letter-spacing: -0.035em;
+      text-transform: uppercase;
+      color: #101827;
+    }
+
+    .news-listing__tabs {
+      display: flex;
+      align-items: center;
+      gap: clamp(2rem, 5vw, 4.5rem);
+      border-bottom: 1px solid rgba(26, 28, 28, 0.08);
+    }
+
+    .news-listing__tab {
+      position: relative;
+      display: inline-flex;
+      padding: 0 0 0.85rem;
+      border: 0;
+      background: transparent;
+      font-family: var(--font-body);
+      font-size: var(--text-button);
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--color-text);
+      cursor: pointer;
+    }
+
+    .news-listing__tab::after {
+      content: '';
+      position: absolute;
+      right: 0;
+      bottom: -1px;
+      left: 0;
+      height: 2px;
+      background: var(--color-primary);
+      transform: scaleX(0);
+      transform-origin: center;
+      transition: transform var(--transition-base);
+    }
+
+    .news-listing__tab.is-active {
+      color: var(--color-primary);
+    }
+
+    .news-listing__tab.is-active::after,
+    .news-listing__tab:hover::after {
+      transform: scaleX(1);
+    }
+
+    .news-listing__grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: clamp(1.25rem, 2.5vw, 2rem);
+    }
+
+    .news-card {
+      display: flex;
+      min-height: 100%;
+      flex-direction: column;
+      background: #ffffff;
+      border: 1px solid rgba(26, 28, 28, 0.08);
+      box-shadow: 0 1rem 2.35rem rgba(26, 28, 28, 0.07);
+    }
+
+    .news-card[hidden] {
+      display: none;
+    }
+
+    .news-card__image-link {
+      display: block;
+      overflow: hidden;
+    }
+
+    .news-card__image-link:hover {
+      text-decoration: none;
+    }
+
+    .news-card img {
+      display: block;
+      width: 100%;
+      aspect-ratio: 5 / 3.15;
+      height: auto;
+      object-fit: cover;
+    }
+
+    .news-card__body {
+      display: flex;
+      flex: 1;
+      flex-direction: column;
+      padding: clamp(1.15rem, 2vw, 1.55rem);
+    }
+
+    .news-card__category {
+      margin: 0 0 0.7rem;
+      font-family: var(--font-body);
+      font-size: var(--text-button);
+      font-weight: 800;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--color-primary);
+    }
+
+    .news-card__title {
+      margin: 0;
+      font-family: var(--font-heading);
+      font-size: var(--text-h4);
+      font-weight: 700;
+      line-height: var(--leading-subheading);
+      letter-spacing: -0.03em;
+      text-transform: uppercase;
+      color: var(--color-text);
+    }
+
+    .news-card__title a {
+      color: inherit;
+      text-decoration: none;
+      transition: color var(--transition-base);
+    }
+
+    .news-card__title a:hover {
+      color: var(--color-primary);
+    }
+
+    .news-card__excerpt {
+      display: -webkit-box;
+      margin: 0.9rem 0 1.35rem;
+      overflow: hidden;
+      color: var(--color-text-muted);
+      font-family: var(--font-body);
+      font-size: var(--text-body-sm);
+      line-height: var(--leading-compact);
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 3;
+    }
+
+    .news-card__read-more {
+      display: inline-flex;
+      width: fit-content;
+      align-items: center;
+      gap: 0.45rem;
+      margin-top: auto;
+      font-family: var(--font-body);
+      font-size: var(--text-button);
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--color-primary);
+      text-decoration: none;
+    }
+
+    .news-card__read-more:hover {
+      color: var(--color-primary);
+      text-decoration: underline;
+      text-underline-offset: 0.25em;
+    }
+
+    .news-listing__load-more {
+      display: flex;
+      justify-content: center;
+      margin-top: clamp(2.5rem, 5vw, 4rem);
+    }
+
+    .news-listing__load-more[hidden] {
+      display: none;
+    }
+
+    .news-listing__empty {
+      font-family: var(--font-body);
+      font-size: var(--text-body);
+      line-height: var(--leading-body);
+      color: var(--color-text-muted);
+    }
+
+    @media (max-width: 1023px) {
+      .news-listing__grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 639px) {
+      .news-listing {
+        padding-inline: 1.1rem;
+      }
+
+      .news-listing__tabs {
+        gap: 2rem;
+        overflow-x: auto;
+      }
+
+      .news-listing__grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</BaseLayout>

@@ -87,6 +87,21 @@ export default defineType({
       group: 'general',
     }),
     defineField({
+      name: 'heroDisplayMode',
+      title: 'Tipo de Hero',
+      type: 'string',
+      group: 'hero',
+      initialValue: 'featured',
+      options: {
+        list: [
+          { title: 'Imagen destacada', value: 'featured' },
+          { title: 'Slider de imagenes', value: 'slider' },
+        ],
+        layout: 'radio',
+      },
+      validation: (Rule) => Rule.required(),
+    }),
+    defineField({
       name: 'heroImages',
       title: 'Slider de imagenes Hero',
       type: 'array',

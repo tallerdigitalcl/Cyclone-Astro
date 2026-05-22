@@ -1,7 +1,7 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { sanityClient, urlFor } from '../../lib/sanity';
-import { allSlugsQuery, postBySlugQuery } from '../../lib/queries';
+import { allSlugsQuery, postBySlugQuery, postsQuery } from '../../lib/queries';
 import { toHTML } from '@portabletext/to-html';
 import type { Post, SanityImage } from '../../lib/types';
 
@@ -21,26 +21,35 @@ const escapeHtml = (value = '') =>
 
 const buildImageMarkup = (image: SanityImage, desktopWidth: number, desktopHeight: number) => {
   const desktopUrl = urlFor(image).width(desktopWidth).quality(90).auto('format').url();
-  const desktopUrl2x = urlFor(image)
-    .width(Math.round(desktopWidth * 1.5))
-    .quality(84)
-    .auto('format')
-    .url();
-  const mobileImage = image.mobileImage;
-  const mobileUrl = mobileImage?.asset?._ref
-    ? urlFor(mobileImage).width(720).quality(88).auto('format').url()
-    : desktopUrl;
-  const mobileUrl2x = mobileImage?.asset?._ref
-    ? urlFor(mobileImage).width(1080).quality(84).auto('format').url()
-    : desktopUrl2x;
-  const alt = escapeHtml(mobileImage?.alt || image.alt || '');
+  const desktopUrl2x = urlFor(image).width(Math.round(desktopWidth * 1.5)).quality(84).auto('format').url();
+  const mobileImage = image.mobileImage?.asset?._ref ? image.mobileImage : image;
+  const mobileUrl = urlFor(mobileImage).width(720).quality(88).auto('format').url();
+  const mobileUrl2x = urlFor(mobileImage).width(1080).quality(84).auto('format').url();
 
   return {
-    alt,
+    alt: escapeHtml(mobileImage?.alt || image.alt || ''),
+    desktopHeight,
     desktopUrl,
     desktopUrl2x,
+    desktopWidth,
     mobileUrl,
     mobileUrl2x,
+  };
+};
+
+const buildCardImage = (image?: SanityImage, title = 'Noticia Cyclone') => {
+  if (!image?.asset?._ref) {
+    return null;
+  }
+
+  const mobileImage = image.mobileImage?.asset?._ref ? image.mobileImage : image;
+
+  return {
+    alt: mobileImage?.alt || image.alt || title,
+    desktopUrl: urlFor(image).width(620).quality(88).auto('format').url(),
+    desktopUrl2x: urlFor(image).width(930).quality(82).auto('format').url(),
+    mobileUrl: urlFor(mobileImage).width(720).quality(86).auto('format').url(),
+    mobileUrl2x: urlFor(mobileImage).width(1080).quality(80).auto('format').url(),
   };
 };
 
@@ -56,16 +65,17 @@ if (!post) {
   return Astro.redirect('/404');
 }
 
-const heroImage = post.heroImages?.[0] || post.homeImage;
-const heroImageMarkup = heroImage ? buildImageMarkup(heroImage, 1600, 760) : null;
-const socialImageUrl = heroImage ? urlFor(heroImage).width(1200).quality(88).auto('format').url() : undefined;
-const formattedDate = post.publishedAt
-  ? new Date(post.publishedAt).toLocaleDateString('es-CL', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    })
-  : null;
+const allPosts: Post[] = await sanityClient.fetch(postsQuery);
+const relatedPosts = allPosts
+  .filter((item) => item.slug && item.slug !== post.slug)
+  .sort(() => Math.random() - 0.5)
+  .slice(0, 3);
+
+const heroMode = post.heroDisplayMode || 'featured';
+const sliderImages = post.heroImages?.filter((image) => image.asset?._ref) || [];
+const useSlider = heroMode === 'slider' && sliderImages.length > 0;
+const featuredHeroImage = post.homeImage || sliderImages[0];
+const socialImageUrl = featuredHeroImage ? urlFor(featuredHeroImage).width(1200).quality(88).auto('format').url() : undefined;
 const categoryLabel = post.category ? categoryLabels[post.category] || post.category : null;
 
 const bodyHTML = post.body
@@ -77,7 +87,7 @@ const bodyHTML = post.body
               return '';
             }
 
-            const imageMarkup = buildImageMarkup(value, 1200, 760);
+            const imageMarkup = buildImageMarkup(value, 1120, 720);
             const caption = value.caption
               ? `<figcaption class="portable-image__caption">${escapeHtml(value.caption)}</figcaption>`
               : '';
@@ -92,8 +102,8 @@ const bodyHTML = post.body
                   />
                   <img
                     src="${imageMarkup.desktopUrl}"
-                    srcset="${imageMarkup.desktopUrl} 1200w, ${imageMarkup.desktopUrl2x} 1800w"
-                    sizes="(min-width: 1200px) 860px, 100vw"
+                    srcset="${imageMarkup.desktopUrl} 1120w, ${imageMarkup.desktopUrl2x} 1680w"
+                    sizes="(min-width: 1200px) 760px, 100vw"
                     alt="${imageMarkup.alt}"
                     loading="lazy"
                     decoding="async"
@@ -123,176 +133,382 @@ const bodyHTML = post.body
   image={socialImageUrl}
 >
   <article class="post-detail">
-    <div class="post-detail__container">
-      <header class="post-detail__header">
-        {categoryLabel && <p class="post-detail__category">{categoryLabel}</p>}
-        <h1 class="post-detail__title">{post.title}</h1>
+    <header class="post-detail__header">
+      {categoryLabel && <p class="post-detail__category">{categoryLabel}</p>}
+      <h1 class="post-detail__title">{post.title}</h1>
+    </header>
 
-        {(formattedDate || post.author) && (
-          <div class="post-detail__meta">
-            {post.author && <span>Por <strong>{post.author.name}</strong></span>}
-            {formattedDate && <time datetime={post.publishedAt}>{formattedDate}</time>}
-          </div>
-        )}
-      </header>
+    {useSlider ? (
+      <section class="post-detail__hero-slider" aria-label="Imagenes principales de la noticia">
+        <div class="post-detail__slider-track">
+          {sliderImages.map((image, index) => {
+            const heroImage = buildImageMarkup(image, 920, 620);
 
-      {heroImageMarkup && (
-        <picture class="post-detail__hero">
-          <source
-            media="(max-width: 767px)"
-            srcset={`${heroImageMarkup.mobileUrl} 720w, ${heroImageMarkup.mobileUrl2x} 1080w`}
-            sizes="100vw"
-          />
-          <img
-            src={heroImageMarkup.desktopUrl}
-            srcset={`${heroImageMarkup.desktopUrl} 1600w, ${heroImageMarkup.desktopUrl2x} 2400w`}
-            sizes="(min-width: 1200px) 1120px, 100vw"
-            alt={heroImageMarkup.alt || post.title}
-            width="1600"
-            height="760"
-            class="post-detail__hero-image"
-            loading="eager"
-            decoding="async"
-          />
-        </picture>
-      )}
+            return (
+              <picture class="post-detail__slide">
+                <source
+                  media="(max-width: 767px)"
+                  srcset={`${heroImage.mobileUrl} 720w, ${heroImage.mobileUrl2x} 1080w`}
+                  sizes="100vw"
+                />
+                <img
+                  src={heroImage.desktopUrl}
+                  srcset={`${heroImage.desktopUrl} 920w, ${heroImage.desktopUrl2x} 1380w`}
+                  sizes="(min-width: 1024px) 48vw, 100vw"
+                  alt={heroImage.alt || `${post.title} ${index + 1}`}
+                  width="920"
+                  height="620"
+                  loading={index < 2 ? 'eager' : 'lazy'}
+                  decoding="async"
+                />
+              </picture>
+            );
+          })}
+        </div>
+      </section>
+    ) : (
+      featuredHeroImage && (
+        <section class="post-detail__featured-wrap" aria-label="Imagen destacada de la noticia">
+          {(() => {
+            const heroImage = buildImageMarkup(featuredHeroImage, 1440, 760);
 
-      {post.excerpt && <p class="post-detail__excerpt">{post.excerpt}</p>}
-
-      {bodyHTML && <div class="post-detail__body" set:html={bodyHTML} />}
-
-      {post.galleryPhotos && post.galleryPhotos.length > 0 && (
-        <section class="post-detail__gallery" aria-labelledby="post-gallery-title">
-          <div class="post-detail__gallery-header">
-            <p class="post-detail__gallery-eyebrow">Galeria</p>
-            <h2 id="post-gallery-title" class="post-detail__gallery-title">Fotos de la noticia</h2>
-          </div>
-
-          <div class="post-detail__gallery-grid">
-            {post.galleryPhotos.map((image, index) => {
-              const galleryImage = buildImageMarkup(image, 960, 720);
-
-              return (
-                <picture class="post-detail__gallery-item">
-                  <source
-                    media="(max-width: 767px)"
-                    srcset={`${galleryImage.mobileUrl} 720w, ${galleryImage.mobileUrl2x} 1080w`}
-                    sizes="100vw"
-                  />
-                  <img
-                    src={galleryImage.desktopUrl}
-                    srcset={`${galleryImage.desktopUrl} 960w, ${galleryImage.desktopUrl2x} 1440w`}
-                    sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw"
-                    alt={galleryImage.alt || `${post.title} ${index + 1}`}
-                    width="960"
-                    height="720"
-                    loading="lazy"
-                    decoding="async"
-                  />
-                </picture>
-              );
-            })}
-          </div>
+            return (
+              <picture class="post-detail__featured">
+                <source
+                  media="(max-width: 767px)"
+                  srcset={`${heroImage.mobileUrl} 720w, ${heroImage.mobileUrl2x} 1080w`}
+                  sizes="100vw"
+                />
+                <img
+                  src={heroImage.desktopUrl}
+                  srcset={`${heroImage.desktopUrl} 1440w, ${heroImage.desktopUrl2x} 2160w`}
+                  sizes="(min-width: 1200px) 1120px, 100vw"
+                  alt={heroImage.alt || post.title}
+                  width="1440"
+                  height="760"
+                  loading="eager"
+                  decoding="async"
+                />
+              </picture>
+            );
+          })()}
         </section>
-      )}
+      )
+    )}
 
-      <div class="post-detail__back">
-        <a href="/noticia">Volver a noticias</a>
-      </div>
+    <div class="post-detail__share" aria-label="Compartir noticia">
+      <button type="button" class="post-detail__share-button" data-share="facebook" aria-label="Compartir en Facebook">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M13.5 21v-7h2.35l.35-2.74H13.5V9.51c0-.79.22-1.33 1.35-1.33h1.44V5.73c-.25-.03-1.1-.11-2.08-.11-2.06 0-3.47 1.26-3.47 3.57v2.07H8.4V14h2.34v7h2.76Z" fill="currentColor" />
+        </svg>
+      </button>
+      <button type="button" class="post-detail__share-button" data-share="instagram" aria-label="Compartir noticia">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M7.75 3h8.5A4.75 4.75 0 0 1 21 7.75v8.5A4.75 4.75 0 0 1 16.25 21h-8.5A4.75 4.75 0 0 1 3 16.25v-8.5A4.75 4.75 0 0 1 7.75 3Zm0 1.8A2.95 2.95 0 0 0 4.8 7.75v8.5a2.95 2.95 0 0 0 2.95 2.95h8.5a2.95 2.95 0 0 0 2.95-2.95v-8.5a2.95 2.95 0 0 0-2.95-2.95h-8.5ZM12 7.6A4.4 4.4 0 1 1 7.6 12 4.4 4.4 0 0 1 12 7.6Zm0 1.8A2.6 2.6 0 1 0 14.6 12 2.6 2.6 0 0 0 12 9.4Zm4.65-3.25a1.1 1.1 0 1 1 0 2.2 1.1 1.1 0 0 1 0-2.2Z" fill="currentColor" />
+        </svg>
+      </button>
+      <button type="button" class="post-detail__share-button" data-share="copy" aria-label="Copiar enlace">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M8.5 12.8a4.25 4.25 0 0 1 0-6.01l2.47-2.47a4.25 4.25 0 0 1 6.01 6.01l-1.06 1.06-1.41-1.41 1.06-1.06a2.25 2.25 0 1 0-3.18-3.18L9.91 8.2a2.25 2.25 0 0 0 0 3.18l.71.71-1.41 1.41-.71-.7Zm7-1.6a4.25 4.25 0 0 1 0 6.01l-2.47 2.47a4.25 4.25 0 0 1-6.01-6.01l1.06-1.06 1.41 1.41-1.06 1.06a2.25 2.25 0 1 0 3.18 3.18l2.47-2.47a2.25 2.25 0 0 0 0-3.18l-.71-.71 1.41-1.41.71.7Z" fill="currentColor" />
+        </svg>
+      </button>
     </div>
-  </article>
-</BaseLayout>
 
-<style>
+    <div class="post-detail__content">
+      {post.excerpt && <p class="post-detail__excerpt">{post.excerpt}</p>}
+      {bodyHTML && <div class="post-detail__body" set:html={bodyHTML} />}
+    </div>
+
+    {post.galleryPhotos && post.galleryPhotos.length > 0 && (
+      <section class="post-detail__gallery" aria-labelledby="post-gallery-title">
+        <h2 id="post-gallery-title" class="post-detail__section-title">Galeria de fotos</h2>
+        <div class="post-detail__gallery-grid">
+          {post.galleryPhotos.map((image, index) => {
+            const galleryImage = buildImageMarkup(image, 520, 360);
+
+            return (
+              <picture class="post-detail__gallery-item">
+                <source
+                  media="(max-width: 767px)"
+                  srcset={`${galleryImage.mobileUrl} 720w, ${galleryImage.mobileUrl2x} 1080w`}
+                  sizes="50vw"
+                />
+                <img
+                  src={galleryImage.desktopUrl}
+                  srcset={`${galleryImage.desktopUrl} 520w, ${galleryImage.desktopUrl2x} 780w`}
+                  sizes="(min-width: 1024px) 25vw, 50vw"
+                  alt={galleryImage.alt || `${post.title} ${index + 1}`}
+                  width="520"
+                  height="360"
+                  loading="lazy"
+                  decoding="async"
+                />
+              </picture>
+            );
+          })}
+        </div>
+      </section>
+    )}
+
+    {relatedPosts.length > 0 && (
+      <section class="post-detail__more" aria-labelledby="more-news-title">
+        <h2 id="more-news-title" class="post-detail__more-title">Más noticias</h2>
+        <div class="post-detail__more-grid">
+          {relatedPosts.map((relatedPost) => {
+            const image = buildCardImage(relatedPost.homeImage, relatedPost.homeTitle || relatedPost.title);
+            const relatedCategory = relatedPost.category
+              ? categoryLabels[relatedPost.category] || relatedPost.category
+              : null;
+
+            return (
+              <article class="more-card">
+                {image && (
+                  <a href={`/noticia/${relatedPost.slug}`} class="more-card__image-link" tabindex="-1" aria-hidden="true">
+                    <picture>
+                      <source
+                        media="(max-width: 767px)"
+                        srcset={`${image.mobileUrl} 720w, ${image.mobileUrl2x} 1080w`}
+                        sizes="100vw"
+                      />
+                      <img
+                        src={image.desktopUrl}
+                        srcset={`${image.desktopUrl} 620w, ${image.desktopUrl2x} 930w`}
+                        sizes="(min-width: 1024px) 30vw, 100vw"
+                        alt={image.alt}
+                        width="620"
+                        height="380"
+                        loading="lazy"
+                        decoding="async"
+                      />
+                    </picture>
+                  </a>
+                )}
+                <div class="more-card__body">
+                  {relatedCategory && <p class="more-card__category">{relatedCategory}</p>}
+                  <h3 class="more-card__title">
+                    <a href={`/noticia/${relatedPost.slug}`}>{relatedPost.homeTitle || relatedPost.title}</a>
+                  </h3>
+                  {relatedPost.excerpt && <p class="more-card__excerpt">{relatedPost.excerpt}</p>}
+                  <a href={`/noticia/${relatedPost.slug}`} class="more-card__read-more">
+                    Leer más <span aria-hidden="true">-&gt;</span>
+                  </a>
+                </div>
+              </article>
+            );
+          })}
+        </div>
+      </section>
+    )}
+  </article>
+
+  <script>
+    const copyToClipboard = async (value) => {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(value);
+        return;
+      }
+
+      const input = document.createElement('textarea');
+      input.value = value;
+      input.setAttribute('readonly', '');
+      input.style.position = 'fixed';
+      input.style.opacity = '0';
+      document.body.appendChild(input);
+      input.select();
+      document.execCommand('copy');
+      input.remove();
+    };
+
+    document.querySelectorAll('[data-share]').forEach((button) => {
+      button.addEventListener('click', async () => {
+        const shareType = button.getAttribute('data-share');
+        const shareUrl = window.location.href;
+        const shareTitle = document.title;
+
+        if (shareType === 'facebook') {
+          window.open(
+            `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`,
+            '_blank',
+            'noopener,noreferrer,width=720,height=520'
+          );
+          return;
+        }
+
+        if (shareType === 'instagram' && navigator.share) {
+          await navigator.share({ title: shareTitle, url: shareUrl });
+          return;
+        }
+
+        await copyToClipboard(shareUrl);
+        button.classList.add('is-copied');
+        window.setTimeout(() => button.classList.remove('is-copied'), 1400);
+      });
+    });
+  </script>
+
+  <style>
   .post-detail {
-    padding: var(--section-spacing) 0;
-    background: var(--color-bg);
+    padding: calc(var(--header-height, 72px) + clamp(2.5rem, 5vw, 4.5rem)) 0 clamp(5rem, 9vw, 8rem);
+    background: #ffffff;
+    color: var(--color-text);
   }
 
-  .post-detail__container {
-    @apply mx-auto;
-    max-width: min(72rem, calc(100vw - 2rem));
-    padding: 0 var(--container-padding);
+  .post-detail__header,
+  .post-detail__content,
+  .post-detail__gallery,
+  .post-detail__more {
+    width: min(100%, var(--container-max));
+    margin-inline: auto;
+    padding-inline: var(--container-padding);
   }
 
   .post-detail__header {
-    max-width: 48rem;
-    margin-bottom: 2rem;
+    max-width: 52rem;
+    margin-bottom: clamp(2rem, 4vw, 3rem);
+    text-align: center;
   }
 
-  .post-detail__category,
-  .post-detail__gallery-eyebrow {
-    @apply font-body uppercase;
-    color: var(--color-primary);
-    font-size: 0.78rem;
+  .post-detail__category {
+    margin: 0 0 0.7rem;
+    font-family: var(--font-body);
+    font-size: var(--text-button);
     font-weight: 800;
     letter-spacing: 0.12em;
-    margin-bottom: 0.75rem;
+    text-transform: uppercase;
+    color: var(--color-primary);
   }
 
   .post-detail__title {
-    @apply font-heading text-h2;
-    color: var(--color-text);
+    margin: 0;
+    font-family: var(--font-heading);
+    font-size: var(--text-h2);
     font-weight: 700;
-    text-transform: uppercase;
+    line-height: var(--leading-heading);
+    letter-spacing: -0.035em;
+    color: #101827;
   }
 
-  .post-detail__meta {
-    @apply flex flex-wrap gap-4 font-body;
-    margin-top: 1rem;
-    color: var(--color-muted);
-    font-size: 0.95rem;
+  .post-detail__hero-slider {
+    width: 100%;
+    overflow: hidden;
+    margin-bottom: 1.3rem;
   }
 
-  .post-detail__hero {
-    @apply block overflow-hidden;
-    margin-bottom: 1.75rem;
+  .post-detail__slider-track {
+    display: grid;
+    grid-auto-columns: minmax(24rem, 49vw);
+    grid-auto-flow: column;
+    gap: 0.75rem;
+    overflow-x: auto;
+    padding-inline: max(var(--container-padding), calc((100vw - var(--container-max)) / 2));
+    scroll-snap-type: x mandatory;
+    scrollbar-width: thin;
   }
 
-  .post-detail__hero-image {
-    @apply w-full h-full block;
-    aspect-ratio: 16 / 7.6;
+  .post-detail__slide {
+    display: block;
+    overflow: hidden;
+    scroll-snap-align: start;
+  }
+
+  .post-detail__slide img,
+  .post-detail__featured img {
+    display: block;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    height: auto;
     object-fit: cover;
   }
 
+  .post-detail__featured-wrap {
+    width: min(100%, var(--container-max));
+    margin: 0 auto 1.3rem;
+    padding-inline: var(--container-padding);
+  }
+
+  .post-detail__featured {
+    display: block;
+    overflow: hidden;
+  }
+
+  .post-detail__share {
+    display: flex;
+    justify-content: center;
+    gap: 0.45rem;
+    width: min(100%, var(--container-max));
+    margin: 0 auto clamp(1.8rem, 4vw, 2.8rem);
+    padding-inline: var(--container-padding);
+  }
+
+  .post-detail__share-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    border: 1px solid var(--color-primary);
+    border-radius: 999px;
+    background: var(--color-primary);
+    color: #ffffff;
+    cursor: pointer;
+    transition:
+      background-color var(--transition-base),
+      color var(--transition-base),
+      transform var(--transition-base);
+  }
+
+  .post-detail__share-button:hover,
+  .post-detail__share-button.is-copied {
+    background: #ffffff;
+    color: var(--color-primary);
+    transform: translateY(-1px);
+  }
+
+  .post-detail__share-button svg {
+    width: 1rem;
+    height: 1rem;
+  }
+
+  .post-detail__content {
+    max-width: 54rem;
+  }
+
   .post-detail__excerpt {
-    @apply font-body text-body-lg;
-    max-width: 46rem;
-    margin-bottom: 2rem;
-    color: rgba(26, 28, 28, 0.76);
-    line-height: 1.7;
+    margin: 0 0 1.7rem;
+    font-family: var(--font-body);
+    font-size: var(--text-body-lg);
+    line-height: var(--leading-body);
+    color: rgba(26, 28, 28, 0.78);
   }
 
   .post-detail__body {
-    @apply font-body text-body;
-    max-width: 54rem;
+    font-family: var(--font-body);
+    font-size: var(--text-body);
+    line-height: var(--leading-body);
     color: var(--color-text);
-    line-height: 1.75;
+  }
+
+  .post-detail__body :global(h2),
+  .post-detail__body :global(h3),
+  .post-detail__body :global(h4) {
+    margin: clamp(1.8rem, 4vw, 2.5rem) 0 0.85rem;
+    font-family: var(--font-heading);
+    font-weight: 700;
+    line-height: var(--leading-subheading);
+    letter-spacing: -0.03em;
+    color: var(--color-text);
   }
 
   .post-detail__body :global(h2) {
-    @apply font-heading text-h3;
-    margin: 2.5rem 0 1rem;
-    color: var(--color-text);
-    font-weight: 700;
-    text-transform: uppercase;
+    font-size: var(--text-h3);
   }
 
   .post-detail__body :global(h3) {
-    @apply font-heading text-h4;
-    margin: 2rem 0 0.85rem;
-    color: var(--color-text);
-    font-weight: 700;
-    text-transform: uppercase;
+    font-size: var(--text-h4);
   }
 
   .post-detail__body :global(h4) {
-    @apply font-heading;
-    margin: 1.8rem 0 0.75rem;
-    color: var(--color-text);
-    font-size: 1.1rem;
-    font-weight: 700;
-    text-transform: uppercase;
+    font-size: var(--text-body-lg);
   }
 
   .post-detail__body :global(p),
@@ -300,115 +516,231 @@ const bodyHTML = post.body
   .post-detail__body :global(ol),
   .post-detail__body :global(blockquote),
   .post-detail__body :global(pre) {
-    margin-bottom: 1.35rem;
+    margin-bottom: 1.2rem;
   }
 
   .post-detail__body :global(ul),
   .post-detail__body :global(ol) {
-    padding-left: 1.5rem;
+    padding-left: 1.35rem;
   }
 
   .post-detail__body :global(li) {
     margin-bottom: 0.45rem;
   }
 
-  .post-detail__body :global(blockquote) {
-    border-left: 4px solid var(--color-primary);
-    padding: 0.65rem 0 0.65rem 1.15rem;
-    color: var(--color-muted);
-    font-style: italic;
-  }
-
   .post-detail__body :global(a) {
     color: var(--color-primary);
     text-decoration: underline;
+    text-underline-offset: 0.18em;
+  }
+
+  .post-detail__body :global(blockquote) {
+    padding: 0.8rem 0 0.8rem 1.15rem;
+    border-left: 3px solid var(--color-primary);
+    color: var(--color-text-muted);
   }
 
   .post-detail__body :global(code) {
-    background: rgba(26, 28, 28, 0.06);
-    padding: 0.2em 0.4em;
-    border-radius: 0.25rem;
-    font-size: 0.88em;
+    padding: 0.12rem 0.28rem;
+    border-radius: 0.2rem;
+    background: rgba(26, 28, 28, 0.08);
   }
 
   .post-detail__body :global(pre) {
+    overflow-x: auto;
+    padding: 1.1rem 1.25rem;
     background: #121517;
     color: #ffffff;
-    padding: 1.2rem 1.35rem;
-    overflow-x: auto;
-  }
-
-  .post-detail__body :global(pre code) {
-    background: transparent;
-    padding: 0;
   }
 
   .post-detail__body :global(.portable-image) {
-    margin: 2rem 0;
+    margin: clamp(2rem, 5vw, 3rem) 0;
   }
 
   .post-detail__body :global(.portable-image img) {
+    display: block;
     width: 100%;
     height: auto;
   }
 
   .post-detail__body :global(.portable-image__caption) {
-    @apply font-body text-body-sm;
-    margin-top: 0.7rem;
-    color: var(--color-muted);
+    margin-top: 0.65rem;
+    font-size: var(--text-body-sm);
+    color: var(--color-text-muted);
   }
 
   .post-detail__gallery {
-    margin-top: 3.25rem;
+    margin-top: clamp(2.5rem, 6vw, 4rem);
   }
 
-  .post-detail__gallery-title {
-    @apply font-heading text-h3;
-    color: var(--color-text);
+  .post-detail__section-title,
+  .post-detail__more-title {
+    margin: 0 0 1.4rem;
+    font-family: var(--font-heading);
+    font-size: var(--text-h3);
     font-weight: 700;
+    line-height: var(--leading-subheading);
+    letter-spacing: -0.03em;
     text-transform: uppercase;
-    margin-bottom: 1.5rem;
+    color: var(--color-text);
   }
 
   .post-detail__gallery-grid {
-    @apply grid;
-    gap: 1rem;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.8rem;
+  }
+
+  .post-detail__gallery-item {
+    display: block;
+    overflow: hidden;
   }
 
   .post-detail__gallery-item img {
-    @apply block w-full h-full;
+    display: block;
+    width: 100%;
     aspect-ratio: 4 / 3;
+    height: auto;
     object-fit: cover;
   }
 
-  .post-detail__back {
-    margin-top: 3rem;
-    padding-top: 1.5rem;
-    border-top: 1px solid rgba(26, 28, 28, 0.08);
+  .post-detail__more {
+    margin-top: clamp(3rem, 7vw, 5rem);
   }
 
-  .post-detail__back a {
-    @apply inline-flex items-center font-body uppercase no-underline;
-    color: var(--color-primary);
-    font-size: 0.78rem;
+  .post-detail__more-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: clamp(1rem, 2.2vw, 1.6rem);
+  }
+
+  .more-card {
+    display: flex;
+    flex-direction: column;
+    background: #ffffff;
+    border: 1px solid rgba(26, 28, 28, 0.08);
+    box-shadow: 0 1rem 2.35rem rgba(26, 28, 28, 0.07);
+  }
+
+  .more-card__image-link {
+    display: block;
+    overflow: hidden;
+  }
+
+  .more-card__image-link:hover {
+    text-decoration: none;
+  }
+
+  .more-card img {
+    display: block;
+    width: 100%;
+    aspect-ratio: 5 / 3.15;
+    height: auto;
+    object-fit: cover;
+  }
+
+  .more-card__body {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    padding: 1.15rem;
+  }
+
+  .more-card__category {
+    margin: 0 0 0.6rem;
+    font-family: var(--font-body);
+    font-size: var(--text-button);
     font-weight: 800;
-    letter-spacing: 0.12em;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--color-primary);
   }
 
-  .post-detail__back a::before {
-    content: '<';
-    margin-right: 0.6rem;
+  .more-card__title {
+    margin: 0;
+    font-family: var(--font-heading);
+    font-size: var(--text-h4);
+    font-weight: 700;
+    line-height: var(--leading-subheading);
+    letter-spacing: -0.03em;
+    text-transform: uppercase;
   }
 
-  @media (min-width: 768px) {
-    .post-detail__gallery-grid {
+  .more-card__title a {
+    color: inherit;
+    text-decoration: none;
+    transition: color var(--transition-base);
+  }
+
+  .more-card__title a:hover {
+    color: var(--color-primary);
+  }
+
+  .more-card__excerpt {
+    display: -webkit-box;
+    margin: 0.8rem 0 1.1rem;
+    overflow: hidden;
+    color: var(--color-text-muted);
+    font-family: var(--font-body);
+    font-size: var(--text-body-sm);
+    line-height: var(--leading-compact);
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
+  .more-card__read-more {
+    display: inline-flex;
+    width: fit-content;
+    gap: 0.45rem;
+    margin-top: auto;
+    font-family: var(--font-body);
+    font-size: var(--text-button);
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-primary);
+    text-decoration: none;
+  }
+
+  .more-card__read-more:hover {
+    text-decoration: underline;
+    text-underline-offset: 0.25em;
+  }
+
+  @media (max-width: 1023px) {
+    .post-detail__slider-track {
+      grid-auto-columns: minmax(20rem, 78vw);
+    }
+
+    .post-detail__gallery-grid,
+    .post-detail__more-grid {
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }
   }
 
-  @media (min-width: 1024px) {
-    .post-detail__gallery-grid {
-      grid-template-columns: repeat(3, minmax(0, 1fr));
+  @media (max-width: 639px) {
+    .post-detail {
+      padding-top: calc(var(--header-height, 72px) + 2.5rem);
+    }
+
+    .post-detail__header,
+    .post-detail__content,
+    .post-detail__gallery,
+    .post-detail__more,
+    .post-detail__featured-wrap,
+    .post-detail__share {
+      padding-inline: 1.1rem;
+    }
+
+    .post-detail__slider-track {
+      grid-auto-columns: minmax(18rem, 86vw);
+      padding-inline: 1.1rem;
+    }
+
+    .post-detail__gallery-grid,
+    .post-detail__more-grid {
+      grid-template-columns: 1fr;
     }
   }
-</style>
+  </style>
+</BaseLayout>

@@ -1,5 +1,4 @@
 import post from './post';
-import author from './author';
 import blockContent from './blockContent';
 import moto from './moto';
 import heroSlide from './heroSlide';
@@ -8,10 +7,10 @@ import oferta from './oferta';
 import concesionariosPage from './concesionariosPage';
 import descubreMasPage from './descubreMasPage';
 import proteccionDatosPage from './proteccionDatosPage';
+import footerSettings from './footerSettings';
 
 export const schemaTypes = [
   post,
-  author,
   blockContent,
   moto,
   heroSlide,
@@ -20,4 +19,5 @@ export const schemaTypes = [
   concesionariosPage,
   descubreMasPage,
   proteccionDatosPage,
+  footerSettings,
 ];

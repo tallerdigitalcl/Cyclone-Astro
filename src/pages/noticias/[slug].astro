@@ -1,0 +1,13 @@
+---
+import { sanityClient } from '../../lib/sanity';
+import { allSlugsQuery } from '../../lib/queries';
+
+export async function getStaticPaths() {
+  const slugs: Array<{ slug: string }> = await sanityClient.fetch(allSlugsQuery);
+  return slugs.map(({ slug }) => ({ params: { slug } }));
+}
+
+const { slug } = Astro.params;
+
+return Astro.redirect(`/noticia/${slug}`, 301);
+---

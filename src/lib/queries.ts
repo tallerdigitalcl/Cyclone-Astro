@@ -8,6 +8,7 @@ export const postsQuery = `
     category,
     excerpt,
     publishedAt,
+    heroDisplayMode,
     homeImage {
       ...,
       alt,
@@ -29,6 +30,7 @@ export const postBySlugQuery = `
     category,
     excerpt,
     publishedAt,
+    heroDisplayMode,
     homeImage {
       ...,
       alt,
@@ -53,8 +55,7 @@ export const postBySlugQuery = `
         alt
       }
     },
-    body,
-    "author": author->{ name, image }
+    body
   }
 `;
 
@@ -73,6 +74,7 @@ export const motosQuery = `
     _id,
     nombre,
     "slug": slug.current,
+    apiMotoId,
     marca,
     modelo,
     anio,
@@ -80,7 +82,30 @@ export const motosQuery = `
     precioAnterior,
     enOferta,
     destacada,
-    imagenPrincipal,
+    imagenPrincipal {
+      ...,
+      alt,
+      mobileImage {
+        ...,
+        alt
+      }
+    },
+    imagenSliderHome {
+      ...,
+      alt,
+      mobileImage {
+        ...,
+        alt
+      }
+    },
+    fotoHeader {
+      ...,
+      alt,
+      mobileImage {
+        ...,
+        alt
+      }
+    },
     descripcion
   }
 `;
