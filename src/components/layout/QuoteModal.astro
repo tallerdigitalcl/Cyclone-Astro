@@ -159,7 +159,6 @@ try {
   const modal = document.getElementById('quote-modal') as HTMLElement | null;
 
   if (modal) {
-    const API_BASE = import.meta.env.PUBLIC_COTIZACION_API_BASE_URL;
     const SITE_ID = import.meta.env.PUBLIC_PROMOBILITY_API_SITE_ID;
     const regions: Region[] = JSON.parse(document.getElementById('quote-regions')?.textContent || '[]');
     const $ = <T extends HTMLElement>(selector: string) => modal.querySelector<T>(selector)!;
@@ -374,7 +373,7 @@ try {
     async function sendQuote() {
       const payload = quotePayload();
       state.wpCode = payload.wp_code;
-      const response = await fetch(`${API_BASE}/cotizacion`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      const response = await fetch('/api/quote-submit', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
       const result = await response.json().catch(() => null);
       if (!response.ok || (result?.codigo && result.codigo !== 200)) throw new Error(result?.mensaje || 'No se pudo enviar la cotización.');
     }
@@ -418,7 +417,7 @@ try {
     }
     async function sendFinance() {
       if (!state.simulation) return;
-      const response = await fetch(`${API_BASE}/financiamiento`, {
+      const response = await fetch('/api/quote-financing', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ wp_code: state.wpCode, employment_status: state.simulation.employment, job_continuity: state.simulation.continuity === 'MAYOR_8', salary: state.simulation.salary, down_payment_amount: state.simulation.pie, installment_count: state.simulation.cuotas, financing_amount: state.simulation.financed, official_monthly_payment: state.simulation.payment, total_payment: state.simulation.total, cae_value: state.simulation.cae }),
       });

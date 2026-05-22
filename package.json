@@ -4,7 +4,9 @@
   "version": "0.0.1",
   "scripts": {
     "dev": "astro dev",
+    "dev:pages": "npx wrangler pages dev dist --live-reload",
     "build": "astro build",
+    "preview:pages": "npm run build && npx wrangler pages dev dist --live-reload",
     "preview": "astro preview",
     "astro": "astro"
   },
