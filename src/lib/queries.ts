@@ -106,6 +106,17 @@ export const motosQuery = `
         alt
       }
     },
+    colores[]{
+      nombre,
+      imagen {
+        ...,
+        alt,
+        mobileImage {
+          ...,
+          alt
+        }
+      }
+    },
     descripcion
   }
 `;
@@ -135,7 +146,26 @@ export const motosHomeSliderQuery = `
     nombre,
     "slug": slug.current,
     apiMotoId,
-    imagenSliderHome { ..., alt }
+    imagenSliderHome { ..., alt },
+    fotoHeader {
+      ...,
+      alt,
+      mobileImage {
+        ...,
+        alt
+      }
+    },
+    colores[]{
+      nombre,
+      imagen {
+        ...,
+        alt,
+        mobileImage {
+          ...,
+          alt
+        }
+      }
+    }
   }
 `;
 

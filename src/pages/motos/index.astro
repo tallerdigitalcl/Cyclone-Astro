@@ -84,6 +84,29 @@ const buildMotoImage = (image?: SanityImage, name = 'Motocicleta Cyclone') => {
           <div class="motos-catalog__grid">
             {catalogMotos.map((moto) => {
               const image = buildMotoImage(moto.cardImage, moto.displayName);
+              const quoteModelData = moto.apiModel
+                ? JSON.stringify({
+                    id: moto.apiModel.id,
+                    modelo: moto.apiModel.modelo,
+                    precio: moto.apiModel.precio,
+                    precio_lista: moto.apiModel.precio_lista,
+                    bono: moto.apiModel.bono,
+                    colors: moto.apiModel.colors ?? [],
+                  })
+                : undefined;
+              const quoteColorImages = JSON.stringify((moto.colores ?? [])
+                .filter((color) => color.nombre && color.imagen?.asset?._ref)
+                .map((color) => {
+                  const mobileColorImage = color.imagen.mobileImage?.asset?._ref ? color.imagen.mobileImage : color.imagen;
+
+                  return {
+                    name: color.nombre,
+                    desktop: urlFor(color.imagen).width(1500).quality(88).auto('format').url(),
+                    mobile: urlFor(mobileColorImage).width(920).quality(84).auto('format').url(),
+                    alt: color.imagen.alt || `${moto.displayName} color ${color.nombre}`,
+                    mobileAlt: mobileColorImage.alt || color.imagen.alt || `${moto.displayName} color ${color.nombre}`,
+                  };
+                }));
 
               return (
                 <article class="motos-catalog__card">
@@ -124,10 +147,17 @@ const buildMotoImage = (image?: SanityImage, name = 'Motocicleta Cyclone') => {
                       Ver modelo
                     </Button>
                     <Button
-                      href="#"
+                      type="button"
                       size="sm"
                       class="motos-catalog__button"
                       fullWidth
+                      data-open-quote
+                      data-quote-moto-id={moto.apiMotoId}
+                      data-quote-model={moto.displayName}
+                      data-quote-image={image?.mobileUrl || image?.desktopUrl}
+                      data-quote-image-alt={image?.alt || moto.displayName}
+                      data-quote-model-data={quoteModelData}
+                      data-quote-color-images={quoteColorImages}
                     >
                       Cotizar
                     </Button>

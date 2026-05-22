@@ -1,0 +1,526 @@
+---
+import Button from '../ui/Button.astro';
+
+const API_URL = 'https://track.promobility.cl/api/locations/sucursales';
+const SITE_ID = import.meta.env.PROMOBILITY_API_SITE_ID || '6';
+const TOKEN = import.meta.env.PROMOBILITY_API_TOKEN || '';
+
+let regions: any[] = [];
+
+try {
+  if (TOKEN) {
+    const url = new URL(API_URL);
+    url.searchParams.set('id_web', SITE_ID);
+    const response = await fetch(url, {
+      headers: { Authorization: `Bearer ${TOKEN}`, Origin: 'cyclonemotos.cl' },
+      signal: AbortSignal.timeout(15_000),
+    });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const data = await response.json();
+    regions = (data.regiones ?? [])
+      .map((region: any) => ({
+        id: region.id,
+        name: region.name,
+        communes: (region.communes ?? [])
+          .map((commune: any) => ({
+            id: commune.id,
+            name: commune.name,
+            sucursales: (commune.sucursales ?? []).filter((dealer: any) => dealer.is_active),
+          }))
+          .filter((commune: any) => commune.sucursales.length > 0),
+      }))
+      .filter((region: any) => region.communes.length > 0);
+  }
+} catch (error) {
+  console.error('[QuoteModal] No se pudieron cargar sucursales:', error);
+}
+---
+
+<script id="quote-regions" type="application/json" set:html={JSON.stringify(regions)}></script>
+
+<div id="quote-modal" class="qmod" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="qmod-title">
+  <div class="qmod__surface">
+    <div class="qmod__close-row">
+      <button type="button" class="qmod__close" data-qmod-close aria-label="Cerrar cotizador">×</button>
+    </div>
+
+    <div class="qmod__flow" data-qmod-flow>
+      <aside class="qmod__moto" aria-live="polite">
+        <div class="qmod__moto-media">
+          <img id="qmod-moto-image" src="" alt="" width="1100" height="760" decoding="async" />
+        </div>
+
+        <div class="qmod__summary">
+          <div>
+            <small>Modelo</small>
+            <strong id="qmod-model">Modelo</strong>
+          </div>
+          <div>
+            <small>Precio</small>
+            <strong id="qmod-price">Por consultar</strong>
+          </div>
+          <label>
+            <small>Color</small>
+            <select id="qmod-color" aria-label="Color de la moto"></select>
+          </label>
+        </div>
+      </aside>
+
+      <section class="qmod__panel">
+        <header class="qmod__head">
+          <div>
+            <h2 id="qmod-title" data-qmod-heading>Selecciona tu concesionario</h2>
+            <p data-qmod-step>Paso 1 de 3</p>
+          </div>
+          <span data-qmod-progress aria-hidden="true"></span>
+        </header>
+
+        <section class="qmod__screen is-active" data-qmod-screen="dealers">
+          <label class="qmod__location">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2C8.14 2 5 5.03 5 8.77 5 14.1 12 22 12 22s7-7.9 7-13.23C19 5.03 15.86 2 12 2Zm0 9.15a2.55 2.55 0 1 1 0-5.1 2.55 2.55 0 0 1 0 5.1Z"/></svg>
+            <select id="qmod-location" aria-label="Región y comuna">
+              <option value="">Ingresa región/comuna</option>
+            </select>
+          </label>
+          <div id="qmod-dealers" class="qmod__dealers" aria-live="polite">
+            <p>Selecciona una comuna para ver sus concesionarios.</p>
+          </div>
+          <p class="qmod__feedback" data-qmod-feedback="dealers" role="alert"></p>
+          <div class="qmod__actions qmod__actions--end">
+            <Button type="button" size="wide" data-qmod-next-dealers>Siguiente</Button>
+          </div>
+        </section>
+
+        <form class="qmod__screen" data-qmod-screen="person" novalidate>
+          <label class="qmod__field"><span class="sr-only">Nombre completo</span><input id="qmod-name" type="text" autocomplete="name" placeholder="Nombre completo" required /></label>
+          <label class="qmod__field"><span class="sr-only">RUT</span><input id="qmod-rut" type="text" placeholder="RUT" required /></label>
+          <label class="qmod__field"><span class="sr-only">Teléfono</span><input id="qmod-phone" type="tel" inputmode="numeric" autocomplete="tel" placeholder="Teléfono de contacto" required /></label>
+          <label class="qmod__field"><span class="sr-only">Email</span><input id="qmod-email" type="email" autocomplete="email" placeholder="Email" required /></label>
+
+          <fieldset class="qmod__switch">
+            <legend>¿Necesitas financiamiento?</legend>
+            <label><input id="qmod-finance" type="checkbox" /><span data-qmod-finance-label>No</span></label>
+          </fieldset>
+          <p class="qmod__feedback" data-qmod-feedback="person" role="alert"></p>
+          <div class="qmod__actions">
+            <Button type="button" variant="outline" size="wide" data-qmod-back-dealers>Volver</Button>
+            <Button type="submit" size="wide" data-qmod-person-action>Enviar cotización</Button>
+          </div>
+        </form>
+
+        <form class="qmod__screen" data-qmod-screen="finance" novalidate>
+          <label class="qmod__field qmod__field--wide"><span class="sr-only">Sueldo líquido</span><input id="qmod-salary" type="number" min="0" inputmode="numeric" placeholder="Sueldo líquido" required /></label>
+          <div class="qmod__finance-grid">
+            <label class="qmod__field"><span class="sr-only">Situación laboral</span><select id="qmod-employment" required><option value="">Situación laboral</option><option value="DEPENDIENTE">Dependiente</option><option value="INDEPENDIENTE">Independiente</option></select></label>
+            <label class="qmod__field"><span class="sr-only">Continuidad laboral</span><select id="qmod-continuity" required><option value="">Continuidad laboral</option><option value="MAYOR_8">Mayor o igual a 8 meses</option><option value="MENOR_8">Menor a 8 meses</option></select></label>
+            <label class="qmod__field"><span class="sr-only">Monto del pie</span><input id="qmod-down" type="number" min="0" inputmode="numeric" placeholder="Monto del pie" required /></label>
+            <label class="qmod__field"><span class="sr-only">Cuotas</span><select id="qmod-installments" required><option value="">Seleccione el número de cuotas</option><option value="6">6 cuotas</option><option value="12">12 cuotas</option><option value="18">18 cuotas</option><option value="24">24 cuotas</option><option value="36">36 cuotas</option></select></label>
+          </div>
+          <section id="qmod-simulation" class="qmod__simulation" hidden>
+            <h3>Resultado oficial de Autofin:</h3>
+            <dl>
+              <div><dt>Monto a financiar:</dt><dd data-qmod-financed></dd></div>
+              <div><dt>Cuota mensual oficial:</dt><dd data-qmod-payment></dd></div>
+              <div><dt>Total a pagar:</dt><dd data-qmod-total></dd></div>
+              <div><dt>Valor CAE:</dt><dd data-qmod-cae></dd></div>
+            </dl>
+            <small>*Valores oficiales calculados por Autofin. La aprobación final está sujeta a evaluación crediticia.</small>
+          </section>
+          <p class="qmod__feedback" data-qmod-feedback="finance" role="alert"></p>
+          <div class="qmod__actions">
+            <Button type="button" variant="outline" size="wide" data-qmod-back-person>Volver</Button>
+            <Button type="submit" size="wide" data-qmod-finance-action>Calcular cuotas</Button>
+          </div>
+        </form>
+      </section>
+    </div>
+
+    <section class="qmod__success" data-qmod-success hidden>
+      <div class="qmod__success-card">
+        <p>Se ha enviado con éxito tu cotización.<br />Un ejecutivo se contactará contigo.</p>
+        <Button href="/" size="wide">Volver al home</Button>
+      </div>
+    </section>
+  </div>
+</div>
+
+<script>
+  type Dealer = { id: number; name: string; address?: string; spider?: string | null };
+  type Commune = { id: number; name: string; sucursales: Dealer[] };
+  type Region = { id: number; name: string; communes: Commune[] };
+  type Color = { id: number | string; name: string };
+  type ColorImage = { name: string; desktop: string; mobile?: string; alt: string; mobileAlt?: string };
+  type Model = { id: number; modelo?: string; precio?: string; precio_lista?: string; bono?: string; colors?: Color[] };
+  type Simulation = {
+    pie: number; cuotas: number; salary: number; employment: string; continuity: string;
+    financed: number; payment: number; total: number; cae: string | number;
+  };
+
+  const modal = document.getElementById('quote-modal') as HTMLElement | null;
+
+  if (modal) {
+    const API_BASE = import.meta.env.PUBLIC_COTIZACION_API_BASE_URL;
+    const SITE_ID = import.meta.env.PUBLIC_PROMOBILITY_API_SITE_ID;
+    const regions: Region[] = JSON.parse(document.getElementById('quote-regions')?.textContent || '[]');
+    const $ = <T extends HTMLElement>(selector: string) => modal.querySelector<T>(selector)!;
+    const input = (id: string) => document.getElementById(id) as HTMLInputElement;
+    const select = (id: string) => document.getElementById(id) as HTMLSelectElement;
+    const location = select('qmod-location');
+    const dealers = $('#qmod-dealers');
+    const color = select('qmod-color');
+    const image = document.getElementById('qmod-moto-image') as HTMLImageElement;
+    const mobileMotoImage = window.matchMedia('(max-width: 767px)');
+    const header = document.querySelector<HTMLElement>('.header');
+    const flow = $('[data-qmod-flow]');
+    const success = $('[data-qmod-success]');
+    const financeToggle = input('qmod-finance');
+    const personAction = $('[data-qmod-person-action]') as HTMLButtonElement;
+    const financeAction = $('[data-qmod-finance-action]') as HTMLButtonElement;
+    const simulationBox = document.getElementById('qmod-simulation')!;
+    const state = {
+      dealer: null as Dealer | null,
+      model: null as Model | null,
+      motoId: '',
+      wpCode: '',
+      initialImage: '',
+      initialAlt: '',
+      colorImages: [] as ColorImage[],
+      simulation: null as Simulation | null,
+    };
+
+    const money = (value?: string | number | null) => {
+      const parsed = typeof value === 'number' ? value : Number.parseInt(String(value || '').replace(/[^\d]/g, ''), 10);
+      return Number.isFinite(parsed) && parsed > 0 ? `$${new Intl.NumberFormat('es-CL').format(parsed)}` : 'Por consultar';
+    };
+    const feedback = (key: string, text = '') => $<HTMLElement>(`[data-qmod-feedback="${key}"]`).textContent = text;
+
+    function populateLocations() {
+      if (location.options.length > 1) return;
+      regions.forEach((region) => {
+        const group = document.createElement('optgroup');
+        group.label = region.name;
+        region.communes.forEach((commune) => group.append(new Option(commune.name, `${region.id}:${commune.id}`)));
+        location.append(group);
+      });
+    }
+
+    function showStep(step: number) {
+      const screens = ['dealers', 'person', 'finance'];
+      modal.querySelectorAll<HTMLElement>('[data-qmod-screen]').forEach((screen) => screen.classList.toggle('is-active', screen.dataset.qmodScreen === screens[step - 1]));
+      $('[data-qmod-heading]').textContent = ['Selecciona tu concesionario', 'Datos personales', 'Simula tu financiamiento'][step - 1];
+      $('[data-qmod-step]').textContent = `Paso ${step} de 3`;
+      $('[data-qmod-progress]').style.setProperty('--qmod-progress', `${step * 33.333}%`);
+    }
+
+    function setModel(model: Model | null, name = 'Motocicleta Cyclone') {
+      state.model = model;
+      document.getElementById('qmod-model')!.textContent = model?.modelo || name;
+      const hasBonus = Number.parseInt(String(model?.bono || '').replace(/[^\d]/g, ''), 10) > 0;
+      document.getElementById('qmod-price')!.textContent = money(hasBonus ? model?.precio : model?.precio_lista || model?.precio);
+      color.innerHTML = '';
+      (model?.colors?.length ? model.colors : [{ id: '', name: 'Disponible' }]).forEach((item) => color.append(new Option(item.name, String(item.id))));
+      updateColorImage();
+    }
+
+    function colorKey(value = '') {
+      return value.trim().toLocaleLowerCase('es-CL');
+    }
+
+    function updateColorImage() {
+      const selectedName = color.selectedOptions[0]?.textContent || '';
+      const matchedImage = state.colorImages.find((item) => colorKey(item.name) === colorKey(selectedName));
+      const selectedImage = mobileMotoImage.matches
+        ? matchedImage?.mobile || matchedImage?.desktop
+        : matchedImage?.desktop || matchedImage?.mobile;
+      const selectedAlt = mobileMotoImage.matches
+        ? matchedImage?.mobileAlt || matchedImage?.alt
+        : matchedImage?.alt || matchedImage?.mobileAlt;
+
+      image.src = selectedImage || state.initialImage;
+      image.alt = selectedAlt || state.initialAlt;
+      image.hidden = !image.src;
+    }
+
+    async function loadModel(id: string) {
+      if (!id) return null;
+      try {
+        const response = await fetch(`/api/quote-model?id_vehiculo=${encodeURIComponent(id)}&id_web=${encodeURIComponent(SITE_ID)}`);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        return await response.json() as Model;
+      } catch (error) {
+        console.error('[QuoteModal] Error de modelo:', error);
+        return null;
+      }
+    }
+
+    function reset() {
+      location.value = '';
+      dealers.innerHTML = '<p>Selecciona una comuna para ver sus concesionarios.</p>';
+      state.dealer = null; state.model = null; state.wpCode = ''; state.initialImage = ''; state.initialAlt = ''; state.colorImages = []; state.simulation = null;
+      modal.querySelectorAll<HTMLFormElement>('form').forEach((form) => form.reset());
+      financeToggle.checked = false;
+      $('[data-qmod-finance-label]').textContent = 'No';
+      personAction.textContent = 'Enviar cotización';
+      financeAction.textContent = 'Calcular cuotas';
+      simulationBox.hidden = true;
+      ['dealers', 'person', 'finance'].forEach((key) => feedback(key));
+      showStep(1);
+    }
+
+    async function open(trigger: HTMLElement) {
+      reset();
+      populateLocations();
+      state.motoId = trigger.dataset.quoteMotoId || '';
+      state.initialImage = trigger.dataset.quoteImage || '';
+      state.initialAlt = trigger.dataset.quoteImageAlt || trigger.dataset.quoteModel || 'Motocicleta Cyclone';
+      state.colorImages = trigger.dataset.quoteColorImages ? JSON.parse(trigger.dataset.quoteColorImages) as ColorImage[] : [];
+      updateColorImage();
+      setModel(null, trigger.dataset.quoteModel);
+      modal.classList.add('is-open');
+      modal.removeAttribute('aria-hidden');
+      header?.classList.add('header--quote-open');
+      document.body.style.overflow = 'hidden';
+      const triggerModel = trigger.dataset.quoteModelData ? JSON.parse(trigger.dataset.quoteModelData) as Model : null;
+      setModel(triggerModel || await loadModel(state.motoId), trigger.dataset.quoteModel);
+    }
+
+    function close() {
+      modal.classList.remove('is-open');
+      modal.setAttribute('aria-hidden', 'true');
+      header?.classList.remove('header--quote-open');
+      document.body.style.overflow = '';
+      success.hidden = true;
+      flow.hidden = false;
+    }
+
+    function renderDealers() {
+      const [regionId, communeId] = location.value.split(':').map(Number);
+      const commune = regions.find((region) => region.id === regionId)?.communes.find((item) => item.id === communeId);
+      state.dealer = null;
+      dealers.innerHTML = '';
+      if (!commune?.sucursales.length) {
+        dealers.innerHTML = '<p>No encontramos concesionarios para esa comuna.</p>';
+        return;
+      }
+      commune.sucursales.forEach((dealer) => {
+        const card = document.createElement('label');
+        const detail = document.createElement('span');
+        const name = document.createElement('strong');
+        const address = document.createElement('small');
+        const pin = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        const pinPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        const radio = document.createElement('input');
+        card.className = 'qmod__dealer';
+        detail.className = 'qmod__dealer-info';
+        address.className = 'qmod__dealer-address';
+        pin.setAttribute('viewBox', '0 0 24 24');
+        pin.setAttribute('aria-hidden', 'true');
+        pinPath.setAttribute('d', 'M12 2C8.14 2 5 5.03 5 8.77 5 14.1 12 22 12 22s7-7.9 7-13.23C19 5.03 15.86 2 12 2Zm0 9.15a2.55 2.55 0 1 1 0-5.1 2.55 2.55 0 0 1 0 5.1Z');
+        pin.append(pinPath);
+        name.textContent = dealer.name;
+        address.textContent = dealer.address || '';
+        address.prepend(pin);
+        detail.append(name, address);
+        radio.type = 'radio';
+        radio.name = 'qmod-dealer';
+        radio.value = String(dealer.id);
+        radio.setAttribute('aria-label', dealer.name);
+        card.append(detail, radio);
+        radio.addEventListener('change', () => {
+          state.dealer = dealer;
+          dealers.querySelectorAll('.qmod__dealer').forEach((node) => node.classList.toggle('is-selected', node === card));
+        });
+        dealers.append(card);
+      });
+    }
+
+    function splitName(name: string) {
+      const parts = name.trim().split(/\s+/);
+      return { first: parts.shift() || '', last: parts.shift() || '', second: parts.join(' ') };
+    }
+    function validRut(value: string) {
+      const rut = value.replace(/\./g, '').replace(/-/g, '').toUpperCase();
+      if (!/^\d+[0-9K]$/.test(rut)) return false;
+      let sum = 0, multiplier = 2;
+      for (let i = rut.length - 2; i >= 0; i -= 1) { sum += Number(rut[i]) * multiplier; multiplier = multiplier < 7 ? multiplier + 1 : 2; }
+      const rest = 11 - (sum % 11);
+      return rut.at(-1) === (rest === 11 ? '0' : rest === 10 ? 'K' : String(rest));
+    }
+    function personError() {
+      if (input('qmod-name').value.trim().split(/\s+/).length < 2) return 'Ingresa nombre y apellido.';
+      if (!input('qmod-rut').value.includes('-') || !validRut(input('qmod-rut').value)) return 'Ingresa un RUT válido con guion.';
+      if (!/^\d{9}$/.test(input('qmod-phone').value.replace(/[^\d]/g, ''))) return 'Ingresa un teléfono válido de 9 dígitos.';
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input('qmod-email').value.trim())) return 'Ingresa un email válido.';
+      return '';
+    }
+    function utms() {
+      const params = new URLSearchParams(window.location.search);
+      return Object.fromEntries(['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'utm_code'].map((key) => [key, params.get(key) || (key === 'utm_source' ? '(direct)' : '0')]));
+    }
+    const randomCode = () => Array.from({ length: 10 }, () => 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'[Math.floor(Math.random() * 62)]).join('');
+    function quotePayload() {
+      const name = splitName(input('qmod-name').value);
+      return {
+        first_name: name.first, last_name: name.last, second_last_name: name.second,
+        rut: input('qmod-rut').value.trim(), email: input('qmod-email').value.trim(),
+        phone: `+56${input('qmod-phone').value.replace(/[^\d]/g, '')}`,
+        model_id: state.model?.id || state.motoId, dealer_id: state.dealer?.id,
+        financiamiento: financeToggle.checked, color_id: color.value,
+        value_bono_autofin: 0, wp_code: state.wpCode || randomCode(),
+        turnstile: 'test_token',
+        ...utms(),
+      };
+    }
+    async function sendQuote() {
+      const payload = quotePayload();
+      state.wpCode = payload.wp_code;
+      const response = await fetch(`${API_BASE}/cotizacion`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      const result = await response.json().catch(() => null);
+      if (!response.ok || (result?.codigo && result.codigo !== 200)) throw new Error(result?.mensaje || 'No se pudo enviar la cotización.');
+    }
+
+    function financeError() {
+      const price = Number.parseInt(String(state.model?.precio || state.model?.precio_lista || '').replace(/[^\d]/g, ''), 10);
+      const salary = Number(input('qmod-salary').value);
+      const down = Number(input('qmod-down').value);
+      const continuity = select('qmod-continuity').value;
+      if (!salary || salary < 500000) return 'El sueldo líquido mínimo es $500.000.';
+      if (!select('qmod-employment').value || !continuity) return 'Completa situación y continuidad laboral.';
+      if (!price || !down || !select('qmod-installments').value) return 'Completa monto del pie y número de cuotas.';
+      if (down >= price || down < price * 0.1) return 'El pie debe estar entre el 10% y el precio de la moto.';
+      if (continuity === 'MENOR_8' && down <= price * 0.4) return 'Con menos de 8 meses de continuidad el pie debe superar el 40%.';
+      if (continuity === 'MAYOR_8' && down < price * 0.3) return 'Con 8 meses o más el pie mínimo es 30%.';
+      return '';
+    }
+    async function simulate() {
+      const price = Number.parseInt(String(state.model?.precio || state.model?.precio_lista || '').replace(/[^\d]/g, ''), 10);
+      const down = Number(input('qmod-down').value);
+      const installments = Number(select('qmod-installments').value);
+      const response = await fetch('/api/autofin-simulation', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ConsultaCuotaReqRest: { Precio: price, MontoPie: down, Plazo: installments, Producto: 2, TipoCredito: 2, Seguros: { Desgravamen: false, Cesantia: false, AutoProtegido: false, PerdidaTotal: false, ReparacionesMenores: false, RDH: true, GPS: false }, MontoVFMG: 0, Marca: 'ALFA ROMEO', Modelo: '166', Anno: 2020, Dealer: 1, Sucursal: 1, EstadoVehiculo: 'U' } }),
+      });
+      const result = await response.json();
+      const autofin = result?.body?.CuotaTrinidad;
+      if (!response.ok || !result?.success || !autofin || autofin.Error) throw new Error(result?.message || autofin?.Mensaje || 'No se pudo calcular la cuota.');
+      state.simulation = {
+        pie: down, cuotas: installments, salary: Number(input('qmod-salary').value),
+        employment: select('qmod-employment').value, continuity: select('qmod-continuity').value,
+        financed: price - down, payment: Number(autofin.ValorCuota) || 0,
+        total: Number(autofin.TotalCredito) || Number(autofin.ValorCuota) * installments + down, cae: autofin.ValorCae || 0,
+      };
+      $('[data-qmod-financed]').textContent = money(state.simulation.financed);
+      $('[data-qmod-payment]').textContent = money(state.simulation.payment);
+      $('[data-qmod-total]').textContent = money(state.simulation.total);
+      $('[data-qmod-cae]').textContent = `${state.simulation.cae}%`;
+      simulationBox.hidden = false;
+      financeAction.textContent = 'Enviar cotización';
+    }
+    async function sendFinance() {
+      if (!state.simulation) return;
+      const response = await fetch(`${API_BASE}/financiamiento`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ wp_code: state.wpCode, employment_status: state.simulation.employment, job_continuity: state.simulation.continuity === 'MAYOR_8', salary: state.simulation.salary, down_payment_amount: state.simulation.pie, installment_count: state.simulation.cuotas, financing_amount: state.simulation.financed, official_monthly_payment: state.simulation.payment, total_payment: state.simulation.total, cae_value: state.simulation.cae }),
+      });
+      if (!response.ok) throw new Error('No se pudo enviar el financiamiento.');
+      flow.hidden = true; success.hidden = false;
+    }
+
+    document.addEventListener('click', (event) => {
+      const trigger = (event.target as HTMLElement).closest<HTMLElement>('[data-open-quote]');
+      if (trigger) { event.preventDefault(); open(trigger); }
+    });
+    modal.querySelectorAll('[data-qmod-close]').forEach((button) => button.addEventListener('click', close));
+    modal.addEventListener('click', (event) => { if (event.target === modal) close(); });
+    document.addEventListener('keydown', (event) => { if (event.key === 'Escape' && modal.classList.contains('is-open')) close(); });
+    location.addEventListener('change', renderDealers);
+    color.addEventListener('change', updateColorImage);
+    mobileMotoImage.addEventListener('change', updateColorImage);
+    $('[data-qmod-next-dealers]').addEventListener('click', () => state.dealer ? showStep(2) : feedback('dealers', 'Selecciona un concesionario para continuar.'));
+    $('[data-qmod-back-dealers]').addEventListener('click', () => showStep(1));
+    $('[data-qmod-back-person]').addEventListener('click', () => showStep(2));
+    financeToggle.addEventListener('change', () => { $('[data-qmod-finance-label]').textContent = financeToggle.checked ? 'Sí' : 'No'; personAction.textContent = financeToggle.checked ? 'Siguiente' : 'Enviar cotización'; });
+    $('[data-qmod-screen="person"]').addEventListener('submit', async (event) => {
+      event.preventDefault(); feedback('person'); const error = personError(); if (error) return feedback('person', error);
+      personAction.disabled = true;
+      try { await sendQuote(); financeToggle.checked ? showStep(3) : (flow.hidden = true, success.hidden = false); }
+      catch (error) { feedback('person', error instanceof Error ? error.message : 'No se pudo enviar la cotización.'); }
+      finally { personAction.disabled = false; }
+    });
+    $('[data-qmod-screen="finance"]').addEventListener('submit', async (event) => {
+      event.preventDefault(); feedback('finance'); const error = financeError(); if (error) return feedback('finance', error);
+      financeAction.disabled = true;
+      try { state.simulation ? await sendFinance() : await simulate(); }
+      catch (error) { feedback('finance', error instanceof Error ? error.message : 'No se pudo procesar el financiamiento.'); }
+      finally { financeAction.disabled = false; }
+    });
+  }
+</script>
+
+<style>
+  .qmod { position: fixed; inset: 80px 0 0; z-index: 9997; background: #fff; opacity: 0; visibility: hidden; pointer-events: none; transition: opacity 300ms ease, visibility 0ms 300ms; }
+  .qmod.is-open { opacity: 1; visibility: visible; pointer-events: auto; transition: opacity 300ms ease; }
+  .qmod__surface { position: relative; min-height: calc(100dvh - 80px); height: 100%; overflow: auto; background: #fff; }
+  .qmod__close-row { position: absolute; z-index: 3; top: clamp(.75rem,2vw,1.5rem); left: 0; right: 0; width: min(100%, var(--container-max)); margin: 0 auto; padding-inline: 1.5rem; display: flex; justify-content: flex-end; pointer-events: none; }
+  .qmod__close { display: grid; width: 2.75rem; height: 2.75rem; place-items: center; border: 1px solid var(--color-border); background: #fff; color: var(--color-text); font-size: var(--text-h4); cursor: pointer; pointer-events: auto; transition: background-color 320ms ease, border-color 320ms ease, color 320ms ease, transform 320ms ease; }
+  .qmod__close:hover, .qmod__close:focus-visible { border-color: var(--color-primary); background: var(--color-primary); color: #fff; transform: rotate(90deg); }
+  .qmod__flow { width: min(100%, var(--container-max)); min-height: 100%; margin: 0 auto; display: grid; align-items: start; gap: clamp(2rem,6vw,4.5rem); padding: clamp(3.25rem,5vw,4.5rem) var(--container-padding); }
+  .qmod__moto-media { display: grid; place-items: end center; }
+  .qmod__moto-media img { width: min(100%, 46rem); max-height: clamp(15rem,34vw,28rem); object-fit: contain; }
+  .qmod__summary { max-width: 43rem; margin: 0 auto; display: grid; grid-template-columns: .75fr 1.55fr minmax(9rem,1.25fr); background: var(--color-bg-alt); }
+  .qmod__summary > * { min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: .12rem; padding: 1rem clamp(.85rem,2vw,1.45rem); }
+  .qmod__summary > * + * { border-left: .15rem solid #fff; }
+  .qmod__summary small { color: var(--color-primary); font-size: var(--text-body-sm); font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+  .qmod__summary strong { width: 100%; color: var(--color-primary); background: transparent; font: 700 var(--text-h3)/var(--leading-subheading) var(--font-heading); }
+  #qmod-price { font-size: var(--text-h4); }
+  .qmod__summary label { overflow: visible; }
+  .qmod__summary select { width: 100%; min-width: 0; padding-right: 1.15rem; color: var(--color-primary); background: transparent; font-family: var(--font-heading); font-size: var(--text-h4); font-weight: 700; line-height: var(--leading-body); }
+  :global(.qmod__summary select option) { font-size: var(--text-body); }
+  .qmod__panel { width: 100%; max-width: 37rem; justify-self: center; }
+  .qmod__head { margin-bottom: clamp(1rem,3vw,1.7rem); text-transform: uppercase; }
+  .qmod__head div { display: flex; align-items: end; justify-content: space-between; gap: 1rem; }
+  .qmod__head h2 { font-size: var(--text-h3); text-transform: uppercase; }
+  .qmod__head p { flex: none; color: var(--color-text-muted); font-size: var(--text-body-sm); font-weight: 800; letter-spacing: .12em; }
+  .qmod__head span { position: relative; display: block; height: .25rem; margin-top: 1.25rem; background: var(--color-border); }
+  .qmod__head span::before { content: ''; display: block; width: var(--qmod-progress,33.333%); height: 100%; background: #ad4300; transition: width 380ms ease; }
+  .qmod__head span::after { content: ''; position: absolute; top: 50%; left: var(--qmod-progress,33.333%); width: .8rem; height: .8rem; background: #ad4300; transform: translate(-50%,-50%) rotate(45deg); transition: left 380ms ease; }
+  .qmod__screen { display: none; }
+  .qmod__screen.is-active { display: grid; gap: .85rem; animation: qmod-enter 360ms ease both; }
+  .qmod__location, .qmod__field { display: flex; align-items: center; min-height: 3.75rem; border: 1px solid var(--color-border); background: #fff; }
+  .qmod__location { gap: 1rem; padding: 0 1.2rem; border: 0; box-shadow: 0 .75rem 1.8rem rgba(0,0,0,.12); }
+  .qmod__location svg { width: 1.25rem; fill: var(--color-primary); flex: none; }
+  .qmod__location select, .qmod__field input, .qmod__field select { width: 100%; min-height: 3.75rem; padding: 0 1.1rem; background: transparent; color: var(--color-text); font-size: var(--text-body); }
+  .qmod__location select { padding: 0; cursor: pointer; }
+  .qmod__field input::placeholder { color: rgba(95,99,104,.52); }
+  .qmod__dealers { display: grid; gap: .35rem; min-height: 2rem; color: var(--color-text-muted); }
+  :global(.qmod__dealer) { min-height: 4.4rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; border: 1px solid rgba(26,28,28,.22); padding: .75rem 1.15rem; color: var(--color-text); cursor: pointer; transition: border-color var(--transition-base), box-shadow var(--transition-base); }
+  :global(.qmod__dealer:hover), :global(.qmod__dealer.is-selected) { border-color: var(--color-primary); box-shadow: inset 0 0 0 1px rgba(214,0,15,.16); }
+  :global(.qmod__dealer-info) { min-width: 0; display: grid; gap: .2rem; }
+  :global(.qmod__dealer strong) { font: 800 var(--text-body-lg)/1.1 var(--font-heading); text-transform: uppercase; }
+  :global(.qmod__dealer-address) { display: flex; align-items: center; gap: .4rem; font-size: var(--text-body-sm); line-height: var(--leading-compact); text-transform: uppercase; }
+  :global(.qmod__dealer-address svg) { width: .9rem; height: .9rem; flex: none; fill: var(--color-primary); }
+  :global(.qmod__dealer input) { position: relative; width: 1.15rem; height: 1.15rem; flex: none; appearance: none; border: 1px solid var(--color-primary); border-radius: 50%; background: #fff; }
+  :global(.qmod__dealer input::after) { content: ''; position: absolute; inset: .18rem; border-radius: inherit; background: var(--color-primary); opacity: 0; transform: scale(.35); transition: opacity var(--transition-base), transform var(--transition-base); }
+  :global(.qmod__dealer input:checked::after) { opacity: 1; transform: scale(1); }
+  .qmod__feedback { min-height: 1.2rem; color: var(--color-primary); font-size: var(--text-body-sm); }
+  .qmod__actions { display: flex; justify-content: space-between; gap: clamp(.75rem,3vw,2rem); margin-top: clamp(.75rem,3vw,2rem); }
+  .qmod__actions--end { justify-content: flex-end; }
+  .qmod__switch { display: grid; gap: .75rem; margin: .35rem 0; color: var(--color-text); font-size: var(--text-body); letter-spacing: .08em; text-transform: uppercase; }
+  .qmod__switch label { position: relative; display: inline-flex; width: 4.25rem; height: 2rem; align-items: center; border: 1px solid var(--color-primary); border-radius: 999px; cursor: pointer; }
+  .qmod__switch input { position: absolute; opacity: 0; }
+  .qmod__switch span { display: grid; width: 1.7rem; height: 1.7rem; margin-left: .1rem; place-items: center; border-radius: 50%; background: rgba(26,28,28,.18); color: var(--color-text-muted); font-size: .62rem; transition: transform var(--transition-base), background var(--transition-base), color var(--transition-base); }
+  .qmod__switch input:checked + span { transform: translateX(2.2rem); background: var(--color-primary); color: #fff; }
+  .qmod__finance-grid { display: grid; gap: .85rem; }
+  .qmod__simulation { border: 1px solid rgba(214,0,15,.65); padding: clamp(1rem,3vw,1.5rem); }
+  .qmod__simulation h3 { margin-bottom: .9rem; font: 800 var(--text-body)/1.2 var(--font-body); letter-spacing: .08em; }
+  .qmod__simulation dl { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: .9rem 1.25rem; margin-bottom: .9rem; }
+  .qmod__simulation dd { color: var(--color-primary); font-size: var(--text-body-lg); font-weight: 800; }
+  .qmod__success { position: absolute; inset: 0; display: grid; place-items: center; min-height: 100%; padding: var(--container-padding); background: linear-gradient(rgba(16,17,17,.48),rgba(16,17,17,.48)), var(--quote-success-background, linear-gradient(135deg,#8b959f,#24292b)); background-position: center; background-size: cover; }
+  .qmod__success[hidden] { display: none; }
+  .qmod__success-card { width: min(100%,32rem); display: grid; justify-items: center; gap: 2rem; padding: clamp(2rem,5vw,4rem); background: #fff; color: #000; text-align: center; }
+  .qmod__success-card p { font-size: var(--text-h3); line-height: var(--leading-heading); }
+  .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; }
+  @keyframes qmod-enter { from { opacity: 0; transform: translateY(.75rem); } to { opacity: 1; transform: translateY(0); } }
+  @media (min-width: 900px) { .qmod__flow { grid-template-columns: minmax(20rem,1fr) minmax(28rem,37rem); } .qmod__finance-grid { grid-template-columns: repeat(2,minmax(0,1fr)); } }
+  @media (max-width: 560px) { .qmod__summary { grid-template-columns: 1fr; } .qmod__summary > * + * { border-top: .15rem solid #fff; border-left: 0; } .qmod__head div, .qmod__actions { align-items: stretch; flex-direction: column; } .qmod__actions :global(.btn) { width: 100%; } .qmod__simulation dl { grid-template-columns: 1fr; } }
+</style>

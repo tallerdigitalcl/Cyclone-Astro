@@ -10,6 +10,7 @@ interface Props {
   paddingX?: string;
   paddingXMobile?: string;
   fullWidth?: boolean;
+  [key: string]: unknown;
 }
 
 const {
@@ -23,6 +24,7 @@ const {
   paddingX,
   paddingXMobile,
   fullWidth = false,
+  ...rest
 } = Astro.props;
 
 const Tag = href ? 'a' : 'button';
@@ -36,6 +38,7 @@ const Tag = href ? 'a' : 'button';
   type={!href ? type : undefined}
   class:list={['btn', `btn--${variant}`, `btn--${size}`, fullWidth && 'btn--full', className]}
   style={[paddingX ? `--btn-px: ${paddingX}` : '', paddingXMobile ? `--btn-px-mobile: ${paddingXMobile}` : ''].filter(Boolean).join('; ') || undefined}
+  {...rest}
 >
   <slot />
 </Tag>

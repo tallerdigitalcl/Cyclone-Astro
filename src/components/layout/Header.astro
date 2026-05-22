@@ -312,28 +312,34 @@ const navLinks = [
     pointer-events: none;
   }
 
-  .header--mega-open .header__logo-img--default {
+  .header--mega-open .header__logo-img--default,
+  .header--quote-open .header__logo-img--default {
     opacity: 0;
   }
 
-  .header--mega-open .header__logo-img--mega {
+  .header--mega-open .header__logo-img--mega,
+  .header--quote-open .header__logo-img--mega {
     opacity: 1;
     pointer-events: auto;
   }
 
   /* ---- Header cuando mega está abierto ---- */
-  .header--mega-open {
+  .header--mega-open,
+  .header--quote-open {
     background: white;
     backdrop-filter: none;
   }
 
   .header--mega-open .nav__link,
-  .header--mega-open .header__search-btn {
+  .header--mega-open .header__search-btn,
+  .header--quote-open .nav__link,
+  .header--quote-open .header__search-btn {
     color: #1a1c1c;
     transition: color 350ms ease;
   }
 
-  .header--mega-open .header__inner::after {
+  .header--mega-open .header__inner::after,
+  .header--quote-open .header__inner::after {
     background: rgba(26, 28, 28, 0.15);
     transform: scaleX(1);
   }

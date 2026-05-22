@@ -46,6 +46,7 @@ const colorImagesForClient = (moto.colores ?? [])
     nombre: c.nombre,
     desktop: urlFor(c.imagen).width(1500).quality(86).auto('format').url(),
     mobile: urlFor(c.imagen.mobileImage?.asset?._ref ? c.imagen.mobileImage : c.imagen).width(920).quality(82).auto('format').url(),
+    alt: c.imagen.mobileImage?.alt || c.imagen.alt || `${moto.nombre} color ${c.nombre}`,
   }));
 const technicalSheetUrl = moto.fichaTecnica?.asset?.url;
 const sequenceFrames = (moto.scrollSequenceFrames ?? [])
@@ -58,6 +59,29 @@ const showGiantName = moto.mostrarNombreGigante !== false;
 const displayListPrice = normalizePrice(apiModel?.precio_lista);
 const displayBonusPrice = normalizePrice(apiModel?.precio);
 const heroIcons = moto.heroImagenes ?? [];
+const quoteImageSource = initialFrame?.mobileImage?.asset?._ref
+  ? initialFrame.mobileImage
+  : initialFrame || (moto.fotoHeader?.mobileImage?.asset?._ref ? moto.fotoHeader.mobileImage : moto.fotoHeader);
+const quoteImage = quoteImageSource?.asset?._ref
+  ? urlFor(quoteImageSource).width(1100).quality(88).auto('format').url()
+  : undefined;
+const quoteImageAlt = quoteImageSource?.alt || initialFrame?.alt || moto.fotoHeader?.alt || modelName;
+const quoteModelData = apiModel
+  ? JSON.stringify({
+      id: apiModel.id,
+      modelo: apiModel.modelo,
+      precio: apiModel.precio,
+      precio_lista: apiModel.precio_lista,
+      bono: apiModel.bono,
+      colors: apiModel.colors ?? [],
+    })
+  : undefined;
+const quoteColorImages = JSON.stringify(colorImagesForClient.map((color) => ({
+  name: color.nombre,
+  desktop: color.desktop,
+  mobile: color.mobile,
+  alt: color.alt,
+})));
 const sequenceFramesForClient = sequenceFrames.map((frame) => ({
   desktop: urlFor(frame).width(1500).quality(86).auto('format').url(),
   mobile: urlFor(frame.mobileImage?.asset?._ref ? frame.mobileImage : frame).width(920).quality(82).auto('format').url(),
@@ -114,7 +138,21 @@ function formatStatValue(value?: string | null, suffix?: string) {
               <strong>${displayBonusPrice}</strong>
             </p>
           )}
-          <Button href="#cotizar" size="lg" paddingX="4rem" paddingXMobile="2rem">Cotiza aquí</Button>
+          <Button
+            type="button"
+            size="lg"
+            paddingX="4rem"
+            paddingXMobile="2rem"
+            data-open-quote
+            data-quote-moto-id={moto.apiMotoId}
+            data-quote-model={modelName}
+            data-quote-image={quoteImage}
+            data-quote-image-alt={quoteImageAlt}
+            data-quote-model-data={quoteModelData}
+            data-quote-color-images={quoteColorImages}
+          >
+            Cotiza aquí
+          </Button>
         </div>
 
         <div class="moto-sequence__icons" aria-label="Certificaciones">
@@ -193,7 +231,21 @@ function formatStatValue(value?: string | null, suffix?: string) {
                   <strong>${displayBonusPrice}</strong>
                 </p>
               )}
-              <Button href="#cotizar" size="lg" paddingX="4rem" paddingXMobile="2rem">Cotiza aquí</Button>
+              <Button
+                type="button"
+                size="lg"
+                paddingX="4rem"
+                paddingXMobile="2rem"
+                data-open-quote
+                data-quote-moto-id={moto.apiMotoId}
+                data-quote-model={modelName}
+                data-quote-image={quoteImage}
+                data-quote-image-alt={quoteImageAlt}
+                data-quote-model-data={quoteModelData}
+                data-quote-color-images={quoteColorImages}
+              >
+                Cotiza aquí
+              </Button>
             </div>
           </div>
         </div>
@@ -708,6 +760,7 @@ function formatStatValue(value?: string | null, suffix?: string) {
     justify-content: flex-end;
     gap: 1rem;
     opacity: calc(1 - (var(--sequence-progress) * 1.8));
+    pointer-events: none;
   }
 
   .moto-sequence__icons img {
@@ -917,6 +970,10 @@ function formatStatValue(value?: string | null, suffix?: string) {
     display: flex;
     align-items: center;
     gap: 1.5rem;
+    pointer-events: none;
+  }
+
+  .moto-sequence.is-done .moto-sequence__final-action {
     pointer-events: auto;
   }
 

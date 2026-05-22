@@ -53,6 +53,34 @@ const hasMultipleSlides = motos.length > 1;
             const imageUrl = urlFor(moto.imagenSliderHome).width(960).quality(86).auto('format').url();
             const imageUrl2x = urlFor(moto.imagenSliderHome).width(1440).quality(82).auto('format').url();
             const imageAlt = moto.imagenSliderHome?.alt || `${moto.displayName} de Cyclone Motos`;
+            const quoteImageSource = moto.fotoHeader?.mobileImage?.asset?._ref
+              ? moto.fotoHeader.mobileImage
+              : moto.fotoHeader;
+            const quoteImage = quoteImageSource?.asset?._ref
+              ? urlFor(quoteImageSource).width(920).quality(88).auto('format').url()
+              : imageUrl;
+            const quoteAlt = quoteImageSource?.alt || moto.fotoHeader?.alt || imageAlt;
+            const quoteModelData = JSON.stringify({
+              id: moto.apiModel.id,
+              modelo: moto.apiModel.modelo,
+              precio: moto.apiModel.precio,
+              precio_lista: moto.apiModel.precio_lista,
+              bono: moto.apiModel.bono,
+              colors: moto.apiModel.colors ?? [],
+            });
+            const quoteColorImages = JSON.stringify((moto.colores ?? [])
+              .filter((color) => color.nombre && color.imagen?.asset?._ref)
+              .map((color) => {
+                const mobileColorImage = color.imagen.mobileImage?.asset?._ref ? color.imagen.mobileImage : color.imagen;
+
+                return {
+                  name: color.nombre,
+                  desktop: urlFor(color.imagen).width(1500).quality(88).auto('format').url(),
+                  mobile: urlFor(mobileColorImage).width(920).quality(84).auto('format').url(),
+                  alt: color.imagen.alt || `${moto.displayName} color ${color.nombre}`,
+                  mobileAlt: mobileColorImage.alt || color.imagen.alt || `${moto.displayName} color ${color.nombre}`,
+                };
+              }));
 
             return (
               <div class="moto-slider__slide">
@@ -85,7 +113,18 @@ const hasMultipleSlides = motos.length > 1;
                     </div>
 
                     <div class="moto-slider__actions fade-child fade-child--zoom-in fade-delay-4">
-                      <Button type="button" size="md" class="md:min-w-40">
+                      <Button
+                        type="button"
+                        size="md"
+                        class="md:min-w-40"
+                        data-open-quote
+                        data-quote-moto-id={moto.apiMotoId}
+                        data-quote-model={moto.displayName}
+                        data-quote-image={quoteImage}
+                        data-quote-image-alt={quoteAlt}
+                        data-quote-model-data={quoteModelData}
+                        data-quote-color-images={quoteColorImages}
+                      >
                         Cotizar
                       </Button>
                       <Button href={`/motos/${moto.slug}`} variant="secondary" size="md" class="md:min-w-40">
