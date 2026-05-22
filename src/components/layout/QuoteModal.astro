@@ -462,8 +462,8 @@ try {
   .qmod.is-open { opacity: 1; visibility: visible; pointer-events: auto; transition: opacity 300ms ease; }
   .qmod__surface { position: relative; min-height: calc(100dvh - 80px); height: 100%; overflow: auto; background: #fff; }
   .qmod__close-row { position: absolute; z-index: 3; top: clamp(.75rem,2vw,1.5rem); left: 0; right: 0; width: min(100%, var(--container-max)); margin: 0 auto; padding-inline: 1.5rem; display: flex; justify-content: flex-end; pointer-events: none; }
-  .qmod__close { display: grid; width: 2.75rem; height: 2.75rem; place-items: center; border: 1px solid var(--color-border); background: #fff; color: var(--color-text); font-size: var(--text-h4); cursor: pointer; pointer-events: auto; transition: background-color 320ms ease, border-color 320ms ease, color 320ms ease, transform 320ms ease; }
-  .qmod__close:hover, .qmod__close:focus-visible { border-color: var(--color-primary); background: var(--color-primary); color: #fff; transform: rotate(90deg); }
+  .qmod__close { display: grid; width: 2.75rem; place-items: center; border: 1px solid var(--color-border); background: #fff; color: var(--color-text); font-size: var(--text-h4); cursor: pointer; pointer-events: auto; transition: background-color 320ms ease, border-color 320ms ease, color 320ms ease; }
+  .qmod__close:hover, .qmod__close:focus-visible { border-color: var(--color-primary); background: var(--color-primary); color: #fff; }
   .qmod__flow { width: min(100%, var(--container-max)); min-height: 100%; margin: 0 auto; display: grid; align-items: start; gap: clamp(2rem,6vw,4.5rem); padding: clamp(3.25rem,5vw,4.5rem) var(--container-padding); }
   .qmod__moto-media { display: grid; place-items: end center; }
   .qmod__moto-media img { width: min(100%, 46rem); max-height: clamp(15rem,34vw,28rem); object-fit: contain; }
