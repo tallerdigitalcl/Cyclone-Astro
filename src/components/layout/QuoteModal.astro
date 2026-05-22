@@ -375,7 +375,10 @@ try {
       state.wpCode = payload.wp_code;
       const response = await fetch('/api/quote-submit', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
       const result = await response.json().catch(() => null);
-      if (!response.ok || (result?.codigo && result.codigo !== 200)) throw new Error(result?.mensaje || 'No se pudo enviar la cotización.');
+      const validationError = result?.errors
+        ? Object.values(result.errors).flat().find((message) => typeof message === 'string')
+        : '';
+      if (!response.ok || (result?.codigo && result.codigo !== 200)) throw new Error(validationError || result?.mensaje || result?.message || 'No se pudo enviar la cotización.');
     }
 
     function financeError() {

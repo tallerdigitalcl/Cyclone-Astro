@@ -1,11 +1,24 @@
 interface Env {
   COTIZACION_API_BASE_URL?: string;
   PUBLIC_COTIZACION_API_BASE_URL?: string;
+  PROMOBILITY_API_BASE_URL?: string;
   PROMOBILITY_API_ORIGIN?: string;
   PROMOBILITY_API_TOKEN?: string;
 }
 
-const DEFAULT_COTIZACION_API_BASE_URL = 'https://cyclonemotos.cl/wp-json/cotizacion-api/v1';
+const DEFAULT_COTIZACION_API_BASE_URL = 'https://track.promobility.cl/api';
+
+function cotizacionBaseUrl(env: Env) {
+  if (env.COTIZACION_API_BASE_URL || env.PUBLIC_COTIZACION_API_BASE_URL) {
+    return env.COTIZACION_API_BASE_URL || env.PUBLIC_COTIZACION_API_BASE_URL || DEFAULT_COTIZACION_API_BASE_URL;
+  }
+
+  if (!env.PROMOBILITY_API_BASE_URL) return DEFAULT_COTIZACION_API_BASE_URL;
+
+  const url = new URL(env.PROMOBILITY_API_BASE_URL);
+  url.pathname = url.pathname.replace(/\/vehiculos\/modelo\/?$/, '');
+  return url.toString().replace(/\/$/, '');
+}
 
 export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
   if (!env.PROMOBILITY_API_TOKEN) {
@@ -20,7 +33,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     return Response.json({ mensaje: 'Solicitud invalida.' }, { status: 400 });
   }
 
-  const baseUrl = env.COTIZACION_API_BASE_URL || env.PUBLIC_COTIZACION_API_BASE_URL || DEFAULT_COTIZACION_API_BASE_URL;
+  const baseUrl = cotizacionBaseUrl(env);
   const response = await fetch(`${baseUrl.replace(/\/$/, '')}/financiamiento`, {
     method: 'POST',
     headers: {
