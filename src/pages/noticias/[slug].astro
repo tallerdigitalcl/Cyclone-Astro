@@ -165,6 +165,20 @@ const bodyHTML = post.body
             );
           })}
         </div>
+        {sliderImages.length > 1 && (
+          <div class="post-detail__slider-dots" aria-label="Indicadores del slider">
+            {sliderImages.map((_, index) => (
+              <button
+                type="button"
+                class:list={['post-detail__slider-dot', index === 0 && 'is-active']}
+                aria-label={`Ver imagen ${index + 1}`}
+                aria-pressed={index === 0 ? 'true' : 'false'}
+                data-post-slider-dot
+                data-slide-index={index}
+              />
+            ))}
+          </div>
+        )}
       </section>
     ) : (
       featuredHeroImage && (
@@ -344,6 +358,54 @@ const bodyHTML = post.body
         window.setTimeout(() => button.classList.remove('is-copied'), 1400);
       });
     });
+
+    const postSliderTrack = document.querySelector('.post-detail__slider-track');
+    const postSliderSlides = Array.from(document.querySelectorAll('.post-detail__slide'));
+    const postSliderDots = Array.from(document.querySelectorAll('[data-post-slider-dot]'));
+
+    if (postSliderTrack && postSliderSlides.length > 1 && postSliderDots.length > 1) {
+      const getTrackPaddingLeft = () => Number.parseFloat(window.getComputedStyle(postSliderTrack).paddingLeft) || 0;
+      const getMaxScroll = () => Math.max(0, postSliderTrack.scrollWidth - postSliderTrack.clientWidth);
+
+      const setActiveDot = (activeIndex) => {
+        postSliderDots.forEach((dot, index) => {
+          const isActive = index === activeIndex;
+          dot.classList.toggle('is-active', isActive);
+          dot.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+        });
+      };
+
+      const updateActiveDot = () => {
+        const maxScroll = getMaxScroll();
+        const progress = maxScroll > 0 ? postSliderTrack.scrollLeft / maxScroll : 0;
+        const activeIndex = Math.min(
+          postSliderDots.length - 1,
+          Math.max(0, Math.round(progress * (postSliderDots.length - 1)))
+        );
+
+        setActiveDot(activeIndex);
+      };
+
+      postSliderDots.forEach((dot, index) => {
+        dot.addEventListener('click', () => {
+          const paddingLeft = getTrackPaddingLeft();
+          const slide = postSliderSlides[index];
+          const maxScroll = getMaxScroll();
+          const targetLeft = index === postSliderSlides.length - 1
+            ? maxScroll
+            : Math.max(0, slide.offsetLeft - paddingLeft);
+
+          setActiveDot(index);
+          postSliderTrack.scrollTo({
+            left: targetLeft,
+            behavior: 'smooth',
+          });
+        });
+      });
+
+      postSliderTrack.addEventListener('scroll', () => window.requestAnimationFrame(updateActiveDot), { passive: true });
+      updateActiveDot();
+    }
   </script>
 
   <style>
@@ -351,6 +413,7 @@ const bodyHTML = post.body
     padding: calc(var(--header-height, 72px) + clamp(2.5rem, 5vw, 4.5rem)) 0 clamp(5rem, 9vw, 8rem);
     background: #ffffff;
     color: var(--color-text);
+    overflow-x: hidden;
   }
 
   .post-detail__header,
@@ -389,27 +452,66 @@ const bodyHTML = post.body
   }
 
   .post-detail__hero-slider {
-    width: min(100%, var(--container-max));
-    margin-inline: auto;
-    overflow: visible;
-    padding-inline: var(--container-padding);
+    --post-slider-left-offset: max(var(--container-padding), calc((100vw - var(--container-max)) / 2 + var(--container-padding)));
+    position: relative;
+    width: 100%;
+    overflow: hidden;
     margin-bottom: 1.3rem;
   }
 
   .post-detail__slider-track {
     display: flex;
     gap: 1.25rem;
+    width: 100%;
+    box-sizing: border-box;
     overflow-x: auto;
-    scroll-snap-type: x mandatory;
-    scrollbar-width: thin;
+    overscroll-behavior-x: contain;
+    padding-left: var(--post-slider-left-offset);
+    padding-right: var(--container-padding);
+    scrollbar-width: none;
+  }
+
+  .post-detail__slider-track::-webkit-scrollbar {
+    display: none;
+  }
+
+  .post-detail__slider-dots {
+    display: flex;
+    justify-content: center;
+    gap: 0.55rem;
+    width: min(100%, var(--container-max));
+    margin: 1.1rem auto 0;
+    padding-inline: var(--container-padding);
+  }
+
+  .post-detail__slider-dot {
+    width: 0.58rem;
+    height: 0.58rem;
+    border: 0;
+    border-radius: 999px;
+    background: rgba(16, 24, 39, 0.24);
+    cursor: pointer;
+    transition:
+      width 180ms ease,
+      background-color 180ms ease,
+      transform 180ms ease;
+  }
+
+  .post-detail__slider-dot.is-active {
+    width: 1.55rem;
+    background: var(--color-primary);
+  }
+
+  .post-detail__slider-dot:hover {
+    transform: scale(1.12);
+    background: var(--color-primary);
   }
 
   .post-detail__slide {
     display: block;
-    flex: 0 0 min(58rem, 62%);
+    flex: 0 0 min(58rem, calc(72% - 0.625rem));
     min-width: 0;
     overflow: hidden;
-    scroll-snap-align: start;
   }
 
   .post-detail__slide img,
@@ -522,6 +624,14 @@ const bodyHTML = post.body
   .post-detail__body :global(ul),
   .post-detail__body :global(ol) {
     padding-left: 1.35rem;
+  }
+
+  .post-detail__body :global(ul) {
+    list-style: disc;
+  }
+
+  .post-detail__body :global(ol) {
+    list-style: decimal;
   }
 
   .post-detail__body :global(li) {
@@ -734,7 +844,7 @@ const bodyHTML = post.body
     .post-detail__more,
     .post-detail__featured-wrap,
     .post-detail__share {
-      padding-inline: 1.1rem;
+      padding-inline: 1.5rem;
     }
 
     .post-detail__slide {
