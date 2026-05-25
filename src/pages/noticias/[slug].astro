@@ -241,27 +241,114 @@ const bodyHTML = post.body
             const galleryImage = buildImageMarkup(image, 520, 360);
 
             return (
-              <picture class="post-detail__gallery-item">
-                <source
-                  media="(max-width: 767px)"
-                  srcset={`${galleryImage.mobileUrl} 720w, ${galleryImage.mobileUrl2x} 1080w`}
-                  sizes="50vw"
-                />
-                <img
-                  src={galleryImage.desktopUrl}
-                  srcset={`${galleryImage.desktopUrl} 520w, ${galleryImage.desktopUrl2x} 780w`}
-                  sizes="(min-width: 1024px) 25vw, 50vw"
-                  alt={galleryImage.alt || `${post.title} ${index + 1}`}
-                  width="520"
-                  height="360"
-                  loading="lazy"
-                  decoding="async"
-                />
-              </picture>
+              <button
+                type="button"
+                class="post-detail__gallery-item"
+                aria-label={`Abrir foto ${index + 1} de la galeria`}
+                data-post-gallery-open
+                data-gallery-index={index}
+              >
+                <picture>
+                  <source
+                    media="(max-width: 767px)"
+                    srcset={`${galleryImage.mobileUrl} 720w, ${galleryImage.mobileUrl2x} 1080w`}
+                    sizes="80vw"
+                  />
+                  <img
+                    src={galleryImage.desktopUrl}
+                    srcset={`${galleryImage.desktopUrl} 520w, ${galleryImage.desktopUrl2x} 780w`}
+                    sizes="(min-width: 1024px) 25vw, 80vw"
+                    alt={galleryImage.alt || `${post.title} ${index + 1}`}
+                    width="520"
+                    height="360"
+                    loading="lazy"
+                    decoding="async"
+                  />
+                </picture>
+              </button>
             );
           })}
         </div>
       </section>
+    )}
+
+    {post.galleryPhotos && post.galleryPhotos.length > 0 && (
+      <dialog id="post-gallery-dialog" class="moto-gallery post-gallery-lightbox" aria-label={`Galeria de fotos de ${post.title}`}>
+        <div class="moto-gallery__header">
+          <div class="moto-gallery__meta">
+            <strong class="moto-gallery__moto-name" data-post-gallery-title>
+              {post.galleryPhotos[0]?.alt || post.title}
+            </strong>
+            <span class="moto-gallery__label">Galeria</span>
+          </div>
+          <button class="moto-gallery__close" aria-label="Cerrar galeria">
+            <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+              <line x1="17" y1="5" x2="5" y2="17" />
+              <line x1="5" y1="5" x2="17" y2="17" />
+            </svg>
+          </button>
+        </div>
+
+        <div class="moto-gallery__stage">
+          <button class="moto-gallery__arrow moto-gallery__arrow--prev" aria-label="Foto anterior">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="12 3 6 9 12 15" />
+            </svg>
+          </button>
+
+          <div class="moto-gallery__track">
+            {post.galleryPhotos.map((image, index) => {
+              const lightboxImage = buildImageMarkup(image, 1600, 1000);
+
+              return (
+                <figure
+                  class:list={['moto-gallery__slide', index === 0 && 'is-active']}
+                  aria-hidden={index !== 0 ? 'true' : undefined}
+                  data-gallery-alt={lightboxImage.alt || `${post.title} ${index + 1}`}
+                >
+                  <picture>
+                    <source
+                      media="(max-width: 767px)"
+                      srcset={`${lightboxImage.mobileUrl} 720w, ${lightboxImage.mobileUrl2x} 1080w`}
+                      sizes="100vw"
+                    />
+                    <img
+                      class="moto-gallery__img"
+                      src={lightboxImage.desktopUrl}
+                      srcset={`${lightboxImage.desktopUrl} 1600w, ${lightboxImage.desktopUrl2x} 2400w`}
+                      sizes="100vw"
+                      alt={lightboxImage.alt || `${post.title} ${index + 1}`}
+                      loading={index === 0 ? 'eager' : 'lazy'}
+                      decoding="async"
+                    />
+                  </picture>
+                </figure>
+              );
+            })}
+          </div>
+
+          <button class="moto-gallery__arrow moto-gallery__arrow--next" aria-label="Siguiente foto">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="6 3 12 9 6 15" />
+            </svg>
+          </button>
+        </div>
+
+        {post.galleryPhotos.length > 1 && (
+          <div class="moto-gallery__dots" role="tablist" aria-label="Navegacion de galeria">
+            {post.galleryPhotos.map((_, index) => (
+              <button
+                class:list={['moto-gallery__dot', index === 0 && 'is-active']}
+                data-post-lightbox-dot
+                data-gallery-index={index}
+                role="tab"
+                aria-label={`Foto ${index + 1}`}
+                aria-selected={index === 0 ? 'true' : 'false'}
+              ></button>
+            ))}
+          </div>
+        )}
+      </dialog>
     )}
 
     {relatedPosts.length > 0 && (
@@ -405,6 +492,73 @@ const bodyHTML = post.body
 
       postSliderTrack.addEventListener('scroll', () => window.requestAnimationFrame(updateActiveDot), { passive: true });
       updateActiveDot();
+    }
+
+    const postGalleryDialog = document.getElementById('post-gallery-dialog');
+    const postGalleryOpenButtons = Array.from(document.querySelectorAll('[data-post-gallery-open]'));
+
+    if (postGalleryDialog && postGalleryOpenButtons.length > 0) {
+      const slides = Array.from(postGalleryDialog.querySelectorAll('.moto-gallery__slide'));
+      const dots = Array.from(postGalleryDialog.querySelectorAll('[data-post-lightbox-dot]'));
+      const galleryTitle = postGalleryDialog.querySelector('[data-post-gallery-title]');
+      let current = 0;
+
+      const goTo = (index) => {
+        if (!slides.length) return;
+        slides[current]?.classList.remove('is-active');
+        slides[current]?.setAttribute('aria-hidden', 'true');
+        dots[current]?.classList.remove('is-active');
+        dots[current]?.setAttribute('aria-selected', 'false');
+
+        current = ((index % slides.length) + slides.length) % slides.length;
+
+        slides[current]?.classList.add('is-active');
+        slides[current]?.removeAttribute('aria-hidden');
+        dots[current]?.classList.add('is-active');
+        dots[current]?.setAttribute('aria-selected', 'true');
+        if (galleryTitle) {
+          galleryTitle.textContent = slides[current]?.getAttribute('data-gallery-alt') || '';
+        }
+      };
+
+      const openGallery = (index) => {
+        goTo(index);
+        postGalleryDialog.showModal();
+        document.documentElement.style.setProperty('overflow', 'hidden');
+      };
+
+      postGalleryOpenButtons.forEach((button) => {
+        button.addEventListener('click', () => {
+          openGallery(Number(button.getAttribute('data-gallery-index')) || 0);
+        });
+      });
+
+      postGalleryDialog.querySelector('.moto-gallery__close')?.addEventListener('click', () => postGalleryDialog.close());
+      postGalleryDialog.querySelector('.moto-gallery__arrow--prev')?.addEventListener('click', () => goTo(current - 1));
+      postGalleryDialog.querySelector('.moto-gallery__arrow--next')?.addEventListener('click', () => goTo(current + 1));
+      dots.forEach((dot, index) => dot.addEventListener('click', () => goTo(index)));
+
+      postGalleryDialog.addEventListener('close', () => {
+        document.documentElement.style.removeProperty('overflow');
+      });
+
+      postGalleryDialog.addEventListener('click', (event) => {
+        if (event.target === postGalleryDialog) postGalleryDialog.close();
+      });
+
+      postGalleryDialog.addEventListener('keydown', (event) => {
+        if (event.key === 'ArrowLeft') goTo(current - 1);
+        if (event.key === 'ArrowRight') goTo(current + 1);
+      });
+
+      let touchStartX = 0;
+      postGalleryDialog.addEventListener('touchstart', (event) => {
+        touchStartX = event.touches[0].clientX;
+      }, { passive: true });
+      postGalleryDialog.addEventListener('touchend', (event) => {
+        const delta = touchStartX - event.changedTouches[0].clientX;
+        if (Math.abs(delta) > 50) goTo(delta > 0 ? current + 1 : current - 1);
+      }, { passive: true });
     }
   </script>
 
@@ -703,7 +857,11 @@ const bodyHTML = post.body
 
   .post-detail__gallery-item {
     display: block;
+    padding: 0;
+    border: 0;
+    background: transparent;
     overflow: hidden;
+    cursor: zoom-in;
   }
 
   .post-detail__gallery-item img {
@@ -712,6 +870,187 @@ const bodyHTML = post.body
     aspect-ratio: 4 / 3;
     height: auto;
     object-fit: cover;
+    transition: transform 260ms ease;
+  }
+
+  .post-detail__gallery-item:hover img {
+    transform: scale(1.035);
+  }
+
+  .moto-gallery {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    max-width: 100%;
+    max-height: 100%;
+    margin: 0;
+    padding: 0;
+    background: rgba(10, 10, 10, 0.65);
+    border: none;
+    backdrop-filter: blur(24px) saturate(0.6);
+    -webkit-backdrop-filter: blur(24px) saturate(0.6);
+    display: none;
+    flex-direction: column;
+  }
+
+  .moto-gallery[open] {
+    display: flex;
+  }
+
+  .moto-gallery::backdrop {
+    background: rgba(0, 0, 0, 0.14);
+  }
+
+  .moto-gallery__header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    padding: 1.25rem 1.5rem 1rem;
+    flex-shrink: 0;
+  }
+
+  .moto-gallery__meta {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+  }
+
+  .moto-gallery__moto-name {
+    max-width: min(48rem, 72vw);
+    font-family: var(--font-heading);
+    font-size: var(--text-h3);
+    font-weight: 900;
+    color: white;
+    text-transform: uppercase;
+    letter-spacing: -0.04em;
+    line-height: 1;
+  }
+
+  .moto-gallery__label {
+    font-family: var(--font-body);
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.45);
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+  }
+
+  .moto-gallery__close {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 9999px;
+    color: white;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background 200ms;
+  }
+
+  .moto-gallery__close:hover {
+    background: rgba(255, 255, 255, 0.18);
+  }
+
+  .moto-gallery__stage {
+    flex: 1;
+    position: relative;
+    display: flex;
+    align-items: center;
+    min-height: 0;
+  }
+
+  .moto-gallery__track {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .moto-gallery__slide {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0;
+    padding: 1rem 3.75rem 1.5rem;
+    opacity: 0;
+    transition: opacity 280ms ease;
+    pointer-events: none;
+  }
+
+  .moto-gallery__slide.is-active {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .moto-gallery__slide picture {
+    display: contents;
+  }
+
+  .moto-gallery__img {
+    max-width: 100%;
+    max-height: 100%;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    display: block;
+    user-select: none;
+    -webkit-user-drag: none;
+  }
+
+  .moto-gallery__arrow {
+    position: absolute;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 9999px;
+    color: white;
+    cursor: pointer;
+    transition: background 200ms;
+  }
+
+  .moto-gallery__arrow:hover {
+    background: rgba(255, 255, 255, 0.22);
+  }
+
+  .moto-gallery__arrow--prev { left: 0.75rem; }
+  .moto-gallery__arrow--next { right: 0.75rem; }
+
+  .moto-gallery__dots {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 1rem 1.5rem 1.5rem;
+    flex-shrink: 0;
+  }
+
+  .moto-gallery__dot {
+    width: 0.45rem;
+    height: 0.45rem;
+    border-radius: 9999px;
+    background: rgba(255, 255, 255, 0.3);
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    transition: background 220ms, transform 220ms;
+  }
+
+  .moto-gallery__dot.is-active {
+    background: white;
+    transform: scale(1.3);
   }
 
   .post-detail__more {
@@ -831,6 +1170,17 @@ const bodyHTML = post.body
     .post-detail__more-grid {
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }
+
+    .moto-gallery__header {
+      padding: 1.75rem 2.5rem 1rem;
+    }
+
+    .moto-gallery__arrow--prev { left: 1.5rem; }
+    .moto-gallery__arrow--next { right: 1.5rem; }
+
+    .moto-gallery__slide {
+      padding: 1rem 5.5rem 1.5rem;
+    }
   }
 
   @media (max-width: 639px) {
@@ -856,7 +1206,47 @@ const bodyHTML = post.body
       height: clamp(15rem, 70vw, 22rem);
     }
 
-    .post-detail__gallery-grid,
+    .post-detail__gallery-grid {
+      display: flex;
+      gap: 0.9rem;
+      margin-inline: -1.5rem;
+      padding-inline: 1.5rem;
+      overflow-x: auto;
+      overscroll-behavior-x: contain;
+      scroll-snap-type: x proximity;
+      scrollbar-width: none;
+    }
+
+    .post-detail__gallery-grid::-webkit-scrollbar {
+      display: none;
+    }
+
+    .post-detail__gallery-item {
+      flex: 0 0 78%;
+      scroll-snap-align: start;
+    }
+
+    .moto-gallery__header {
+      padding: 1rem 1.1rem 0.6rem;
+    }
+
+    .moto-gallery__moto-name {
+      max-width: 68vw;
+      font-size: var(--text-h4);
+    }
+
+    .moto-gallery__slide {
+      padding: 0.75rem 1rem 1rem;
+    }
+
+    .moto-gallery__arrow {
+      width: 2.35rem;
+      height: 2.35rem;
+    }
+
+    .moto-gallery__arrow--prev { left: 0.65rem; }
+    .moto-gallery__arrow--next { right: 0.65rem; }
+
     .post-detail__more-grid {
       grid-template-columns: 1fr;
     }
