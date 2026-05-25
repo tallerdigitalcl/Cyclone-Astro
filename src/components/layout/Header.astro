@@ -85,6 +85,7 @@ const navLinks = [
                     src={imgUrl}
                     alt={moto.fotoHeader?.alt || moto.nombre}
                     width="410"
+                    height="240"
                     loading="eager"
                     decoding="async"
                   />
@@ -129,7 +130,6 @@ const navLinks = [
         {navLinks.map(link => (
           <a href={link.href} class="mobile-menu__link">{link.label}</a>
         ))}
-        <button data-open-dealers class="mobile-menu__link mobile-menu__link--btn">Concesionarios más cercanos</button>
       </div>
 
       <!-- Panel Modelos -->
