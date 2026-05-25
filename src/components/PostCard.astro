@@ -38,7 +38,7 @@ const categoryLabel = post.category ? categoryLabels[post.category] || post.cate
 
 <article class="post-card">
   {image && desktopImageUrl && (
-    <a href={`/noticia/${post.slug}`} class="post-card__image-link" tabindex="-1" aria-hidden="true">
+    <a href={`/noticias/${post.slug}`} class="post-card__image-link" tabindex="-1" aria-hidden="true">
       <picture>
         <source
           media="(max-width: 767px)"
@@ -64,7 +64,7 @@ const categoryLabel = post.category ? categoryLabels[post.category] || post.cate
       <time datetime={post.publishedAt} class="post-card__date">{formattedDate}</time>
     )}
     <h2 class="post-card__title">
-      <a href={`/noticia/${post.slug}`}>{post.title}</a>
+      <a href={`/noticias/${post.slug}`}>{post.title}</a>
     </h2>
     {post.excerpt && <p class="post-card__excerpt">{post.excerpt}</p>}
   </div>

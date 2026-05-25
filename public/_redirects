@@ -1,0 +1,2 @@
+/noticia/:slug /noticias/:slug 301
+/noticia /noticias/ 301

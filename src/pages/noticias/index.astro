@@ -76,7 +76,7 @@ const buildPostImage = (image?: SanityImage, title = 'Noticia Cyclone') => {
                     data-index={index}
                   >
                     {image && (
-                      <a href={`/noticia/${post.slug}`} class="news-card__image-link" tabindex="-1" aria-hidden="true">
+                      <a href={`/noticias/${post.slug}`} class="news-card__image-link" tabindex="-1" aria-hidden="true">
                         <picture>
                           <source
                             media="(max-width: 767px)"
@@ -100,10 +100,10 @@ const buildPostImage = (image?: SanityImage, title = 'Noticia Cyclone') => {
                     <div class="news-card__body">
                       {categoryLabel && <p class="news-card__category">{categoryLabel}</p>}
                       <h2 class="news-card__title">
-                        <a href={`/noticia/${post.slug}`}>{post.homeTitle || post.title}</a>
+                        <a href={`/noticias/${post.slug}`}>{post.homeTitle || post.title}</a>
                       </h2>
                       {post.excerpt && <p class="news-card__excerpt">{post.excerpt}</p>}
-                      <a href={`/noticia/${post.slug}`} class="news-card__read-more">
+                      <a href={`/noticias/${post.slug}`} class="news-card__read-more">
                         Leer más <span aria-hidden="true">-&gt;</span>
                       </a>
                     </div>
@@ -195,6 +195,7 @@ const buildPostImage = (image?: SanityImage, title = 'Noticia Cyclone') => {
     .news-listing__container {
       width: min(100%, var(--container-max));
       margin: 0 auto;
+      padding-inline:1.5rem;
     }
 
     .news-listing__header {

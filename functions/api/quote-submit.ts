@@ -6,7 +6,7 @@ interface Env {
   PROMOBILITY_API_TOKEN?: string;
 }
 
-const DEFAULT_COTIZACION_API_BASE_URL = 'https://track.promobility.cl/api';
+const DEFAULT_COTIZACION_API_BASE_URL = 'https://track.promobility.cl/api'; 
 
 function cotizacionBaseUrl(env: Env) {
   if (env.COTIZACION_API_BASE_URL || env.PUBLIC_COTIZACION_API_BASE_URL) {

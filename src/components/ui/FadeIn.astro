@@ -4,6 +4,8 @@ interface Props {
   delay?: number;
   class?: string;
   as?: string;
+  style?: string;
+  [key: string]: unknown;
 }
 
 const {
@@ -11,13 +13,19 @@ const {
   delay = 0,
   class: className = "",
   as: Tag = "div",
+  style,
+  ...attrs
 } = Astro.props;
+
+const transitionDelay = delay ? `transition-delay:${delay}ms` : "";
+const inlineStyle = [style, transitionDelay].filter(Boolean).join(";");
 ---
 
 <Tag
+  {...attrs}
   class={`fade-in fade-in--${type} ${className}`}
   data-fade-in
-  style={delay ? `transition-delay:${delay}ms` : ""}
+  style={inlineStyle}
 >
   <slot />
 </Tag>

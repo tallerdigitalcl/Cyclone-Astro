@@ -9,18 +9,32 @@ interface Props {
 
 const { posts } = Astro.props;
 
-const visiblePosts = posts.slice(0, 5);
+const sortedPosts = [...posts].sort((a, b) => {
+  const dateA = a.publishedAt ? new Date(a.publishedAt).getTime() : 0;
+  const dateB = b.publishedAt ? new Date(b.publishedAt).getTime() : 0;
+  return dateB - dateA;
+});
 const categoryLabels: Record<string, string> = {
   tips: 'Tips',
   eventos: 'Eventos',
   nuevo: 'Nuevo',
 };
 
-const availableCategories = [...new Set(visiblePosts.map((post) => post.category).filter(Boolean))] as string[];
-const filterLabels = ['Todas', ...availableCategories.map((category) => categoryLabels[category] || category)];
+const categoryCounts = sortedPosts.reduce<Record<string, number>>((counts, post) => {
+  if (post.category) {
+    counts[post.category] = (counts[post.category] || 0) + 1;
+  }
+
+  return counts;
+}, {});
+const availableCategories = Object.keys(categoryCounts).filter((category) => categoryCounts[category] >= 5);
+const filters = [
+  { label: 'Todas', value: 'all' },
+  ...availableCategories.map((category) => ({ label: categoryLabels[category] || category, value: category })),
+];
 ---
 
-{visiblePosts.length > 0 && (
+{sortedPosts.length > 0 && (
   <section class="latest-news" aria-labelledby="latest-news-title">
     <div class="latest-news__container">
       <div class="latest-news__header">
@@ -29,15 +43,22 @@ const filterLabels = ['Todas', ...availableCategories.map((category) => category
         </FadeIn>
         <FadeIn type="right">
           <div class="latest-news__filters" aria-label="Categorias destacadas">
-            {filterLabels.map((label, index) => (
-              <span class:list={['latest-news__filter', index === 0 && 'is-active']}>{label}</span>
+            {filters.map((filter, index) => (
+              <button
+                type="button"
+                class:list={['latest-news__filter', index === 0 && 'is-active']}
+                data-latest-news-filter={filter.value}
+                aria-pressed={index === 0 ? 'true' : 'false'}
+              >
+                {filter.label}
+              </button>
             ))}
           </div>
         </FadeIn>
       </div>
 
-      <div class="latest-news__grid">
-        {visiblePosts.map((post, index) => {
+      <div class="latest-news__grid" data-latest-news-grid>
+        {sortedPosts.map((post, index) => {
           const image = post.homeImage;
           const mobileImage = image?.mobileImage;
           const desktopUrl = image ? urlFor(image).width(960).quality(88).auto('format').url() : null;
@@ -53,10 +74,16 @@ const filterLabels = ['Todas', ...availableCategories.map((category) => category
           const title = post.homeTitle || post.title;
 
           return (
-            <FadeIn type="up" class:list={['latest-news__slide', index === 0 && 'latest-news__slide--featured']}>
+            <FadeIn
+              type="up"
+              class:list={['latest-news__slide', index >= 5 && 'is-hidden', index === 0 && 'latest-news__slide--featured']}
+              data-latest-news-card
+              data-category={post.category || 'sin-categoria'}
+              data-published={post.publishedAt || ''}
+            >
               <article class:list={['latest-news__card', index === 0 && 'latest-news__card--featured']}>
                 {image && desktopUrl && (
-                  <a href={`/noticia/${post.slug}`} class="latest-news__image-link" aria-hidden="true" tabindex="-1">
+                  <a href={`/noticias/${post.slug}`} class="latest-news__image-link" aria-hidden="true" tabindex="-1">
                     <picture>
                       <source
                         media="(max-width: 767px)"
@@ -82,10 +109,10 @@ const filterLabels = ['Todas', ...availableCategories.map((category) => category
                 <div class="latest-news__body">
                   {category && <p class="latest-news__category fade-child fade-child--left fade-delay-2">{category}</p>}
                   <h3 class="latest-news__card-title fade-child fade-child--left fade-delay-3">
-                    <a href={`/noticia/${post.slug}`}>{title}</a>
+                    <a href={`/noticias/${post.slug}`}>{title}</a>
                   </h3>
                   {post.excerpt && <p class="latest-news__excerpt fade-child fade-child--left fade-delay-3">{post.excerpt}</p>}
-                  <a href={`/noticia/${post.slug}`} class="latest-news__cta fade-child fade-child--zoom-in fade-delay-4">Leer mas</a>
+                  <a href={`/noticias/${post.slug}`} class="latest-news__cta fade-child fade-child--zoom-in fade-delay-4">Leer mas</a>
                 </div>
               </article>
             </FadeIn>
@@ -93,6 +120,52 @@ const filterLabels = ['Todas', ...availableCategories.map((category) => category
         })}
       </div>
     </div>
+
+    <script>
+      const HOME_NEWS_LIMIT = 5;
+      const newsCards = Array.from(document.querySelectorAll<HTMLElement>('[data-latest-news-card]'));
+      const newsFilters = Array.from(document.querySelectorAll<HTMLButtonElement>('[data-latest-news-filter]'));
+
+      const getCardDate = (card: HTMLElement) => {
+        const parsedDate = Date.parse(card.dataset.published || '');
+        return Number.isNaN(parsedDate) ? 0 : parsedDate;
+      };
+
+      const renderLatestNews = (category = 'all') => {
+        const visibleCards = newsCards
+          .filter((card) => category === 'all' || card.dataset.category === category)
+          .sort((a, b) => getCardDate(b) - getCardDate(a))
+          .slice(0, HOME_NEWS_LIMIT);
+
+        const visibleSet = new Set(visibleCards);
+
+        newsCards.forEach((card) => {
+          const cardArticle = card.querySelector('.latest-news__card');
+          const visibleIndex = visibleCards.indexOf(card);
+
+          card.classList.toggle('is-hidden', !visibleSet.has(card));
+          card.classList.toggle('latest-news__slide--featured', visibleIndex === 0);
+          cardArticle?.classList.toggle('latest-news__card--featured', visibleIndex === 0);
+          card.style.order = visibleIndex >= 0 ? String(visibleIndex) : '99';
+        });
+      };
+
+      newsFilters.forEach((filter) => {
+        filter.addEventListener('click', () => {
+          const category = filter.dataset.latestNewsFilter || 'all';
+
+          newsFilters.forEach((item) => {
+            const isActive = item === filter;
+            item.classList.toggle('is-active', isActive);
+            item.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+          });
+
+          renderLatestNews(category);
+        });
+      });
+
+      renderLatestNews();
+    </script>
   </section>
 )}
 
@@ -129,7 +202,9 @@ const filterLabels = ['Todas', ...availableCategories.map((category) => category
     min-height: 2.5rem;
     padding: 0.65rem 1.15rem;
     border: 1px solid rgba(255, 255, 255, 0.35);
+    background: transparent;
     color: rgba(255, 255, 255, 0.88);
+    cursor: pointer;
     font-family: var(--font-body);
     font-size: 0.75rem;
     font-weight: 700;
@@ -147,8 +222,7 @@ const filterLabels = ['Todas', ...availableCategories.map((category) => category
     gap: 1.75rem;
   }
 
-  /* Mobile: ocultar noticias 3+ */
-  :global(.latest-news__slide:nth-child(n+3)) {
+  :global(.latest-news__slide.is-hidden) {
     display: none;
   }
 
@@ -241,10 +315,6 @@ const filterLabels = ['Todas', ...availableCategories.map((category) => category
   }
 
   @media (min-width: 768px) {
-    :global(.latest-news__slide:nth-child(n+3)) {
-      display: block;
-    }
-
     .latest-news__grid {
       grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 1.1rem;
