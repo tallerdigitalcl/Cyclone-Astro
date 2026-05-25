@@ -74,7 +74,7 @@ const navLinks = [
       <ul class="nav__mega-grid" role="list" >
         {motos.map(moto => {
           const imgUrl = moto.fotoHeader?.asset?.url
-            ? urlFor(moto.fotoHeader).width(272).fit('fill').auto('format').quality(100).url()
+            ? urlFor(moto.fotoHeader).width(410).fit('fill').auto('format').quality(100).url()
             : null;
           if (!imgUrl) return null;
           return (
@@ -84,8 +84,7 @@ const navLinks = [
                   <img
                     src={imgUrl}
                     alt={moto.fotoHeader?.alt || moto.nombre}
-                    width="360"
-                    height="220"
+                    width="410"
                     loading="eager"
                     decoding="async"
                   />
