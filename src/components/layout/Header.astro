@@ -144,15 +144,18 @@ const navLinks = [
         </div>
         <ul class="mobile-menu__moto-list">
           {motos.map(moto => {
-            const mobileImgUrl = moto.fotoHeader?.asset?.url
-              ? urlFor(moto.fotoHeader).width(410).fit('fill').auto('format').quality(80).url()
+            const mobileHeaderImage = moto.fotoHeader?.mobileImage?.asset?.url
+              ? moto.fotoHeader.mobileImage
+              : moto.fotoHeader;
+            const mobileImgUrl = mobileHeaderImage?.asset?.url
+              ? urlFor(mobileHeaderImage).width(410).fit('fill').auto('format').quality(80).url()
               : null;
             return (
               <li>
                 <a href={`/motos/${moto.slug}`} class="mobile-menu__moto-link">
                   <div class="mobile-menu__moto-img-wrap">
                     {mobileImgUrl && (
-                      <img src={mobileImgUrl} alt={moto.fotoHeader?.alt || moto.nombre} width="100" height="65" loading="lazy" />
+                      <img src={mobileImgUrl} alt={mobileHeaderImage?.alt || moto.fotoHeader?.alt || moto.nombre} width="100" height="65" loading="lazy" />
                     )}
                   </div>
                   <span class="mobile-menu__moto-name">{moto.nombre}</span>

@@ -284,7 +284,12 @@ export const motoNavQuery = `
     fotoHeader {
       ...,
       alt,
-      asset-> { _id, url }
+      asset-> { _id, url },
+      mobileImage {
+        ...,
+        alt,
+        asset-> { _id, url }
+      }
     }
   }
 `;
