@@ -524,5 +524,6 @@ try {
   .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; }
   @keyframes qmod-enter { from { opacity: 0; transform: translateY(.75rem); } to { opacity: 1; transform: translateY(0); } }
   @media (min-width: 900px) { .qmod__flow { grid-template-columns: minmax(20rem,1fr) minmax(28rem,37rem); } .qmod__finance-grid { grid-template-columns: repeat(2,minmax(0,1fr)); } }
+  @media (min-width: 900px) and (max-width: 1260px) { .qmod__summary { grid-template-columns: 1fr; max-width: 28rem; } .qmod__summary > * + * { border-top: .15rem solid #fff; border-left: 0; } }
   @media (max-width: 560px) { .qmod__summary { grid-template-columns: 1fr; } .qmod__summary > * + * { border-top: .15rem solid #fff; border-left: 0; } .qmod__head div, .qmod__actions { align-items: stretch; flex-direction: column; } .qmod__actions :global(.btn) { width: 100%; } .qmod__simulation dl { grid-template-columns: 1fr; } }
 </style>
