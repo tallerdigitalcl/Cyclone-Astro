@@ -852,7 +852,7 @@ const bodyHTML = post.body
   .post-detail__gallery-grid {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 0.8rem;
+    gap: clamp(1rem, 2.2vw, 1.6rem);
   }
 
   .post-detail__gallery-item {
