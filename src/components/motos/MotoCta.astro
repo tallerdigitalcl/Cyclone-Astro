@@ -206,25 +206,25 @@ const imageAlt = imagenFondo.mobileImage?.alt || imagenFondo.alt || titulo;
     .moto-cta__image {
       animation: cta-image-shrink linear both;
       animation-timeline: --cta-scene;
-      animation-range: contain 0% contain 67%;
+      animation-range: contain 14% contain 82%;
     }
 
     .moto-cta__overlay {
       animation: cta-overlay-darken linear both;
       animation-timeline: --cta-scene;
-      animation-range: contain 0% contain 67%;
+      animation-range: contain 14% contain 82%;
     }
 
     .moto-cta__step--1 {
       animation: cta-step1-out linear both;
       animation-timeline: --cta-scene;
-      animation-range: contain 0% contain 67%;
+      animation-range: contain 0% contain 82%;
     }
 
     .moto-cta__step--2 {
       animation: cta-step2-in linear both;
       animation-timeline: --cta-scene;
-      animation-range: contain 50% contain 67%;
+      animation-range: contain 66% contain 82%;
     }
   }
 
@@ -240,9 +240,9 @@ const imageAlt = imagenFondo.mobileImage?.alt || imagenFondo.alt || titulo;
 
   @keyframes cta-step1-out {
     0%   { opacity: 1; transform: translateY(0);       visibility: visible; }
-    45%  { opacity: 1; transform: translateY(0);       visibility: visible; }
-    70%  { opacity: 0; transform: translateY(-2.5rem); visibility: visible; }
-    71%  { opacity: 0; transform: translateY(-2.5rem); visibility: hidden; }
+    58%  { opacity: 1; transform: translateY(0);       visibility: visible; }
+    84%  { opacity: 0; transform: translateY(-2.5rem); visibility: visible; }
+    85%  { opacity: 0; transform: translateY(-2.5rem); visibility: hidden; }
     100% { opacity: 0; transform: translateY(-2.5rem); visibility: hidden; }
   }
 

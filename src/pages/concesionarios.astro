@@ -220,55 +220,60 @@ const services = pageContent?.servicios?.length ? pageContent.servicios : defaul
                   data-region-id={String(sucursal.region_id)}
                   data-comuna-id={String(sucursal.comuna_id)}
                 >
-                  <h2 class="dealer-card__title">{sucursal.name}</h2>
+                  <div class="flex flex-col justify-between h-full">
+                    <div>
+                      <h2 class="dealer-card__title">{sucursal.name}</h2>
 
-                  <ul class="dealer-card__details">
-                    <li>
-                      <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 2C8.1 2 5 5.1 5 9c0 5.2 7 13 7 13s7-7.8 7-13c0-3.9-3.1-7-7-7Zm0 9.5A2.5 2.5 0 1 1 12 6a2.5 2.5 0 0 1 0 5.5Z"/></svg>
-                      <span>{sucursal.address}</span>
-                    </li>
-                    {sucursal.spider && (
-                      <li>
-                        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M20 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2Zm-.4 4.2-7.1 4.5a1 1 0 0 1-1 0L4.4 8.2V6.6l7.6 4.8 7.6-4.8v1.6Z"/></svg>
-                        <a href={`mailto:${sucursal.spider}`}>{sucursal.spider}</a>
-                      </li>
-                    )}
-                    {sucursal.phone && (
-                      <li>
-                        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M20.5 15.5c-1.4 0-2.7-.2-4-.7a1.2 1.2 0 0 0-1.2.3l-1.8 1.8a15.5 15.5 0 0 1-6.4-6.4l1.8-1.8c.3-.3.4-.8.3-1.2-.4-1.3-.7-2.6-.7-4A1.5 1.5 0 0 0 7 2H4.5A1.5 1.5 0 0 0 3 3.5 17.5 17.5 0 0 0 20.5 21a1.5 1.5 0 0 0 1.5-1.5V17a1.5 1.5 0 0 0-1.5-1.5Z"/></svg>
-                        <a href={formatPhoneHref(sucursal.phone)}>{sucursal.phone}</a>
-                      </li>
-                    )}
-                    {sucursal.hours && (
-                      <li>
-                        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm1 10.2 3.8 2.2-1 1.7-4.8-2.8V6h2v6.2Z"/></svg>
-                        <span>{sucursal.hours}</span>
-                      </li>
-                    )}
-                  </ul>
-
-                  <div class="dealer-card__services">
-                    <p>Tipos de servicios:</p>
-                    <ul>
-                      {services.map((service) => (
+                      <ul class="dealer-card__details">
                         <li>
-                          {getServiceIconUrl(service) ? (
-                            <img
-                              src={getServiceIconUrl(service)!}
-                              alt={service.icono?.alt || service.titulo}
-                              width="24"
-                              loading="lazy"
-                              decoding="async"
-                            />
-                          ) : (
-                            <svg aria-hidden="true" viewBox="0 0 24 24">
-                              <path d={getServiceIconPath(service)} />
-                            </svg>
-                          )}
-                          <span>{service.titulo}</span>
+                          <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 2C8.1 2 5 5.1 5 9c0 5.2 7 13 7 13s7-7.8 7-13c0-3.9-3.1-7-7-7Zm0 9.5A2.5 2.5 0 1 1 12 6a2.5 2.5 0 0 1 0 5.5Z"/></svg>
+                          <span>{sucursal.address}</span>
                         </li>
-                      ))}
-                    </ul>
+                        {sucursal.email && (
+                          <li>
+                            <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M20 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2Zm-.4 4.2-7.1 4.5a1 1 0 0 1-1 0L4.4 8.2V6.6l7.6 4.8 7.6-4.8v1.6Z"/></svg>
+                            <a href={`mailto:${sucursal.email}`}>{sucursal.email}</a>
+                          </li>
+                        )}
+                        {sucursal.phone && (
+                          <li>
+                            <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M20.5 15.5c-1.4 0-2.7-.2-4-.7a1.2 1.2 0 0 0-1.2.3l-1.8 1.8a15.5 15.5 0 0 1-6.4-6.4l1.8-1.8c.3-.3.4-.8.3-1.2-.4-1.3-.7-2.6-.7-4A1.5 1.5 0 0 0 7 2H4.5A1.5 1.5 0 0 0 3 3.5 17.5 17.5 0 0 0 20.5 21a1.5 1.5 0 0 0 1.5-1.5V17a1.5 1.5 0 0 0-1.5-1.5Z"/></svg>
+                            <a href={formatPhoneHref(sucursal.phone)}>{sucursal.phone}</a>
+                          </li>
+                        )}
+                        {sucursal.hours && (
+                          <li>
+                            <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm1 10.2 3.8 2.2-1 1.7-4.8-2.8V6h2v6.2Z"/></svg>
+                            <span>{sucursal.hours}</span>
+                          </li>
+                        )}
+                      </ul>
+                    </div>
+                    <div>
+                    <div class="dealer-card__services">
+                      <p>Tipos de servicios:</p>
+                      <ul>
+                        {services.map((service) => (
+                          <li>
+                            {getServiceIconUrl(service) ? (
+                              <img
+                                src={getServiceIconUrl(service)!}
+                                alt={service.icono?.alt || service.titulo}
+                                width="24"
+                                loading="lazy"
+                                decoding="async"
+                              />
+                            ) : (
+                              <svg aria-hidden="true" viewBox="0 0 24 24">
+                                <path d={getServiceIconPath(service)} />
+                              </svg>
+                            )}
+                            <span>{service.titulo}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                    </div>
                   </div>
 
                   <Button href={formatRouteHref(sucursal)} target="_blank" size="lg" fullWidth>
@@ -371,7 +376,8 @@ const services = pageContent?.servicios?.length ? pageContent.servicios : defaul
     }
 
     .dealers-hero__container {
-      width: min(100%, 1080px);
+      max-width: var(--container-max);
+      padding-inline: 1.5rem;
       margin: 0 auto;
       text-align: center;
     }
@@ -423,16 +429,20 @@ const services = pageContent?.servicios?.length ? pageContent.servicios : defaul
     }
 
     .dealers-services {
-      display: flex;
-      justify-content: center;
-      gap: clamp(2rem, 7vw, 5rem);
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      column-gap: clamp(1.5rem, 4vw, 3.5rem);
+      width: min(100%, clamp(24rem, 38vw, 34rem));
       list-style: none;
-      margin: 2.4rem 0 0;
+      margin: 2.4rem auto 0;
       padding: 0;
     }
 
     .dealers-services li {
-      display: grid;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
       justify-items: center;
       gap: 0.35rem;
       font-family: var(--font-body);
@@ -462,7 +472,8 @@ const services = pageContent?.servicios?.length ? pageContent.servicios : defaul
     .dealers-filter {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
-      width: min(100%, 1080px);
+      max-width: var(--container-max);
+      padding-inline: 1.5rem;
       margin: 2.6rem auto 0;
       background: #ffffff;
       border: 1px solid transparent;
@@ -598,16 +609,18 @@ const services = pageContent?.servicios?.length ? pageContent.servicios : defaul
     }
 
     .dealer-card__services ul {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 0.5rem;
+      display: flex;
+      gap: 2rem;
       list-style: none;
       margin: 0;
       padding: 0;
     }
 
     .dealer-card__services li {
-      display: grid;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      align-items: center;
       justify-items: center;
       gap: 0.2rem;
       font-size: var(--text-caption);
@@ -674,7 +687,8 @@ const services = pageContent?.servicios?.length ? pageContent.servicios : defaul
       }
 
       .dealers-services {
-        gap: 1.5rem;
+        column-gap: 1.5rem;
+        width: 100%;
       }
 
       .dealers-results {
