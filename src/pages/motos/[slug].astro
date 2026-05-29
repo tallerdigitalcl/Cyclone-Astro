@@ -1148,13 +1148,17 @@ function formatStatValue(value?: string | null, suffix?: string) {
         top: calc(100% - (var(--sequence-progress) * 54%));
     }
 
+    
+  }
+
+  @media (min-width:981) and (max-width:1180px){
     .moto-sequence__initial {
       right: max(var(--container-padding), calc((100% - var(--container-max)) / 2));
       width: min(25rem, 36vw);
     }
   }
 
-  @media (max-width: 767px) {
+  @media (max-width: 980px) {
     .moto-sequence {
       height: 230vh; /* +50vh dwell at final state */
     }
