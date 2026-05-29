@@ -39,7 +39,7 @@ const isSlider = slides.length > 1;
             aria-label={`Slide ${i + 1} de ${slides.length}`}
           >
             <picture>
-              <source media="(max-width: 767px)" srcset={`${imgMobile} 570w`} sizes="100vw" />
+              <source media="(max-width: 950px)" srcset={`${imgMobile} 570w`} sizes="100vw" />
               <img
                 class="hero__bg"
                 src={imgUrl}
@@ -399,7 +399,7 @@ const isSlider = slides.length > 1;
   }
 
   /* ---- Mobile ---- */
-  @media (max-width: 767px) {
+  @media (max-width: 950px) {
     .hero__stats {
       display: none;
     }
