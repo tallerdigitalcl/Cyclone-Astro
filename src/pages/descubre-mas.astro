@@ -142,13 +142,13 @@ const textoGrandeLines = content.textoGrandeInferior.split('\n').map((line) => l
     }
 
     .discover-hero__title {
+      @apply text-white md:text-black;
       margin: 0;
       font-family: var(--font-heading);
       font-size: clamp(2rem, 4.1vw, 3.6rem);
       font-weight: 700;
       line-height: 1.08;
       letter-spacing: -0.04em;
-      color: #111827;
     }
 
     .discover-hero__title span {
@@ -170,6 +170,9 @@ const textoGrandeLines = content.textoGrandeInferior.split('\n').map((line) => l
     .discover-hero__description p,
     .discover-cta__description p {
       margin: 0;
+    }
+    .discover-hero__description p{
+      @apply text-white md:text-black;
     }
 
     .discover-cta {
