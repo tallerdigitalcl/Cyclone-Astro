@@ -112,12 +112,12 @@ try {
         </form>
 
         <form class="qmod__screen" data-qmod-screen="finance" novalidate>
-          <label class="qmod__field qmod__field--wide"><span class="sr-only">Sueldo líquido</span><input id="qmod-salary" type="number" min="0" inputmode="numeric" placeholder="Sueldo líquido" required /></label>
+          <label class="qmod__field qmod__field--wide"><span class="sr-only">Sueldo líquido</span><input id="qmod-salary" type="number" min="0" inputmode="numeric" placeholder="Ej: 800.000" required /><span class="qmod__field-tip" role="alert"></span></label>
           <div class="qmod__finance-grid">
-            <label class="qmod__field"><span class="sr-only">Situación laboral</span><select id="qmod-employment" required><option value="">Situación laboral</option><option value="DEPENDIENTE">Dependiente</option><option value="INDEPENDIENTE">Independiente</option></select></label>
-            <label class="qmod__field"><span class="sr-only">Continuidad laboral</span><select id="qmod-continuity" required><option value="">Continuidad laboral</option><option value="MAYOR_8">Mayor o igual a 8 meses</option><option value="MENOR_8">Menor a 8 meses</option></select></label>
-            <label class="qmod__field"><span class="sr-only">Monto del pie</span><input id="qmod-down" type="number" min="0" inputmode="numeric" placeholder="Monto del pie" required /></label>
-            <label class="qmod__field"><span class="sr-only">Cuotas</span><select id="qmod-installments" required><option value="">Seleccione el número de cuotas</option><option value="6">6 cuotas</option><option value="12">12 cuotas</option><option value="18">18 cuotas</option><option value="24">24 cuotas</option><option value="36">36 cuotas</option></select></label>
+            <label class="qmod__field"><span class="sr-only">Situación laboral</span><select id="qmod-employment" required><option value="">Situación laboral</option><option value="DEPENDIENTE">Dependiente</option><option value="INDEPENDIENTE">Independiente</option></select><span class="qmod__field-tip" role="alert"></span></label>
+            <label class="qmod__field"><span class="sr-only">Continuidad laboral</span><select id="qmod-continuity" required><option value="">Continuidad laboral</option><option value="MAYOR_8">Mayor o igual a 8 meses</option><option value="MENOR_8">Menor a 8 meses</option></select><span class="qmod__field-tip" role="alert"></span></label>
+            <label class="qmod__field"><span class="sr-only">Monto del pie</span><input id="qmod-down" type="number" min="0" inputmode="numeric" placeholder="Ej: 300.000" required /><span class="qmod__field-tip" role="alert"></span></label>
+            <label class="qmod__field"><span class="sr-only">Cuotas</span><select id="qmod-installments" required><option value="">Seleccione el número de cuotas</option><option value="6">6 cuotas</option><option value="12">12 cuotas</option><option value="18">18 cuotas</option><option value="24">24 cuotas</option><option value="36">36 cuotas</option></select><span class="qmod__field-tip" role="alert"></span></label>
           </div>
           <section id="qmod-simulation" class="qmod__simulation" hidden>
             <h3>Resultado oficial de Autofin:</h3>
@@ -220,7 +220,15 @@ try {
       const hasBonus = Number.parseInt(String(model?.bono || '').replace(/[^\d]/g, ''), 10) > 0;
       document.getElementById('qmod-price')!.textContent = money(hasBonus ? model?.precio : model?.precio_lista || model?.precio);
       color.innerHTML = '';
-      (model?.colors?.length ? model.colors : [{ id: '', name: 'Disponible' }]).forEach((item) => color.append(new Option(item.name, String(item.id))));
+      const colorSource = state.colorImages.length ? state.colorImages : null;
+      if (colorSource) {
+        colorSource.forEach((item) => {
+          const apiColor = model?.colors?.find((c) => c.name.trim().toLowerCase() === item.name.trim().toLowerCase());
+          color.append(new Option(item.name, String(apiColor?.id || '')));
+        });
+      } else {
+        (model?.colors?.length ? model.colors : [{ id: '', name: 'Disponible' }]).forEach((item) => color.append(new Option(item.name, String(item.id))));
+      }
       updateColorImage();
     }
 
@@ -266,7 +274,7 @@ try {
       financeAction.textContent = 'Calcular cuotas';
       simulationBox.hidden = true;
       ['dealers', 'person', 'finance'].forEach((key) => feedback(key));
-      ['qmod-name', 'qmod-rut', 'qmod-phone', 'qmod-email'].forEach((id) => setFieldTip(id, ''));
+      ['qmod-name', 'qmod-rut', 'qmod-phone', 'qmod-email', 'qmod-salary', 'qmod-employment', 'qmod-continuity', 'qmod-down', 'qmod-installments'].forEach((id) => setFieldTip(id, ''));
       ($('[data-qmod-back-person]') as HTMLButtonElement).style.display = '';
       showStep(1);
     }
@@ -359,10 +367,32 @@ try {
       return '';
     }
     function setFieldTip(id: string, message: string) {
-      const inp = input(id);
-      const tip = inp.nextElementSibling as HTMLElement | null;
+      const el = document.getElementById(id)!;
+      const tip = el.nextElementSibling as HTMLElement | null;
       if (tip?.classList.contains('qmod__field-tip')) tip.textContent = message;
-      inp.closest('.qmod__field')?.classList.toggle('has-error', !!message);
+      el.closest('.qmod__field')?.classList.toggle('has-error', !!message);
+    }
+    function financeFieldError(id: string): string {
+      const price = Number.parseInt(String(state.model?.precio || state.model?.precio_lista || '').replace(/[^\d]/g, ''), 10);
+      if (id === 'qmod-salary') {
+        const val = Number(input('qmod-salary').value);
+        return !val || val < 500000 ? 'El sueldo mínimo es $500.000.' : '';
+      }
+      if (id === 'qmod-employment') return !select('qmod-employment').value ? 'Selecciona tu situación laboral.' : '';
+      if (id === 'qmod-continuity') return !select('qmod-continuity').value ? 'Selecciona tu continuidad laboral.' : '';
+      if (id === 'qmod-down') {
+        const down = Number(input('qmod-down').value);
+        const continuity = select('qmod-continuity').value;
+        if (!down) return 'Ingresa el monto del pie.';
+        if (!price) return '';
+        if (down >= price) return 'El pie no puede superar el precio de la moto.';
+        if (down < price * 0.1) return 'El pie mínimo es el 10% del precio.';
+        if (continuity === 'MENOR_8' && down <= price * 0.4) return 'Con menos de 8 meses el pie debe superar el 40%.';
+        if (continuity === 'MAYOR_8' && down < price * 0.3) return 'Con 8 meses o más el pie mínimo es el 30%.';
+        return '';
+      }
+      if (id === 'qmod-installments') return !select('qmod-installments').value ? 'Selecciona el número de cuotas.' : '';
+      return '';
     }
     function utms() {
       const params = new URLSearchParams(window.location.search);
@@ -481,8 +511,21 @@ try {
       } catch (err) { feedback('person', err instanceof Error ? err.message : 'No se pudo enviar la cotización.'); personAction.textContent = originalPersonText; }
       finally { personAction.disabled = false; personAction.classList.remove('is-loading'); }
     });
+    const financeFields = ['qmod-salary', 'qmod-employment', 'qmod-continuity', 'qmod-down', 'qmod-installments'] as const;
+    financeFields.forEach((id) => {
+      const el = document.getElementById(id)!;
+      const isSelect = el.tagName === 'SELECT';
+      el.addEventListener(isSelect ? 'change' : 'blur', () => { if ((el as HTMLInputElement).value) setFieldTip(id, financeFieldError(id)); });
+      el.addEventListener('input', () => { if (el.closest('.qmod__field')?.classList.contains('has-error')) setFieldTip(id, financeFieldError(id)); });
+    });
+    select('qmod-continuity').addEventListener('change', () => {
+      if (document.getElementById('qmod-down')?.closest('.qmod__field')?.classList.contains('has-error')) setFieldTip('qmod-down', financeFieldError('qmod-down'));
+    });
     $('[data-qmod-screen="finance"]').addEventListener('submit', async (event) => {
-      event.preventDefault(); feedback('finance'); const error = financeError(); if (error) return feedback('finance', error);
+      event.preventDefault(); feedback('finance');
+      let firstFinanceError = '';
+      financeFields.forEach((id) => { const err = financeFieldError(id); setFieldTip(id, err); if (err && !firstFinanceError) firstFinanceError = id; });
+      if (firstFinanceError) { document.getElementById(firstFinanceError)?.focus(); return; }
       const originalFinanceText = financeAction.textContent || 'Calcular cuotas';
       financeAction.disabled = true;
       financeAction.classList.add('is-loading');
@@ -530,6 +573,7 @@ try {
   .qmod__location svg { width: 1.25rem; fill: var(--color-primary); flex: none; }
   .qmod__location select, .qmod__field input, .qmod__field select { width: 100%; min-height: 3.75rem; padding: 0 1.1rem; background: transparent; color: var(--color-text); font-size: var(--text-body); }
   .qmod__location select { padding: 0; cursor: pointer; outline: none; }
+  .qmod__field select { outline: none; cursor: pointer; }
   .qmod__field input::placeholder { color: rgba(95,99,104,.52); }
   .qmod__dealers { display: grid; gap: .35rem; min-height: 2rem; color: var(--color-text-muted); }
   :global(.qmod__dealer) { min-height: 4.4rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; border: 1px solid rgba(26,28,28,.22); padding: .75rem 1.15rem; color: var(--color-text); cursor: pointer; transition: border-color var(--transition-base), box-shadow var(--transition-base); }
