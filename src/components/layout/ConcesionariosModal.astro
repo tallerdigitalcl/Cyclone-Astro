@@ -87,7 +87,10 @@ try {
     </div>
 
     <!-- Loading overlay -->
-    <div class="cmod__loading" id="cmod-loading">Cargando mapa…</div>
+    <div class="cmod__loading" id="cmod-loading">
+      <span id="cmod-loading-text">Cargando mapa…</span>
+      <button id="cmod-retry" class="cmod__retry" style="display:none">Reintentar</button>
+    </div>
   </div>
 </div>
 
@@ -122,6 +125,8 @@ try {
   const cardDetails  = document.getElementById('cmod-card-details')!;
   const cardCta      = document.getElementById('cmod-card-cta') as HTMLAnchorElement;
   const loadingEl    = document.getElementById('cmod-loading')!;
+  const loadingText  = document.getElementById('cmod-loading-text')!;
+  const retryBtn     = document.getElementById('cmod-retry') as HTMLButtonElement;
 
   // ── State ──────────────────────────────────────────────────────────
   let mapboxgl: any = null;
@@ -210,10 +215,13 @@ try {
 
   async function bootstrap() {
     if (!TOKEN || !sucursales.length) {
-      loadingEl.textContent = 'No hay información disponible.';
+      loadingText.textContent = 'No hay información disponible.';
       return;
     }
+
     loadingEl.style.display = 'flex';
+    loadingText.textContent = 'Cargando mapa…';
+    retryBtn.style.display = 'none';
 
     try {
       const [mod] = await Promise.all([
@@ -239,9 +247,17 @@ try {
       });
     } catch (err) {
       console.error('[ConcesionariosModal] Mapbox init error:', err);
-      loadingEl.textContent = 'Error al cargar el mapa.';
+      loadingText.textContent = 'Error al cargar el mapa.';
+      retryBtn.style.display = 'inline-flex';
     }
   }
+
+  retryBtn.addEventListener('click', async () => {
+    if (map) { try { map.remove(); } catch {} map = null; }
+    markers = {};
+    initialized = false;
+    await bootstrap();
+  });
 
   // ── Markers ────────────────────────────────────────────────────────
   function addMarkers() {
@@ -562,14 +578,33 @@ try {
     position: absolute;
     inset: 0;
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
+    gap: 1rem;
     background: rgba(255, 255, 255, 0.9);
     font-family: var(--font-body);
     font-size: 0.9rem;
     color: var(--color-text-muted, #5f6368);
     z-index: 5;
   }
+
+  .cmod__retry {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.55rem 1.25rem;
+    background: var(--color-primary, #d6000f);
+    color: #fff;
+    border: none;
+    font-family: var(--font-body);
+    font-size: 0.875rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    cursor: pointer;
+    transition: background 150ms ease;
+  }
+  .cmod__retry:hover { background: var(--color-primary-dark, #a8000c); }
 
   /* ── Close button (top-right) ── */
   .cmod__close {
