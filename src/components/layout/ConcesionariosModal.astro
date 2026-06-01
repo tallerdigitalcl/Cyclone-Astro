@@ -8,7 +8,7 @@ const TOKEN  = import.meta.env.PROMOBILITY_API_TOKEN  || '';
 
 interface RawSucursal {
   id: number; name: string; address: string;
-  spider: string | null; phone: string | null; hours: string | null;
+  email: string | null; spider: string | null; phone: string | null; hours: string | null;
   latitude: string; longitude: string; is_active: boolean;
 }
 interface Sucursal extends RawSucursal {
@@ -95,7 +95,7 @@ try {
   // ── Types ──────────────────────────────────────────────────────────
   type Sucursal = {
     id: number; name: string; address: string;
-    spider: string | null; phone: string | null; hours: string | null;
+    email: string | null; spider: string | null; phone: string | null; hours: string | null;
     latitude: string; longitude: string;
     comuna: string; region: string; region_id: number;
   };
@@ -303,15 +303,28 @@ try {
     Object.values(markers).forEach(({ s }) => setPinState(s.id, 'idle'));
     setPinState(s.id, 'active');
 
-    const rows: { icon: string; text: string }[] = [
+    const escapeHtml = (value: string) =>
+      value.replace(/[&<>"']/g, (char) => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;',
+      }[char] || char));
+    const rows: { icon: string; text: string; href?: string }[] = [
       { icon: ICON_LOC, text: s.address },
     ];
-    if (s.spider) rows.push({ icon: ICON_EMAIL, text: s.spider });
+    if (s.email) rows.push({ icon: ICON_EMAIL, text: s.email, href: `mailto:${s.email}` });
     if (s.phone)  rows.push({ icon: ICON_PHONE, text: s.phone });
     if (s.hours)  rows.push({ icon: ICON_CLOCK, text: s.hours });
 
     cardDetails.innerHTML = rows
-      .map(r => `<li class="cmod-card__row"><span class="cmod-card__icon">${r.icon}</span><span>${r.text}</span></li>`)
+      .map((r) => {
+        const content = r.href
+          ? `<a href="${escapeHtml(r.href)}">${escapeHtml(r.text)}</a>`
+          : `<span>${escapeHtml(r.text)}</span>`;
+        return `<li class="cmod-card__row"><span class="cmod-card__icon">${r.icon}</span>${content}</li>`;
+      })
       .join('');
 
     cardCta.href = `https://www.google.com/maps/dir/?api=1&destination=${s.latitude},${s.longitude}`;
