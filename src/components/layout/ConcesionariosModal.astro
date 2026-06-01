@@ -330,7 +330,7 @@ try {
     const rows: { icon: string; text: string; href?: string }[] = [
       { icon: ICON_LOC, text: s.address },
     ];
-    if (s.email) rows.push({ icon: ICON_EMAIL, text: s.email, href: `mailto:${s.email}` });
+    if (s.email) rows.push({ icon: ICON_EMAIL, text: s.email });
     if (s.phone)  rows.push({ icon: ICON_PHONE, text: s.phone });
     if (s.hours)  rows.push({ icon: ICON_CLOCK, text: s.hours });
 
