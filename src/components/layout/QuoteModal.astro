@@ -95,10 +95,10 @@ try {
         </section>
 
         <form class="qmod__screen" data-qmod-screen="person" novalidate>
-          <label class="qmod__field"><span class="sr-only">Nombre completo</span><input id="qmod-name" type="text" autocomplete="name" placeholder="Nombre completo" required /></label>
-          <label class="qmod__field"><span class="sr-only">RUT</span><input id="qmod-rut" type="text" placeholder="RUT" required /></label>
-          <label class="qmod__field"><span class="sr-only">Teléfono</span><input id="qmod-phone" type="tel" inputmode="numeric" autocomplete="tel" placeholder="Teléfono de contacto" required /></label>
-          <label class="qmod__field"><span class="sr-only">Email</span><input id="qmod-email" type="email" autocomplete="email" placeholder="Email" required /></label>
+          <label class="qmod__field"><span class="sr-only">Nombre completo</span><input id="qmod-name" type="text" autocomplete="name" placeholder="Ej: Juan Pérez García" required /><span class="qmod__field-tip" role="alert"></span></label>
+          <label class="qmod__field"><span class="sr-only">RUT</span><input id="qmod-rut" type="text" placeholder="Ej: 12.345.678-9" required /><span class="qmod__field-tip" role="alert"></span></label>
+          <label class="qmod__field"><span class="sr-only">Teléfono</span><input id="qmod-phone" type="tel" inputmode="numeric" autocomplete="tel" placeholder="Ej: 9 1234 5678" required /><span class="qmod__field-tip" role="alert"></span></label>
+          <label class="qmod__field"><span class="sr-only">Email</span><input id="qmod-email" type="email" autocomplete="email" placeholder="Ej: juan@email.com" required /><span class="qmod__field-tip" role="alert"></span></label>
 
           <fieldset class="qmod__switch">
             <legend>¿Necesitas financiamiento?</legend>
@@ -266,6 +266,8 @@ try {
       financeAction.textContent = 'Calcular cuotas';
       simulationBox.hidden = true;
       ['dealers', 'person', 'finance'].forEach((key) => feedback(key));
+      ['qmod-name', 'qmod-rut', 'qmod-phone', 'qmod-email'].forEach((id) => setFieldTip(id, ''));
+      ($('[data-qmod-back-person]') as HTMLButtonElement).style.display = '';
       showStep(1);
     }
 
@@ -348,12 +350,19 @@ try {
       const rest = 11 - (sum % 11);
       return rut.at(-1) === (rest === 11 ? '0' : rest === 10 ? 'K' : String(rest));
     }
-    function personError() {
-      if (input('qmod-name').value.trim().split(/\s+/).length < 2) return 'Ingresa nombre y apellido.';
-      if (!input('qmod-rut').value.includes('-') || !validRut(input('qmod-rut').value)) return 'Ingresa un RUT válido con guion.';
-      if (!/^\d{9}$/.test(input('qmod-phone').value.replace(/[^\d]/g, ''))) return 'Ingresa un teléfono válido de 9 dígitos.';
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input('qmod-email').value.trim())) return 'Ingresa un email válido.';
+    function fieldError(id: string): string {
+      const val = input(id).value.trim();
+      if (id === 'qmod-name') return val.split(/\s+/).length < 2 ? 'Ingresa tu nombre y al menos un apellido.' : '';
+      if (id === 'qmod-rut') return !val.includes('-') || !validRut(val) ? 'RUT inválido, usa el formato 12.345.678-9.' : '';
+      if (id === 'qmod-phone') return !/^\d{9}$/.test(val.replace(/[^\d]/g, '')) ? 'Ingresa 9 dígitos, sin el 0 inicial.' : '';
+      if (id === 'qmod-email') return !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val) ? 'Dirección de email inválida.' : '';
       return '';
+    }
+    function setFieldTip(id: string, message: string) {
+      const inp = input(id);
+      const tip = inp.nextElementSibling as HTMLElement | null;
+      if (tip?.classList.contains('qmod__field-tip')) tip.textContent = message;
+      inp.closest('.qmod__field')?.classList.toggle('has-error', !!message);
     }
     function utms() {
       const params = new URLSearchParams(window.location.search);
@@ -445,19 +454,42 @@ try {
     $('[data-qmod-back-dealers]').addEventListener('click', () => showStep(1));
     $('[data-qmod-back-person]').addEventListener('click', () => showStep(2));
     financeToggle.addEventListener('change', () => { $('[data-qmod-finance-label]').textContent = financeToggle.checked ? 'Sí' : 'No'; personAction.textContent = financeToggle.checked ? 'Siguiente' : 'Enviar cotización'; });
+    const personFields = ['qmod-name', 'qmod-rut', 'qmod-phone', 'qmod-email'] as const;
+    personFields.forEach((id) => {
+      const el = input(id);
+      el.addEventListener('blur', () => { if (el.value.trim()) setFieldTip(id, fieldError(id)); });
+      el.addEventListener('input', () => { if (el.closest('.qmod__field')?.classList.contains('has-error')) setFieldTip(id, fieldError(id)); });
+    });
     $('[data-qmod-screen="person"]').addEventListener('submit', async (event) => {
-      event.preventDefault(); feedback('person'); const error = personError(); if (error) return feedback('person', error);
+      event.preventDefault();
+      feedback('person');
+      let firstErrorId = '';
+      personFields.forEach((id) => { const err = fieldError(id); setFieldTip(id, err); if (err && !firstErrorId) firstErrorId = id; });
+      if (firstErrorId) { input(firstErrorId).focus(); return; }
+      const originalPersonText = personAction.textContent || 'Enviar cotización';
       personAction.disabled = true;
-      try { await sendQuote(); financeToggle.checked ? showStep(3) : (flow.hidden = true, success.hidden = false); }
-      catch (error) { feedback('person', error instanceof Error ? error.message : 'No se pudo enviar la cotización.'); }
-      finally { personAction.disabled = false; }
+      personAction.classList.add('is-loading');
+      personAction.textContent = 'Enviando…';
+      try {
+        await sendQuote();
+        if (financeToggle.checked) {
+          showStep(3);
+          ($('[data-qmod-back-person]') as HTMLButtonElement).style.display = 'none';
+        } else {
+          flow.hidden = true; success.hidden = false;
+        }
+      } catch (err) { feedback('person', err instanceof Error ? err.message : 'No se pudo enviar la cotización.'); personAction.textContent = originalPersonText; }
+      finally { personAction.disabled = false; personAction.classList.remove('is-loading'); }
     });
     $('[data-qmod-screen="finance"]').addEventListener('submit', async (event) => {
       event.preventDefault(); feedback('finance'); const error = financeError(); if (error) return feedback('finance', error);
+      const originalFinanceText = financeAction.textContent || 'Calcular cuotas';
       financeAction.disabled = true;
+      financeAction.classList.add('is-loading');
+      financeAction.textContent = state.simulation ? 'Enviando…' : 'Calculando…';
       try { state.simulation ? await sendFinance() : await simulate(); }
-      catch (error) { feedback('finance', error instanceof Error ? error.message : 'No se pudo procesar el financiamiento.'); }
-      finally { financeAction.disabled = false; }
+      catch (err) { feedback('finance', err instanceof Error ? err.message : 'No se pudo procesar el financiamiento.'); financeAction.textContent = originalFinanceText; }
+      finally { financeAction.disabled = false; financeAction.classList.remove('is-loading'); }
     });
   }
 </script>
@@ -478,10 +510,10 @@ try {
   .qmod__summary > * { min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: .12rem; padding: 1rem clamp(.85rem,2vw,1.45rem); }
   .qmod__summary > * + * { border-left: .15rem solid #fff; }
   .qmod__summary small { color: var(--color-primary); font-size: var(--text-body-sm); font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
-  .qmod__summary strong { width: 100%; color: var(--color-primary); background: transparent; font: 700 var(--text-h3)/var(--leading-subheading) var(--font-heading); }
+  .qmod__summary strong { width: 100%; color: var(--color-text); background: transparent; font: 700 var(--text-h3)/var(--leading-subheading) var(--font-heading); }
   #qmod-price { font-size: var(--text-h4); }
   .qmod__summary label { overflow: visible; }
-  .qmod__summary select { width: 100%; min-width: 0; padding-right: 1.15rem; color: var(--color-primary); background: transparent; font-family: var(--font-heading); font-size: var(--text-h4); font-weight: 700; line-height: var(--leading-body); }
+  .qmod__summary select { width: 100%; min-width: 0; padding-right: 1.15rem; color: var(--color-text); background: transparent; font-family: var(--font-heading); font-size: var(--text-h4); font-weight: 700; line-height: var(--leading-body); }
   :global(.qmod__summary select option) { font-size: var(--text-body); }
   .qmod__panel { width: 100%; max-width: 37rem; justify-self: center; }
   .qmod__head { margin-bottom: clamp(1rem,3vw,1.7rem); text-transform: uppercase; }
@@ -497,7 +529,7 @@ try {
   .qmod__location { gap: 1rem; padding: 0 1.2rem; border: 0; box-shadow: 0 .75rem 1.8rem rgba(0,0,0,.12); }
   .qmod__location svg { width: 1.25rem; fill: var(--color-primary); flex: none; }
   .qmod__location select, .qmod__field input, .qmod__field select { width: 100%; min-height: 3.75rem; padding: 0 1.1rem; background: transparent; color: var(--color-text); font-size: var(--text-body); }
-  .qmod__location select { padding: 0; cursor: pointer; }
+  .qmod__location select { padding: 0; cursor: pointer; outline: none; }
   .qmod__field input::placeholder { color: rgba(95,99,104,.52); }
   .qmod__dealers { display: grid; gap: .35rem; min-height: 2rem; color: var(--color-text-muted); }
   :global(.qmod__dealer) { min-height: 4.4rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; border: 1px solid rgba(26,28,28,.22); padding: .75rem 1.15rem; color: var(--color-text); cursor: pointer; transition: border-color var(--transition-base), box-shadow var(--transition-base); }
@@ -527,6 +559,12 @@ try {
   .qmod__success-card { width: min(100%,32rem); display: grid; justify-items: center; gap: 2rem; padding: clamp(2rem,5vw,4rem); background: #fff; color: #000; text-align: center; }
   .qmod__success-card p { font-size: var(--text-h3); line-height: var(--leading-heading); }
   .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; }
+  .qmod__field { position: relative; overflow: visible; }
+  .qmod__field.has-error { border-color: var(--color-primary); }
+  .qmod__field-tip { position: absolute; bottom: calc(100% + .4rem); left: 0; z-index: 2; background: var(--color-primary); color: #fff; font-size: .72rem; font-family: var(--font-body); font-weight: 600; padding: .28rem .65rem; white-space: nowrap; pointer-events: none; opacity: 0; transform: translateY(.25rem); transition: opacity 180ms ease, transform 180ms ease; line-height: 1.4; }
+  .qmod__field-tip:not(:empty) { opacity: 1; transform: translateY(0); }
+  .qmod__field-tip::after { content: ''; position: absolute; top: 100%; left: .8rem; border: .28rem solid transparent; border-top-color: var(--color-primary); }
+  .is-loading { cursor: wait !important; opacity: .72 !important; }
   @keyframes qmod-enter { from { opacity: 0; transform: translateY(.75rem); } to { opacity: 1; transform: translateY(0); } }
   @media (min-width: 900px) { .qmod__flow { grid-template-columns: minmax(20rem,1fr) minmax(28rem,37rem); } .qmod__finance-grid { grid-template-columns: repeat(2,minmax(0,1fr)); } }
   @media (min-width: 900px) and (max-width: 1260px) { .qmod__summary { grid-template-columns: 1fr; max-width: 28rem; } .qmod__summary > * + * { border-top: .15rem solid #fff; border-left: 0; } }
