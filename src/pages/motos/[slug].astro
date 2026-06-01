@@ -960,6 +960,8 @@ function formatStatValue(value?: string | null, suffix?: string) {
     align-items: center;
     justify-content: space-between;
     gap: 2rem;
+    border-top: 1px solid rgba(26, 28, 28, 0.22);
+    padding-top: 1.25rem;
   }
 
   .moto-sequence__final-title {
@@ -1551,6 +1553,26 @@ function formatStatValue(value?: string | null, suffix?: string) {
 
     .moto-gallery__slide {
       padding: 1rem 5.5rem 1.5rem;
+    }
+  }
+
+  /* ── Final bar desktop layout: [name] | [price] … [button] ── */
+  @media (min-width: 981px) {
+    .moto-sequence__final-bar {
+      justify-content: flex-start;
+      gap: 0;
+    }
+
+    .moto-sequence__final-title {
+      padding-right: 2rem;
+      flex-shrink: 0;
+    }
+
+    .moto-sequence__final-action {
+      flex: 1;
+      padding-left: 2rem;
+      border-left: 1px solid rgba(26, 28, 28, 0.22);
+      justify-content: space-between;
     }
   }
 </style>
