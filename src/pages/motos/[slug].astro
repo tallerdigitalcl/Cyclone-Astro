@@ -186,27 +186,32 @@ function formatStatValue(value?: string | null, suffix?: string) {
         </div>
 
         <div class="moto-sequence__final">
-          {apiModel?.colors && apiModel.colors.length > 0 && (
+          {colorImagesForClient.length > 0 && (
             <ul class="moto-sequence__colors is-locked" aria-label="Colores disponibles">
-              {apiModel.colors.slice(0, 6).map((color, index) => (
-                <li data-color-name={color.name} style={`--item-index: ${index}; --item-total: ${Math.min(apiModel?.colors?.length ?? 1, 6) - 1}`}>
-                  <span
-                    class:list={[
-                      'moto-sequence__color',
-                      index === 0 ? 'is-active' : '',
-                    ]}
-                    style={`--color-swatch: ${color.color || '#d8d8d8'}`}
-                  ></span>
-                  <span class="moto-sequence__color-name">{color.name}</span>
-                </li>
-              ))}
+              {colorImagesForClient.slice(0, 6).map((color, index) => {
+                const apiColor = apiModel?.colors?.find(
+                  (c) => c.name.trim().toLowerCase() === color.nombre.trim().toLowerCase()
+                );
+                return (
+                  <li data-color-name={color.nombre} style={`--item-index: ${index}; --item-total: ${Math.min(colorImagesForClient.length, 6) - 1}`}>
+                    <span
+                      class:list={[
+                        'moto-sequence__color',
+                        index === 0 ? 'is-active' : '',
+                      ]}
+                      style={`--color-swatch: ${apiColor?.color || '#d8d8d8'}`}
+                    ></span>
+                    <span class="moto-sequence__color-name">{color.nombre}</span>
+                  </li>
+                );
+              })}
             </ul>
           )}
 
-          {apiModel?.colors && apiModel.colors.length > 0 && (
+          {colorImagesForClient.length > 0 && (
             <select class="moto-sequence__color-select" aria-label="Seleccionar color">
-              {apiModel.colors.slice(0, 6).map((color, index) => (
-                <option value={index}>{color.name}</option>
+              {colorImagesForClient.slice(0, 6).map((color, index) => (
+                <option value={index}>{color.nombre}</option>
               ))}
             </select>
           )}
