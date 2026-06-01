@@ -999,6 +999,8 @@ function formatStatValue(value?: string | null, suffix?: string) {
   .moto-info {
     @apply relative overflow-hidden;
     background: var(--color-secondary-dark);
+    margin-top: -2px;
+    z-index: 1;
   }
 
   .moto-info__media,
@@ -1545,5 +1547,11 @@ function formatStatValue(value?: string | null, suffix?: string) {
     .moto-gallery__slide {
       padding: 1rem 5.5rem 1.5rem;
     }
+  }
+</style>
+
+<style is:global>
+  body {
+    background-color: var(--color-secondary-dark);
   }
 </style>
