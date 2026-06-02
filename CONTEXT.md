@@ -46,6 +46,9 @@ Archivo raiz `.env` y Cloudflare Pages:
 - `PROMOBILITY_API_SITE_ID`
 - `PROMOBILITY_API_ORIGIN`
 - `PROMOBILITY_API_TOKEN`
+- `PUBLIC_MAPBOX_TOKEN`
+- `PUBLIC_COTIZACION_API_BASE_URL`
+- `AUTOFIN_SIMULATION_TOKEN`
 
 Sanity Studio:
 - `SANITY_STUDIO_PROJECT_ID`
@@ -60,10 +63,13 @@ Sanity Studio:
 | `/` | Home | Conectado a Sanity + Promobility |
 | `/motos` | Catalogo de motos | Conectado a Sanity |
 | `/motos/[slug]` | Detalle de moto | Generacion estatica + mezcla Sanity/Promobility |
-| `/noticia` | Listado de noticias | Conectado a Sanity |
-| `/noticia/[slug]` | Noticia individual | Generacion estatica |
+| `/noticias` | Listado de noticias | Conectado a Sanity |
+| `/noticias/[slug]` | Noticia individual | Generacion estatica |
+| `/concesionarios` | Buscador de concesionarios | Sanity + Promobility locations API |
+| `/descubre-mas` | Pagina institucional | Sanity |
+| `/proteccion-de-datos` | Politica de privacidad | Sanity |
 
-Nota: la ruta antigua `/blog` fue reemplazada por `/noticia`.
+Nota: las rutas antiguas `/blog` y `/noticia` fueron reemplazadas por `/noticias`.
 
 ## Home actual
 
@@ -76,7 +82,7 @@ Nota: la ruta antigua `/blog` fue reemplazada por `/noticia`.
 | 5 | `MotosOferta` | Completo | Sanity + Promobility API |
 | 6 | `InstagramSection` | Completo temporal | Imagenes estaticas desde `public` |
 | 7 | `LatestNews` | Completo | Sanity |
-| 8 | `Footer` | Completo | Hardcoded por ahora |
+| 8 | `Footer` | Completo | Sanity + links hardcoded |
 
 ## Identidad visual y tipografia
 - La paleta vive en `src/styles/variables.css`.
@@ -92,7 +98,7 @@ Nota: la ruta antigua `/blog` fue reemplazada por `/noticia`.
 
 ### Header
 - Navegacion principal hardcoded.
-- La ruta de noticias apunta a `/noticia`.
+- La ruta de noticias apunta a `/noticias`.
 - Tiene gradiente vertical negro desde arriba.
 - En top de pagina se muestra transparente con linea inferior blanca.
 - Al hacer scroll mantiene fondo con blur y animacion de linea inferior.
@@ -104,6 +110,7 @@ Nota: la ruta antigua `/blog` fue reemplazada por `/noticia`.
   - Panel Modelos: desliza horizontalmente, muestra lista de motos con foto y nombre, boton volver.
   - Barra superior con logo oscuro y boton cerrar (X).
   - Bloquea el scroll del body mientras esta abierto.
+- El menu mobile de modelos usa `fotoHeader.mobileImage` cuando existe, con fallback a `fotoHeader`.
 - **Importante**: el `#mobile-menu` esta renderizado **fuera del `<header>`** en el DOM para evitar que `backdrop-filter` del header lo atrape como containing block (lo que romperia `position: fixed`).
 - Queries usadas: `motoNavQuery` (motos con `fotoHeader`).
 
@@ -119,12 +126,13 @@ Nota: la ruta antigua `/blog` fue reemplazada por `/noticia`.
   - titulo centrado, sin detalle
 - El alineamiento del boton se adapta automaticamente al estilo del slide.
 - Tiene animaciones de entrada y hover mejorado en botones rojos.
+- La version mobile del hero empieza en `max-width: 950px`, tanto para imagen como para layout.
 
 ### MotoSlider
 - Consulta motos desde Sanity usando `apiMotoId` e `imagenSliderHome`.
 - Cruza esos datos con Promobility para obtener nombre y precios.
 - La imagen del card viene desde Sanity.
-- `Cotizar` esta solo visual por ahora.
+- `Cotizar` abre el lightbox global `QuoteModal`.
 - `Ver modelo` apunta a `/motos/[slug]`.
 - Slider manual sin libreria externa.
 - Si `bono` es `0`, no muestra precio lista tachado.
@@ -187,7 +195,35 @@ Nota: la ruta antigua `/blog` fue reemplazada por `/noticia`.
   - extracto
   - categoria
   - imagen destacada para home
-- Los links apuntan a `/noticia/[slug]`.
+- Los links apuntan a `/noticias/[slug]`.
+
+### QuoteModal
+- Componente global en `src/components/layout/QuoteModal.astro`, incluido desde `BaseLayout`.
+- Se abre desde cualquier boton con `data-open-quote`.
+- Es un lightbox fullscreen que no tapa el header.
+- Al abrirse fuerza el header a estado claro mediante `header--quote-open`; al cerrar, restaura el estado previo.
+- Boton de cierre visual como `VOLVER` con flecha roja.
+- Flujo actual:
+  - Paso 1: seleccion de concesionario por region/comuna.
+  - Paso 2: datos personales.
+  - Paso 3: simulacion de financiamiento si el usuario marca financiamiento.
+  - Estado final: mensaje de exito con imagen de fondo desde `public/home/cotizacion/mensaje_de_exito.jpg.avif`.
+- La informacion de moto inicial llega por `data-quote-*` desde cards/listados/detalle.
+- El modelo y precio se consultan desde `/api/quote-model`.
+- El envio principal pasa por `/api/quote-submit` para mantener el token server-side.
+- El financiamiento pasa por `/api/quote-financing`.
+- Las imagenes de color se cruzan con Sanity (`colores[].imagen`) y se sirven desktop/mobile segun viewport.
+- El resumen `.qmod__summary` se muestra vertical entre `900px` y `1260px`, y tambien en mobile.
+
+### ConcesionariosModal
+- Componente global en `src/components/layout/ConcesionariosModal.astro`, incluido desde `BaseLayout`.
+- Se abre desde "Concesionarios mas cercanos" del header.
+- Usa Mapbox con `PUBLIC_MAPBOX_TOKEN`.
+- Las sucursales se cargan server-side durante build desde Promobility locations API.
+- Todos los pines quedan visibles aunque se seleccione una region.
+- Al seleccionar region, el mapa enfoca la region con bounds predefinidos.
+- Al hacer click en un pin, se abre una tarjeta con nombre, direccion, correo, telefono, horario y boton "Ver ruta".
+- El correo viene desde el campo `email` de la API, no desde `spider`.
 
 ### Footer
 - Completo.
@@ -196,6 +232,68 @@ Nota: la ruta antigua `/blog` fue reemplazada por `/noticia`.
 - Newsletter visual sin backend por ahora.
 - Lista social corregida semanticamente con `ul/li`.
 - Links del footer usan hover con subrayado animado, alineado visualmente con el header.
+- La columna "Nuestro mundo" se administra desde Sanity mediante `footerSettings`.
+- Cada link de "Nuestro mundo" permite definir si abre en la misma pestana o en una nueva.
+
+## Paginas internas generales
+
+### Catalogo `/motos`
+- Lista las motocicletas disponibles.
+- Combina motos de Sanity con datos comerciales de Promobility.
+- Usa la imagen `fotoHeader.mobileImage` para el listado cuando existe, por mejor calidad visual.
+- Botones:
+  - `Ver modelo` apunta a `/motos/[slug]`.
+  - `Cotizar` abre `QuoteModal`.
+- Las cards tienen sombra suave y no usan animacion de hover en la caja.
+
+### Concesionarios `/concesionarios`
+- La cabecera se administra desde Sanity con schema `concesionariosPage`.
+- Campos administrables:
+  - titulo
+  - titulo destacado
+  - descripcion
+  - servicios
+  - icono por servicio desde Sanity
+- Los concesionarios vienen desde Promobility locations API.
+- Filtros por region y comuna.
+- Antes de filtrar se muestra la intro con servicios; al filtrar se oculta con animacion.
+- Las tarjetas muestran direccion, correo (`email`), telefono, horario, tipos de servicio y boton "Ver ruta".
+- El bloque `.dealers-services` usa grilla de 3 columnas iguales para que el servicio central quede exactamente centrado en desktop.
+
+### Noticias `/noticias`
+- Listado de noticias conectado a Sanity.
+- Muestra hasta 9 noticias inicialmente.
+- Si existen mas, aparece el boton "Cargar mas noticias".
+- Usa tabs visuales por categoria.
+- Los links apuntan siempre a `/noticias/[slug]`.
+
+### Noticia individual `/noticias/[slug]`
+- Generacion estatica desde Sanity.
+- Hero con titulo y categoria.
+- Sanity define si se usa slider de imagenes o imagen destacada.
+- Si hay slider, se muestra como carrusel horizontal sin padding restringido al lado derecho.
+- Incluye botones de compartir: Facebook, Instagram/copy fallback y copiar link.
+- El cuerpo usa Portable Text con parrafos, titulos, listas, blockquotes e imagenes intermedias.
+- La galeria final es grid en desktop y slider en mobile.
+- Al tocar una foto de galeria, abre lightbox con el mismo estilo usado en la galeria de motos.
+- El titulo del lightbox usa el `alt` de la imagen.
+- La seccion "Mas noticias" muestra hasta 3 noticias relacionadas/aleatorias.
+
+### Descubre mas `/descubre-mas`
+- Pagina institucional administrable desde Sanity (`descubreMasPage`).
+- Campos administrables:
+  - titulo
+  - descripcion
+  - imagen de fondo desktop/mobile con alt
+  - texto inferior
+  - texto grande inferior
+  - texto y URL del boton
+- La imagen respeta su proporcion y tiene degradado final a negro.
+
+### Proteccion de datos `/proteccion-de-datos`
+- Pagina legal administrable desde Sanity (`proteccionDatosPage`).
+- El contenido usa Portable Text.
+- Tipografias basadas en variables globales de `src/styles/variables.css`.
 
 ## Interna de motos actual
 
@@ -225,7 +323,9 @@ Nota: la ruta antigua `/blog` fue reemplazada por `/noticia`.
 - Al seleccionar un color, se intercambia la imagen de la moto usando imagenes de Sanity (`colores[].imagen`) cruzadas por nombre con los colores de la API.
 
 ### Secciones editoriales de moto
-- `moto-info`: seccion de zona informativa con `height: 100dvh`. El contenido (`.moto-info__container`) esta centrado verticalmente con `height: 100%` y `items-center`.
+- `moto-info`: seccion de zona informativa con imagen de fondo desde Sanity.
+- `moto-info` tiene difuminado permanente en el costado derecho para asegurar lectura del texto sobre cualquier imagen.
+- En mobile, `moto-info` mantiene overlays adicionales para contraste.
 - `caracteristicasAdicionales` se renderiza con grilla de imagenes, titulo y detalle.
 - `fichaTecnica` se expone mediante boton hacia el PDF.
 - `zonaInformativa` se renderiza debajo de caracteristicas.
@@ -238,6 +338,7 @@ Nota: la ruta antigua `/blog` fue reemplazada por `/noticia`.
 - Efecto "pin & scrub": imagen se achica en perspectiva, titulo aparece desde abajo, luego emerge el boton CTA.
 - Tecnica: `view-timeline`, `animation-timeline`, `animation-range`, `position: sticky`.
 - Compatible con `@supports (animation-timeline: scroll())`. Si no soporta: version estatica. Con `prefers-reduced-motion`: estado final directo.
+- La entrada de "Conoce nuestros concesionarios" fue retrasada para que la imagen de la moto se pueda ver durante mas recorrido de scroll antes de la transicion.
 - **Guarda defensiva**: lanza error descriptivo si `imagenFondo.asset._ref` esta ausente, para detectar rapido cuando falta asignar imagen en el CMS.
 - En `[slug].astro` la condicion de render es `ctaFinal?.imagenFondo?.asset?._ref` (no basta con que el objeto exista).
 
@@ -266,6 +367,28 @@ La API devuelve datos como:
 - `bono`
 - `colors`
 
+Endpoint de sucursales:
+- `https://track.promobility.cl/api/locations/sucursales?id_web=6`
+- Usado por `/concesionarios`, `ConcesionariosModal` y `QuoteModal`.
+- Campos relevantes por sucursal:
+  - `id`
+  - `name`
+  - `address`
+  - `email`
+  - `spider`
+  - `phone`
+  - `hours`
+  - `latitude`
+  - `longitude`
+  - `service_types`
+  - `is_active`
+- Importante: el correo del concesionario viene en `email`; `spider` es un codigo interno y no debe mostrarse como correo.
+
+Endpoints internos del sitio:
+- `/api/quote-model`: obtiene datos de modelo para el cotizador.
+- `/api/quote-submit`: envia cotizacion usando token server-side.
+- `/api/quote-financing`: simula/envia datos de financiamiento.
+
 Importante:
 - El sitio hoy es estatico.
 - Si cambian precios o contenido en Sanity, se debe hacer redeploy en Cloudflare Pages para reflejarlo.
@@ -282,6 +405,10 @@ Importante:
 | `moto` | Reestructurado | Capa editorial para cruce con API + interna de motos |
 | `homeInfoSection` | Activo | InfoSection del home |
 | `oferta` | Activo | Ofertas del home |
+| `concesionariosPage` | Activo | Contenido administrable de `/concesionarios` |
+| `descubreMasPage` | Activo | Contenido administrable de `/descubre-mas` |
+| `proteccionDatosPage` | Activo | Contenido administrable de `/proteccion-de-datos` |
+| `footerSettings` | Activo | Links administrables del footer |
 
 ### Schema `post` / Noticias
 Campos obligatorios:
@@ -356,6 +483,8 @@ Exports principales:
 - `homeInfoSectionQuery`
 - `motoNavQuery` — motos con `fotoHeader` para el mega menu y menu mobile del header
 - `motosConFotoOfertaQuery` — motos con `fotoOferta`, fallback cuando no hay entradas en Home-Oferta
+- `concesionariosPageQuery` — contenido administrable de `/concesionarios`
+- Queries de paginas administrables segun schema: `descubreMasPage`, `proteccionDatosPage`, `footerSettings`
 
 ## Tipos TypeScript relevantes
 Archivo: `src/lib/types.ts`
@@ -378,8 +507,11 @@ Tipos importantes:
 - `HomeInfoSection`
 - `Oferta`
 - `HomeOffer`
+- `ConcesionariosPage`
+- `ConcesionariosPageService`
 
 ## Optimizaciones de rendimiento y SEO aplicadas
+- Meta description global actualizado en `BaseLayout` y el home con el texto institucional de Cyclone / Grupo Zonsen.
 - CSS pequeno inlineado con `inlineStylesheets: 'always'`.
 - Fuentes autohospedadas y preloaded desde `BaseLayout`.
 - Se eliminaron Google Fonts externos.
@@ -390,6 +522,8 @@ Tipos importantes:
 - Sliders manuales sin librerias externas.
 - `MotosOferta` usa `IntersectionObserver` para dots en mobile.
 - Promobility se consume en servidor durante build, no desde el cliente.
+- El cotizador usa endpoints internos para no exponer tokens sensibles en cliente.
+- Mapbox se carga en el lightbox de concesionarios y usa `PUBLIC_MAPBOX_TOKEN`.
 - Se corrigio la semantica ARIA del footer.
 - Fuentes servidas localmente para evitar bloqueo por Google Fonts.
 - Header con estado blur manejado en cliente sin librerias externas.
@@ -410,6 +544,9 @@ Variables necesarias:
 - `PROMOBILITY_API_SITE_ID`
 - `PROMOBILITY_API_ORIGIN`
 - `PROMOBILITY_API_TOKEN`
+- `PUBLIC_MAPBOX_TOKEN`
+- `PUBLIC_COTIZACION_API_BASE_URL`
+- `AUTOFIN_SIMULATION_TOKEN`
 
 ### Sanity Studio
 Para subir cambios de schema al Studio publicado:
@@ -424,19 +561,19 @@ npx sanity deploy
 - `src/components/home/` para secciones del home.
 - `src/components/motos/` para componentes de motos.
 - `src/components/ui/` para piezas reutilizables.
-- `src/pages/noticia/` para listado e interna de noticias.
+- `src/pages/noticias/` para listado e interna de noticias.
 - `src/lib/queries.ts` para GROQ.
 - `src/lib/types.ts` para tipos.
 - `src/lib/sanity.ts` para cliente Sanity.
 - `src/lib/promobility.ts` para integracion con API externa.
 
 ## Pendientes conocidos
-- Conectar `Cotizar` con flujo real.
 - Conectar `InstagramSection` con Meta API.
 - Seguir puliendo la interna de moto, especialmente detalles responsive y acabados del hero secuencial.
 - Evaluar webhook Sanity -> Cloudflare Pages para que los cambios editoriales disparen deploy automatico.
 - Revisar si conviene migrar a SSR para precios/contenido en tiempo real.
 - Asignar imagen de fondo CTA (`ctaFinal.imagenFondo`) en las motos que aun no la tienen en Sanity.
+- Evaluar code-splitting adicional para Mapbox, ya que el chunk sigue siendo pesado.
 
 ## Gotchas y decisiones tecnicas importantes
 
