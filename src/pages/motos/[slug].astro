@@ -56,6 +56,12 @@ const hasSequenceHero = sequenceFrames.length > 0;
 const initialFrame = sequenceFrames.at(-1);
 const modelName = apiModel?.modelo || moto.nombre;
 const showGiantName = moto.mostrarNombreGigante !== false;
+const heroBgDesktop = moto.heroImagenFondo?.asset?._ref
+  ? urlFor(moto.heroImagenFondo).width(1600).quality(86).auto('format').url()
+  : '/moto/hero.webp';
+const heroBgMobile = moto.heroImagenFondo?.asset?._ref
+  ? urlFor(moto.heroImagenFondo.mobileImage?.asset?._ref ? moto.heroImagenFondo.mobileImage : moto.heroImagenFondo).width(920).quality(82).auto('format').url()
+  : '/moto/hero-mobile.webp';
 const displayListPrice = normalizePrice(apiModel?.precio_lista);
 const displayBonusPrice = normalizePrice(apiModel?.precio);
 const heroIcons = moto.heroImagenes ?? [];
@@ -110,8 +116,8 @@ function formatStatValue(value?: string | null, suffix?: string) {
       <div class="moto-sequence__stage">
         <div class="moto-sequence__background" aria-hidden="true">
           <picture>
-            <source media="(max-width: 767px)" srcset="/moto/hero-mobile.webp"/>
-            <img class="moto-sequence__background-image" src="/moto/hero.webp" alt="" width="1600" height="950" loading="eager" decoding="async" fetchpriority="high"/>
+            <source media="(max-width: 767px)" srcset={heroBgMobile}/>
+            <img class="moto-sequence__background-image" src={heroBgDesktop} alt="" width="1600" height="950" loading="eager" decoding="async" fetchpriority="high"/>
           </picture>
           {showGiantName && <span class="moto-sequence__ghost">{modelName}</span>}
         </div>
@@ -1266,8 +1272,8 @@ function formatStatValue(value?: string | null, suffix?: string) {
     }
 
     .moto-sequence__colors li:nth-child(1),
-    .moto-sequence__colors li:nth-child(2),
-    .moto-sequence__colors li:nth-child(3),
+    . li:nth-child(2),
+    . li:nth-child(3),
     .moto-sequence__colors li:nth-child(4),
     .moto-sequence__colors li:nth-child(5),
     .moto-sequence__colors li:nth-child(6) {

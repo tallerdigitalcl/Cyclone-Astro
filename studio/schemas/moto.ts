@@ -128,6 +128,25 @@ export default defineType({
         Rule.length(13).error('Debes subir exactamente 13 imagenes para la secuencia de 0 a 30 grados.'),
     }),
     defineField({
+      name: 'heroImagenFondo',
+      title: 'Imagen de fondo Hero',
+      type: 'image',
+      description: '793x869px. Imagen de fondo que aparece detrás de la motocicleta en el hero de la moto.',
+      group: 'hero',
+      options: {
+        hotspot: true,
+        accept: 'image/webp,image/avif',
+      },
+      fields: [
+        createRequiredAltField({
+          title: 'Texto alternativo (SEO)',
+        }),
+        createMobileImageField({
+          description: '390x786px de ancho. Versión para dispositivos móviles.',
+        }),
+      ],
+    }),
+    defineField({
       name: 'heroImagenes',
       title: 'Hero iconos',
       type: 'array',

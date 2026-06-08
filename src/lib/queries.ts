@@ -193,6 +193,13 @@ export const motoBySlugQuery = `
         alt
       }
     },
+    heroImagenFondo {
+      ...,
+      mobileImage {
+        ...,
+        alt
+      }
+    },
     heroImagenes[]{
       ...,
       alt,
