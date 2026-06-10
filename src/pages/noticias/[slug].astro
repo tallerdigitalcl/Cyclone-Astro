@@ -74,7 +74,9 @@ const relatedPosts = allPosts
 const heroMode = post.heroDisplayMode || 'featured';
 const sliderImages = post.heroImages?.filter((image) => image.asset?._ref) || [];
 const useSlider = heroMode === 'slider' && sliderImages.length > 1;
-const featuredHeroImage = post.homeImage || sliderImages[0];
+const featuredHeroImage = (heroMode === 'slider' && sliderImages.length === 1)
+  ? sliderImages[0]
+  : post.homeImage || sliderImages[0];
 const socialImageUrl = featuredHeroImage ? urlFor(featuredHeroImage).width(1200).quality(88).auto('format').url() : undefined;
 const categoryLabel = post.category ? categoryLabels[post.category] || post.category : null;
 
