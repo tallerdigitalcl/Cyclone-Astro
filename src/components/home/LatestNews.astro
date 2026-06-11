@@ -111,7 +111,7 @@ const filters = [
                   <h3 class="latest-news__card-title fade-child fade-child--left fade-delay-3">
                     <a href={`/noticias/${post.slug}`}>{title}</a>
                   </h3>
-                  {post.excerpt && <p class="latest-news__excerpt fade-child fade-child--left fade-delay-3">{post.excerpt}</p>}
+                  {post.excerpt && <p class="latest-news__excerpt fade-child fade-child--left fade-delay-3">{post.excerpt.split(/\s+/).slice(0, 13).join(' ') + (post.excerpt.split(/\s+/).length > 14 ? '…' : '')}</p>}
                   <a href={`/noticias/${post.slug}`} class="latest-news__cta fade-child fade-child--zoom-in fade-delay-4">Leer mas</a>
                 </div>
               </article>
