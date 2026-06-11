@@ -226,12 +226,21 @@ const filters = [
     display: none;
   }
 
+  :global(.latest-news__slide:not(.is-hidden)) {
+    display: flex;
+    flex-direction: column;
+  }
+
   .latest-news__card {
     @apply bg-white text-text overflow-hidden;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
   }
 
   .latest-news__image-link {
     @apply block;
+    flex-shrink: 0;
   }
 
   .latest-news__image {

@@ -13,12 +13,14 @@ const categoryLabels: Record<string, string> = {
   nuevo: 'Nuevo',
 };
 
+const usedCategories = new Set(posts.map((p) => p.category).filter(Boolean));
+
 const filters = [
   { label: 'Todas', value: 'all' },
   { label: 'Tips', value: 'tips' },
   { label: 'Eventos', value: 'eventos' },
   { label: 'Nuevo', value: 'nuevo' },
-];
+].filter((f) => f.value === 'all' || usedCategories.has(f.value));
 
 const buildPostImage = (image?: SanityImage, title = 'Noticia Cyclone') => {
   if (!image?.asset?._ref) {

@@ -437,8 +437,18 @@ const bodyHTML = post.body
           return;
         }
 
-        if (shareType === 'instagram' && navigator.share) {
-          await navigator.share({ title: shareTitle, url: shareUrl });
+        if (shareType === 'instagram') {
+          if (navigator.share) {
+            try {
+              await navigator.share({ title: shareTitle, url: shareUrl });
+            } catch {
+              // user cancelled — no feedback needed
+            }
+          } else {
+            await copyToClipboard(shareUrl);
+            button.classList.add('is-copied');
+            window.setTimeout(() => button.classList.remove('is-copied'), 1400);
+          }
           return;
         }
 
@@ -725,6 +735,35 @@ const bodyHTML = post.body
   .post-detail__share-button svg {
     width: 1rem;
     height: 1rem;
+  }
+
+  .post-detail__share-button[data-share="copy"] {
+    position: relative;
+  }
+
+  .post-detail__share-button[data-share="copy"]::after {
+    content: 'Enlace copiado';
+    position: absolute;
+    bottom: calc(100% + 0.5rem);
+    left: 50%;
+    transform: translateX(-50%) translateY(0.3rem);
+    background: var(--color-text);
+    color: #ffffff;
+    font-family: var(--font-body);
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    white-space: nowrap;
+    padding: 0.3rem 0.65rem;
+    border-radius: 0.25rem;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 180ms ease, transform 180ms ease;
+  }
+
+  .post-detail__share-button[data-share="copy"].is-copied::after {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
   }
 
   .post-detail__content {
